@@ -1,0 +1,9 @@
+#! /bin/bash
+
+boost=/home/staff/ch
+moses=/home/staff/ch/moses-github
+arabica=/home/staff/ch/arabica-2010-November
+
+export CMAKE_PREFIX_PATH=$boost:$moses:$arabica
+cmake "$@"
+

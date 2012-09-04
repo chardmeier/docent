@@ -1,0 +1,59 @@
+<?xml version="1.0" ?>
+<docent>
+<random/>
+<state-generator>
+	<initial-state type="beam-search">
+		<p name="ini">/home/staff/ch/docdec/tests/large-wa.ini</p>
+	</initial-state>
+	<operation type="change-phrase-translation" weight=".8"/>
+	<operation type="swap-phrases" weight=".1">
+		<p name="swap-distance-decay">.5</p>
+	</operation>
+	<operation type="resegment" weight=".1">
+		<p name="phrase-resegmentation-decay">.1</p>
+	</operation>
+</state-generator>
+<search algorithm="simulated-annealing">
+	<p name="max-steps">1000000</p>
+	<p name="schedule">hill-climbing</p>
+	<p name="hill-climbing:max-rejected">100000</p>
+</search>
+<models>
+	<model type="geometric-distortion-model" id="d">
+		<p name="distortion-limit">6</p>
+	</model>
+	<model type="word-penalty" id="w"/>
+	<model type="oov-penalty" id="oov"/>
+	<model type="ngram-model" id="lm">
+		<p name="lm-file">/opt/nobackup/ch/WMT2011/en-fr/LM/news2011.tok.fr.lm.ken</p>
+	</model>
+	<model type="phrase-table" id="tm">
+		<p name="file">/opt/nobackup/ch/WMT2011/en-fr/training/ep_news_un/model/phrase-table.a-e</p>
+		<p name="load-alignments">true</p>
+	</model>
+	<model type="semantic-space-language-model" id="sslm">
+		<p name="sspace-file">/opt/nobackup/ch/metricsmatr/lsa/bilingual/nc10+epv6.doc-on-line.lc.nostop-noalpha.Een.lsa30.sspace</p>
+		<p name="moving-avg:order">30</p>
+		<p name="scorer-type">coshisto</p>
+		<p name="coshisto:histogram-file">/opt/nobackup/ch/lsalm/nc10-vectors/nc10.lsa30.order30.coshisto</p>
+		<p name="stop-word-model">/opt/nobackup/ch/lsalm/ep+nc.lc.stopmodel</p>
+		<p name="unknown-word-probability">1.8141e-08</p>
+		<p name="stop-word-probability">0.608484</p>
+		<p name="content-word-probability">0.39152</p>
+		<p name="lowercase">true</p>
+	</model>
+</models>
+<weights>
+	<weight model="d" score="0">0.0322211</weight>
+	<weight model="d" score="1">1e30</weight>
+	<weight model="w">-0.142976</weight>
+	<weight model="oov">100.0</weight>
+	<weight model="lm">0.0534587</weight>
+	<weight model="tm" score="0">0.03243</weight>
+	<weight model="tm" score="1">0.0279112</weight>
+	<weight model="tm" score="2">0.0355512</weight>
+	<weight model="tm" score="3">0.0332759</weight>
+	<weight model="tm" score="4">0.232572</weight>
+	<weight model="sslm">0.03</weight>
+</weights>
+</docent>

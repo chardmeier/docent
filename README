@@ -1,0 +1,213 @@
+DOCENT -- DOCUMENT-LEVEL LOCAL SEARCH DECODER FOR PHRASE-BASED SMT
+==================================================================
+Christian Hardmeier
+13 August 2012
+
+Docent is a decoder for phrase-based Statistical Machine Translation (SMT).
+Unlike most existing SMT decoders, it treats complete documents, rather than
+single sentences, as translation units and permits the inclusion of features
+with cross-sentence dependencies to facilitate the development of
+discourse-level models for SMT. Docent implements the local search decoding
+approach described by Hardmeier et al. (EMNLP 2012).
+
+If you publish something that uses or refers to this work, please cite the
+following paper:
+
+@inproceedings{Hardmeier:2012a,
+	Author = {Hardmeier, Christian and Nivre, Joakim and Tiedemann, J\"{o}rg},
+	Booktitle = {Proceedings of the 2012 Joint Conference on Empirical
+		Methods in Natural Language Processing and Computational Natural Language
+		Learning},
+	Month = {July},
+	Pages = {1179--1190},
+	Publisher = {Association for Computational Linguistics},
+	Title = {Document-Wide Decoding for Phrase-Based Statistical Machine Translation},
+	Address = {Jeju Island, Korea},
+	Year = {2012}}
+
+DOCENT LICENSE
+==============
+All code included in docent, except for the contents of the 'external'
+directory, is copyright 2012 by Christian Hardmeier. All rights reserved.
+
+Docent is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Docent is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Docent. If not, see <http://www.gnu.org/licenses/>.
+
+SNOWBALL STEMMER LICENSE
+========================
+Docent contains code from the Snowball stemmer library downloaded from
+http://snowball.tartarus.org/ (in external/libstemmer_c). This is what
+the Snowball stemmer website says about its license (as of 4 Sep 2012):
+
+"All the software given out on this Snowball site is covered by the BSD License
+(see http://www.opensource.org/licenses/bsd-license.html ), with Copyright (c)
+2001, Dr Martin Porter, and (for the Java developments) Copyright (c) 2002,
+Richard Boulton.
+
+Essentially, all this means is that you can do what you like with the code,
+except claim another Copyright for it, or claim that it is issued under a
+different license. The software is also issued without warranties, which means
+that if anyone suffers through its use, they cannot come back and sue you. You
+also have to alert anyone to whom you give the Snowball software to the fact
+that it is covered by the BSD license.
+
+We have not bothered to insert the licensing arrangement into the text of the
+Snowball software."
+
+BUILD INSTRUCTIONS
+==================
+Building docent can be a fairly complicated process because of its library
+dependencies and the fact that it links against Moses and shares some of its
+dependencies with it.
+
+1. Installing prerequisite components
+
+Download the following software components and build and install them into
+directories of your choice according to the build instructions provided with
+each package:
+
+- cmake (build system)
+	Version tested: 2.8.4
+	Source: http://www.cmake.org/
+
+	Make sure you have cmake in your PATH.
+
+- Arabica (XML parser)
+	Version tested: 2010-November
+	Source: http://www.jezuk.co.uk/cgi-bin/view/arabica/code
+
+	Arabica relies on the presence of a low-level XML parser such as expat.
+
+- Boost (C++ library)
+	Version tested: 1.48.0
+	Source: http://www.boost.org/
+
+	Watch out, many Linux boxes have old versions of boost lying around in
+	system-wide directories. Make sure that the build process picks up headers
+	and libraries from the same, reasonably recent version, and that Moses
+	gets built with the same Boost version as docent.
+
+- Moses (DP beam search decoder)
+	Version tested: eb4bd5c85d8c71e47f5d1473ae31196a51ee9f35
+	Source: https://github.com/moses-smt/mosesdecoder.git
+
+	All the libraries you link into Moses will have to be linked into docent
+	as well, so you should link as few libraries as possible. In particular,
+	it's best to build Moses without srilm and irstlm. Docdec will use the
+	copy of kenlm built into Moses for it's own n-gram language model.
+
+2. Installing Boost.Log
+
+The required library Boost.Log isn't currently an official part of Boost.
+Install it as follows:
+
+- Get Boost.Log from its SVN repository:
+    svn co https://boost-log.svn.sourceforge.net/svnroot/boost-log/trunk boost-log
+- Make symbolic links from the boost-log directory to the boost directory:
+    from $BOOST_LOG/boost-log/boost/log to $BOOST/boost/log
+    from $BOOST_LOG/boost-log/libs/log  to $BOOST/libs/log
+- In the regular boost directory, run
+    ./bootstrap.sh
+    ./bjam
+
+3. Building libstemmer
+
+Libstemmer must be built separately, which is very simple:
+
+- cd external/libstemmer_c
+- make
+
+4. Building docent
+
+Docdec can be built in a debuggable DEBUG and an optimised RELEASE
+configuration. You will probably need both of them.
+Start by editing the top-level configure script by adjusting the paths to boost,
+moses and Arabica to your setup.
+
+Then run (from the top directory):
+
+- mkdir DEBUG RELEASE
+- cd DEBUG
+- ../configure -DCMAKE_BUILD_TYPE=DEBUG ..
+- make
+- cd ../RELEASE
+- ../configure -DCMAKE_BUILD_TYPE=RELEASE ..
+- make
+
+If you're lucky, this will leave you with a number of executables in the DEBUG
+and RELEASE directories. If it fails, check whether all the required libraries
+are found. This is the most likely cause of error.
+
+USAGE
+=====
+1. File input formats
+
+Docdec accepts the NIST-XML and the MMAX formats for document input. Output is
+always produced in the NIST-XML format. MMAX input requires you to provide both
+a NIST-XML file and an MMAX directory, since the NIST-XML input file is used as
+a template for the output.
+NIST-XML output without MMAX can be used for models that process unannotated
+plain text input. MMAX input can be used to provide additional annotations, e.g.
+if the input has been annotated for coreference with a tool like BART
+(http://www.bart-coref.org/).
+
+2. Decoder configuration
+
+The decoder uses an XML configuration file format. There are two example
+configuration files in tests/config.
+The <random> tag specifies the initialisation of the random number generation.
+When it is empty (<random/>), a random seed value is generated and logged at the
+beginning of the decoder run. In order to rerun a specific sequence of
+operations (for debugging), a seed value can be provided as shown in one of the
+example configuration files.
+The only phrase table format currently supported is the binary phrase table
+format of moses (generated with processPhraseTable). Language models should be
+in KenLM's probing hash format (other formats supported by KenLM can potentially
+be used as well).
+
+3. Invoking the decoder
+
+There are three main docent binaries:
+
+docent		for decoding a corpus on a single machine without producing
+		intermediate output
+
+lcurve-docent	for producing learning curves
+
+mpi-docent	for decoding a corpus on an MPI cluster
+
+I recommend that you use lcurve-docent for experimentation.
+
+Usage: lcurve-docent {-n input.xml|-m input.mmaxdir input.xml} config.xml outputstem
+
+Use the -n or -m switch to provide NIST-XML input only or NIST-XML input
+combined with MMAX annotations, respectively.
+The file config.xml contains the decoder configuration.
+
+The decoder produces output files for the initial search state and intermediate
+states whenever the step number is equal to a power of two, starting at 256.
+Output files are named
+outstem.000000000.xml
+outstem.000000256.xml
+etc.
+
+4. Extending the decoder
+
+To implement new feature functions, start with one of the existing.
+SentenceParityModel.cpp contains a very simple proof-of-concept feature function that
+promotes length parity per document (i.e. all sentences in a document should
+consistently have either odd or even length).
+If you're planning to implement something more complex, NgramModel.cpp or
+SemanticSpaceLanguageModel.cpp may be good places to start.
+
+Good luck!
