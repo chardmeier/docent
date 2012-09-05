@@ -106,7 +106,7 @@ each package:
 
 	All the libraries you link into Moses will have to be linked into docent
 	as well, so you should link as few libraries as possible. In particular,
-	it's best to build Moses without srilm and irstlm. Docdec will use the
+	it's best to build Moses without srilm and irstlm. Docent will use the
 	copy of kenlm built into Moses for it's own n-gram language model.
 
 2. Installing Boost.Log
@@ -132,7 +132,7 @@ Libstemmer must be built separately, which is very simple:
 
 4. Building docent
 
-Docdec can be built in a debuggable DEBUG and an optimised RELEASE
+Docent can be built in a debuggable DEBUG and an optimised RELEASE
 configuration. You will probably need both of them.
 Start by editing the top-level configure script by adjusting the paths to boost,
 moses and Arabica to your setup.
@@ -155,7 +155,7 @@ USAGE
 =====
 1. File input formats
 
-Docdec accepts the NIST-XML and the MMAX formats for document input. Output is
+Docent accepts the NIST-XML and the MMAX formats for document input. Output is
 always produced in the NIST-XML format. MMAX input requires you to provide both
 a NIST-XML file and an MMAX directory, since the NIST-XML input file is used as
 a template for the output.
