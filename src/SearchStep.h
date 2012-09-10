@@ -30,14 +30,26 @@
 
 #include <vector>
 
-#include <boost/tuple/tuple.hpp>
-
 class AcceptanceDecision;
 class DecoderConfiguration;
 
 class SearchStep {
 public:
-	typedef boost::tuple<uint,uint,uint,PhraseSegmentation::const_iterator,PhraseSegmentation::const_iterator,PhraseSegmentation> Modification;
+	struct Modification {
+		uint sentno;
+		uint from;
+		uint to;
+		PhraseSegmentation::const_iterator from_it;
+		PhraseSegmentation::const_iterator to_it;
+		PhraseSegmentation proposal;
+
+		Modification(uint psentno, uint pfrom, uint pto,
+				PhraseSegmentation::const_iterator pfrom_it,
+				PhraseSegmentation::const_iterator pto_it,
+				const PhraseSegmentation &pproposal) :
+			sentno(psentno), from(pfrom), to(pto),
+			from_it(pfrom_it), to_it(pto_it), proposal(pproposal) {}
+	};
 	
 private:
 	mutable Logger logger_;
@@ -83,7 +95,7 @@ public:
 
 	void addModification(uint sentno, uint start, uint end,
 			PhraseSegmentation::const_iterator new1, PhraseSegmentation::const_iterator new2, const PhraseSegmentation &proposal) {
-		modifications_.push_back(boost::make_tuple(sentno, start, end, new1, new2, proposal));
+		modifications_.push_back(Modification(sentno, start, end, new1, new2, proposal));
 		modificationsConsolidated_ = false;
 	}
 	

@@ -205,9 +205,9 @@ FeatureFunction::StateModifications *NgramModel<M>::estimateScoreUpdate(const Do
 	BOOST_LOG_SEV(logger_, debug) << "NgramModel::estimateScoreUpdate";
 	while(it != mods.end()) {
 		BOOST_LOG_SEV(logger_, debug) << "next modification";
-		uint sentno = it->get<0>();
-		PhraseSegmentation::const_iterator from_it = it->get<3>();
-		PhraseSegmentation::const_iterator to_it = it->get<4>();
+		uint sentno = it->sentno;
+		PhraseSegmentation::const_iterator from_it = it->from_it;
+		PhraseSegmentation::const_iterator to_it = it->to_it;
 
 		const PhraseSegmentation &current = doc.getPhraseSegmentation(sentno);
 		uint clear_from = countTargetWords(current.begin(), from_it);
@@ -216,8 +216,8 @@ FeatureFunction::StateModifications *NgramModel<M>::estimateScoreUpdate(const Do
 
 		// don't clear further than to the start of the next modification
 		++it;
-		if(it != mods.end() && it->get<0>() == sentno) {
-			uint next_from = w_to + countTargetWords(to_it, it->get<3>());
+		if(it != mods.end() && it->sentno == sentno) {
+			uint next_from = w_to + countTargetWords(to_it, it->from_it);
 			if(next_from < clear_to)
 				clear_to = next_from;
 		}
@@ -252,10 +252,10 @@ FeatureFunction::StateModifications *NgramModel<M>::updateScore(const DocumentSt
 	const std::vector<SearchStep::Modification> &mods = step.getModifications();
 	std::vector<SearchStep::Modification>::const_iterator it1 = mods.begin();
 	while(it1 != mods.end()) {
-		uint sentno = it1->get<0>();
+		uint sentno = it1->sentno;
 		std::vector<SearchStep::Modification>::const_iterator it2 = it1;
 		while(++it2 != mods.end())
-			if(it2->get<0>() != sentno)
+			if(it2->sentno != sentno)
 				break;
 
 		const PhraseSegmentation &current = doc.getPhraseSegmentation(sentno);
@@ -265,7 +265,7 @@ FeatureFunction::StateModifications *NgramModel<M>::updateScore(const DocumentSt
 		sntstate.reserve(state.lmCache[sentno].size()); // an approximation
 
 		typename SentenceState_::const_iterator oldstate1 = state.lmCache[sentno].begin();
-		PhraseSegmentation::const_iterator next_from_it = it1->get<3>();
+		PhraseSegmentation::const_iterator next_from_it = it1->from_it;
 		typename SentenceState_::const_iterator oldstate2 = oldstate1 +
 			countTargetWords(current.begin(), next_from_it);
 		sntstate.insert(sntstate.end(), oldstate1, oldstate2);
@@ -283,16 +283,14 @@ FeatureFunction::StateModifications *NgramModel<M>::updateScore(const DocumentSt
 
 		for(std::vector<SearchStep::Modification>::const_iterator modit = it1; modit != it2; ++modit) {
 			BOOST_LOG_SEV(logger_, debug) << "next modification";
-			//uint from = modit->get<1>();
-			//uint to = modit->get<2>();
-			PhraseSegmentation::const_iterator from_it = modit->get<3>();
-			PhraseSegmentation::const_iterator to_it = modit->get<4>();
-			const PhraseSegmentation &proposal = modit->get<5>();
+			PhraseSegmentation::const_iterator from_it = modit->from_it;
+			PhraseSegmentation::const_iterator to_it = modit->to_it;
+			const PhraseSegmentation &proposal = modit->proposal;
 
 			bool last_mod_in_sentence;
 			if(modit + 1 != it2) {
 				last_mod_in_sentence = false;
-				next_from_it = (modit + 1)->get<3>();
+				next_from_it = (modit + 1)->from_it;
 			} else {
 				last_mod_in_sentence = true;
 				next_from_it = current.end();

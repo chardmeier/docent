@@ -146,13 +146,11 @@ void DocumentState::applyModifications(SearchStep *step) {
 
 	std::vector<SearchStep::Modification> &mods = step->getModifications();
 	for(std::vector<SearchStep::Modification>::iterator it = mods.begin(); it != mods.end(); ++it) {
-		uint sentno = it->get<0>();
+		uint sentno = it->sentno;
 		PhraseSegmentation &sent = sentences_[sentno];
-		//uint from = it->get<1>();
-		//uint to = it->get<2>();
-		PhraseSegmentation::const_iterator c_from_it = it->get<3>();
-		PhraseSegmentation::const_iterator c_to_it = it->get<4>();
-		PhraseSegmentation &proposal = it->get<5>();
+		PhraseSegmentation::const_iterator c_from_it = it->from_it;
+		PhraseSegmentation::const_iterator c_to_it = it->to_it;
+		PhraseSegmentation &proposal = it->proposal;
 
 		PhraseSegmentation::iterator from_it = sent.begin();
 		std::advance(from_it, std::distance<PhraseSegmentation::const_iterator>(from_it, c_from_it));

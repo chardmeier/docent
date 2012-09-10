@@ -396,12 +396,10 @@ FeatureFunction::StateModifications *SemanticSpaceLanguageModel::updateScore(con
 
 	BOOST_LOG_SEV(logger_, debug) << "Chain creation pass";
 	for(uint i = 0; i < mods.size(); i++) {
-		uint sentno = mods[i].get<0>();
-		//uint from = mods[i].get<1>();
-		//uint to = mods[i].get<2>();
-		PhraseSegmentation::const_iterator from_it = mods[i].get<3>();
-		PhraseSegmentation::const_iterator to_it = mods[i].get<4>();
-		const PhraseSegmentation &proposal = mods[i].get<5>();
+		uint sentno = mods[i].sentno;
+		PhraseSegmentation::const_iterator from_it = mods[i].from_it;
+		PhraseSegmentation::const_iterator to_it = mods[i].to_it;
+		const PhraseSegmentation &proposal = mods[i].proposal;
 
 		const PhraseSegmentation &current = doc.getPhraseSegmentation(sentno);
 
@@ -486,12 +484,9 @@ FeatureFunction::StateModifications *SemanticSpaceLanguageModel::updateScore(con
 	for(uint i = 0; i < mods.size(); i++) {
 		SSLMModificationState modstate;
 
-		uint sentno = mods[i].get<0>();
-		//uint from = mods[i].get<1>();
-		//uint to = mods[i].get<2>();
-		PhraseSegmentation::const_iterator from_it = mods[i].get<3>();
-		PhraseSegmentation::const_iterator to_it = mods[i].get<4>();
-		//const PhraseSegmentation &proposal = mods[i].get<5>();
+		uint sentno = mods[i].sentno;
+		PhraseSegmentation::const_iterator from_it = mods[i].from_it;
+		PhraseSegmentation::const_iterator to_it = mods[i].to_it;
 
 		BOOST_LOG_SEV(logger_, debug) << "next modification, starting at target word " <<
 			countTargetWords(doc.getPhraseSegmentation(sentno).begin(), from_it);
@@ -529,14 +524,14 @@ FeatureFunction::StateModifications *SemanticSpaceLanguageModel::updateScore(con
 	PieceIt modsemlist_begin(pieces.begin(), pieces.end());
 
 	while(it1 != mods.end()) {
-		uint sentno = it1->get<0>();
+		uint sentno = it1->sentno;
 		BOOST_LOG_SEV(logger_, debug) << "Starting in sentence " << sentno <<
 			", which has " <<
 			countTargetWords(doc.getPhraseSegmentation(sentno)) <<
 			" target words.";
 		std::vector<SearchStep::Modification>::const_iterator it2 = it1;
 		while(++it2 != mods.end())
-			if(it2->get<0>() != sentno)
+			if(it2->sentno != sentno)
 				break;
 
 		const PhraseSegmentation &current = doc.getPhraseSegmentation(sentno);
@@ -548,7 +543,7 @@ FeatureFunction::StateModifications *SemanticSpaceLanguageModel::updateScore(con
 		sntstate->reserve(state.wordcache[sentno].size()); // an approximation
 
 		SentenceState_::const_iterator oldstate1 = state.wordcache[sentno].begin();
-		PhraseSegmentation::const_iterator next_from_it = it1->get<3>();
+		PhraseSegmentation::const_iterator next_from_it = it1->from_it;
 		SentenceState_::const_iterator oldstate2 = oldstate1 +
 			countTargetWords(current.begin(), next_from_it);
 
@@ -557,12 +552,9 @@ FeatureFunction::StateModifications *SemanticSpaceLanguageModel::updateScore(con
 
 		for(std::vector<SearchStep::Modification>::const_iterator modit = it1; modit != it2;
 				++modit, ++modstateit, ++semmodit) {
-			uint sentno = modit->get<0>();
-			//uint from = modit->get<1>();
-			//uint to = modit->get<2>();
-			PhraseSegmentation::const_iterator from_it = modit->get<3>();
-			PhraseSegmentation::const_iterator to_it = modit->get<4>();
-			//const PhraseSegmentation &proposal = modit->get<5>();
+			uint sentno = modit->sentno;
+			PhraseSegmentation::const_iterator from_it = modit->from_it;
+			PhraseSegmentation::const_iterator to_it = modit->to_it;
 
 			BOOST_LOG_SEV(logger_, debug) << "next modification, starting at target word " <<
 				countTargetWords(doc.getPhraseSegmentation(sentno).begin(), from_it);
@@ -571,8 +563,8 @@ FeatureFunction::StateModifications *SemanticSpaceLanguageModel::updateScore(con
 			PhraseSegmentation::const_iterator local_next_from_it;
 			std::vector<SearchStep::Modification>::const_iterator nextmod = modit + 1;
 			if(nextmod != mods.end()) {
-				next_sentence = nextmod->get<0>();
-				next_from_it = (modit + 1)->get<3>();
+				next_sentence = nextmod->sentno;
+				next_from_it = (modit + 1)->from_it;
 				if(next_sentence == sentno)
 					local_next_from_it = next_from_it;
 				else

@@ -84,12 +84,10 @@ FeatureFunction::StateModifications *SentenceParityModel::estimateScoreUpdate(co
 
 	const std::vector<SearchStep::Modification> &mods = step.getModifications();
 	for(std::vector<SearchStep::Modification>::const_iterator it = mods.begin(); it != mods.end(); ++it) {
-		uint sentno = it->get<0>();
-		//uint from = it->get<1>();
-		//uint to = it->get<2>();
-		PhraseSegmentation::const_iterator from_it = it->get<3>();
-		PhraseSegmentation::const_iterator to_it = it->get<4>();
-		const PhraseSegmentation &proposal = it->get<5>();
+		uint sentno = it->sentno;
+		PhraseSegmentation::const_iterator from_it = it->from_it;
+		PhraseSegmentation::const_iterator to_it = it->to_it;
+		const PhraseSegmentation &proposal = it->proposal;
 		
 		using namespace boost::lambda;
 		std::for_each(from_it, to_it, s->outputLength[sentno] -= bind(counter, _1));

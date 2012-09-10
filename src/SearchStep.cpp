@@ -56,19 +56,19 @@ void SearchStep::consolidateModifications() const {
 	uint removed = 0;
 	std::vector<Modification>::iterator prev = modifications_.begin();
 	for(std::vector<Modification>::iterator it = prev + 1; it != modifications_.end(); prev = it, ++it) {
-		if(prev->get<0>() == it->get<0>() && prev->get<2>() == it->get<1>()) {
-			it->get<1>() = prev->get<1>(); // from
-			it->get<3>() = prev->get<3>(); // from_it
-			it->get<5>().splice(it->get<5>().begin(), prev->get<5>());
+		if(prev->sentno == it->sentno && prev->to == it->from) {
+			it->from = prev->from;
+			it->from_it = prev->from_it;
+			it->proposal.splice(it->proposal.begin(), prev->proposal);
 			
-			prev->get<0>() = std::numeric_limits<uint>::max();
+			prev->sentno = std::numeric_limits<uint>::max();
 			removed++;
 		}
 	}
 	
 	if(removed > 0) {
 		std::sort(modifications_.begin(), modifications_.end(), compareModifications);
-		modifications_.resize(modifications_.size() - removed);
+		modifications_.erase(modifications_.end() - removed, modifications_.end());
 	}
 
 	modificationsConsolidated_ = true;
@@ -76,11 +76,7 @@ void SearchStep::consolidateModifications() const {
 
 bool SearchStep::compareModifications(const Modification &a, const Modification &b) {
 	namespace t = boost::tuples;
-	uint sentno_a, from_a, to_a;
-	uint sentno_b, from_b, to_b;
-	t::tie(sentno_a, from_a, to_a, t::ignore, t::ignore, t::ignore) = a;
-	t::tie(sentno_b, from_b, to_b, t::ignore, t::ignore, t::ignore) = b;
-	return t::make_tuple(sentno_a, from_a, to_a) < t::make_tuple(sentno_b, from_b, to_b);
+	return t::make_tuple(a.sentno, a.from, a.to) < t::make_tuple(b.sentno, b.from, b.to);
 }
 
 void SearchStep::estimateScores() const {
