@@ -213,7 +213,7 @@ void processTestset(const std::string &configFile, Testset &testset, const std::
 
 		BOOST_FOREACH(SearchState *state, states)
 			delete state;
-	} catch(DocdecException &e) {
+	} catch(DocentException &e) {
 		std::cerr << boost::diagnostic_information(e);
 		abort();
 	}

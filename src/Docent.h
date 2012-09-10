@@ -129,10 +129,10 @@ inline std::size_t hash_value(const CoverageBitmap &bm) {
 
 /*** Exceptions ***/
 
-struct DocdecException : virtual std::exception, virtual boost::exception {};
-struct ConfigurationException : virtual DocdecException {};
+struct DocentException : virtual std::exception, virtual boost::exception {};
+struct ConfigurationException : virtual DocentException {};
 struct ParameterNotFoundException : virtual ConfigurationException {};
-struct FileFormatException : virtual DocdecException {};
+struct FileFormatException : virtual DocentException {};
 
 namespace err_info {
 	typedef boost::error_info<struct tag_Filename,std::string> Filename;
