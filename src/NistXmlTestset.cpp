@@ -37,18 +37,18 @@
 #include <XPath/XPath.hpp>
 
 NistXmlTestset::NistXmlTestset(const std::string &file)
-		: logger_(logkw::channel = "NistXmlTestset") {
+		: logger_("NistXmlTestset") {
 	Arabica::SAX2DOM::Parser<std::string> domParser;
 	Arabica::SAX::InputSource<std::string> is(file);
 	Arabica::SAX::CatchErrorHandler<std::string> errh;
 	domParser.setErrorHandler(errh);
 	domParser.parse(is);
 	if(errh.errorsReported())
-		BOOST_LOG_SEV(logger_, error) << errh.errors();
+		LOG(logger_, error) << errh.errors();
 
 	Arabica::DOM::Document<std::string> doc = domParser.getDocument();
 	if(doc == 0) {
-		BOOST_LOG_SEV(logger_, error) << "Error parsing input file: " << file;
+		LOG(logger_, error) << "Error parsing input file: " << file;
 		exit(1);
 	}
 

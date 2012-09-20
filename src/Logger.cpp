@@ -1,5 +1,5 @@
 /*
- *  Random.cpp
+ *  Logger.cpp
  *
  *  Copyright 2012 by Christian Hardmeier. All rights reserved.
  *
@@ -20,41 +20,18 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Random.h"
+#include "Logger.h"
 
-#include <cstdio>
+Logger::ConfigurationMap_ Logger::configuration_;
 
-void Random::seed() {
-	FILE *urandom = std::fopen("/dev/urandom", "rb");
-	if(!urandom)
-		goto time_seed;
-
-	uint seed;
-	
-	if(std::fread(&seed, sizeof(uint), 1, urandom) != 1)
-		goto time_seed;
-	
-	std::fclose(urandom);
-	impl_->seed(seed);
-	return;
-
-time_seed:
-	if(urandom)
-		std::fclose(urandom);
-	
-	impl_->seed(static_cast<uint>(std::time(0)));
+Logger::Logger(const std::string &channel) {
+	ConfigurationMap_::const_iterator it = configuration_.find(channel);
+	if(it == configuration_.end())
+		level_ = normal;
+	else
+		level_ = it->second;
 }
 
-void Random::seed(uint seed) {
-	impl_->seed(seed);
+void Logger::setLogLevel(const std::string &channel, LogLevel level) {
+	configuration_[channel] = level;
 }
-
-RandomImplementation::RandomImplementation() :
-	logger_("RandomImplementation"),
-	generator_(), uintGenerator_(generator_, boost::uniform_int<uint>()) {}
-	
-void RandomImplementation::seed(uint seed) {
-	generator_.seed(seed);
-	LOG(logger_, normal) << "Random number generator seed: " << seed;
-}
-

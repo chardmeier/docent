@@ -76,34 +76,7 @@ public:
 	void translate();
 };
 
-Logger DocumentDecoder::logger_(logkw::channel = "DocumentDecoder");
-
-class LogFilter : public std::unary_function<const boost::log::attribute_values_view &,bool> {
-private:
-	typedef boost::unordered_map<std::string,LogLevel> ChannelMapType_;
-	ChannelMapType_ channelMap_;
-	LogLevel defaultLevel_;
-
-public:
-	LogFilter() : defaultLevel_(normal) {}
-
-	void setDefaultLevel(LogLevel deflt) {
-		defaultLevel_ = deflt;
-	}
-
-	LogLevel &operator[](const std::string &channel) {
-		return channelMap_[channel];
-	}
-
-	bool operator()(const boost::log::attribute_values_view &attrs) const {
-		LogLevel level = *attrs["Severity"].extract<LogLevel>();
-		ChannelMapType_::const_iterator it = channelMap_.find(*attrs["Channel"].extract<std::string>());
-		if(it == channelMap_.end())
-			return level >= defaultLevel_;
-		else
-			return level >= it->second;
-	}
-};
+Logger DocumentDecoder::logger_("DocumentDecoder");
 
 int main(int argc, char **argv) {
 	int prov;
@@ -111,13 +84,6 @@ int main(int argc, char **argv) {
 	std::cerr << "MPI implementation provides thread level " << prov << std::endl;
 
 	boost::mpi::communicator world;
-
-	LogFilter logFilter;
-	//logFilter["WordSpaceCohesionModel"] = debug;
-	logFilter["DocumentDecoder"] = debug;
-
-	boost::log::init_log_to_console()->set_filter(boost::log::filters::wrap(logFilter));
-	boost::log::add_common_attributes();
 
 	if(argc != 3) {
 		std::cerr << "Usage: docent config.xml input.xml" << std::endl;
@@ -160,7 +126,7 @@ void DocumentDecoder::manageTranslators(boost::mpi::communicator comm, NistXmlTe
 	NistXmlTestset::const_iterator it = testset.begin();
 	uint docno = 0;
 	for(int i = 0; i < comm.size() && it != testset.end(); ++i, ++docno, ++it) {
-		BOOST_LOG_SEV(logger_, debug) << "S: Sending document " << docno << " to translator " << i;
+		LOG(logger_, debug) << "S: Sending document " << docno << " to translator " << i;
 		comm.send(i, TAG_TRANSLATE, std::make_pair(docno, *(*it)->asMMAXDocument()));
 	}
 
@@ -168,7 +134,7 @@ void DocumentDecoder::manageTranslators(boost::mpi::communicator comm, NistXmlTe
 		std::pair<mpi::status, mpi::request *> wstat = mpi::wait_any(reqs, reqs + 2);
 		if(wstat.first.tag() == TAG_STOP_COLLECTING) {
 			stopped++;
-			BOOST_LOG_SEV(logger_, debug) << "C: Received STOP_COLLECTING from translator "
+			LOG(logger_, debug) << "C: Received STOP_COLLECTING from translator "
 				<< wstat.first.source() << ", now " << stopped << " stopped translators.";
 			if(stopped == comm.size()) {
 				reqs[0].cancel();
@@ -176,17 +142,17 @@ void DocumentDecoder::manageTranslators(boost::mpi::communicator comm, NistXmlTe
 			}
 			*wstat.second = comm.irecv(mpi::any_source, TAG_STOP_COLLECTING);
 		} else {
-			BOOST_LOG_SEV(logger_, debug) << "C: Received translation of document " <<
+			LOG(logger_, debug) << "C: Received translation of document " <<
 				translation.first << " from translator " << wstat.first.source();
 			reqs[0] = comm.irecv(mpi::any_source, TAG_COLLECT, translation);
 			if(it != testset.end()) {
-				BOOST_LOG_SEV(logger_, debug) << "S: Sending document " << docno <<
+				LOG(logger_, debug) << "S: Sending document " << docno <<
 					" to translator " << wstat.first.source();
 				comm.send(wstat.first.source(), TAG_TRANSLATE,
 					std::make_pair(docno, *(*it)->asMMAXDocument()));
 				++docno; ++it;
 			} else {
-				BOOST_LOG_SEV(logger_, debug) <<
+				LOG(logger_, debug) <<
 					"S: Sending STOP_TRANSLATING to translator " << wstat.first.source();
 				comm.send(wstat.first.source(), TAG_STOP_TRANSLATING);
 			}
@@ -205,16 +171,16 @@ void DocumentDecoder::translate() {
 		reqs[0] = communicator_.irecv(0, TAG_TRANSLATE, input);
 		std::pair<mpi::status, mpi::request *> wstat = mpi::wait_any(reqs, reqs + 2);
 		if(wstat.first.tag() == TAG_STOP_TRANSLATING) {
-			BOOST_LOG_SEV(logger_, debug) << "T: Received STOP_TRANSLATING.";
+			LOG(logger_, debug) << "T: Received STOP_TRANSLATING.";
 			reqs[0].cancel();
 			communicator_.send(0, TAG_STOP_COLLECTING);
 			return;
 		} else {
 			NumberedOutputDocument output;
-			BOOST_LOG_SEV(logger_, debug) << "T: Received document " << input.first << " for translation.";
+			LOG(logger_, debug) << "T: Received document " << input.first << " for translation.";
 			output.first = input.first;
 			output.second = runDecoder(input.second);
-			BOOST_LOG_SEV(logger_, debug) << "T: Sending translation of document " << input.first << " to collector.";
+			LOG(logger_, debug) << "T: Sending translation of document " << input.first << " to collector.";
 			communicator_.send(0, TAG_COLLECT, output);
 		}
 	}

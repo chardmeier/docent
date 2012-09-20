@@ -34,6 +34,7 @@
 #include <boost/serialization/shared_ptr.hpp>
 #include <boost/serialization/utility.hpp>
 #include <boost/serialization/vector.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/unordered_map.hpp>
 
 class Markable {
@@ -120,7 +121,7 @@ private:
 		ar & BOOST_SERIALIZATION_NVP(name_);
 		ar & BOOST_SERIALIZATION_NVP(markables_);
 	}
-	MarkableLevel() {} // for unpacking
+	MarkableLevel() : logger_("MarkableLevel") {} // for unpacking
 
 public:
 	typedef MarkableVector_::const_iterator const_iterator;

@@ -1,5 +1,5 @@
 /*
- *  Random.cpp
+ *  Logger.h
  *
  *  Copyright 2012 by Christian Hardmeier. All rights reserved.
  *
@@ -20,41 +20,46 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Random.h"
+#ifndef docent_Logger_h
+#define docent_Logger_h
 
-#include <cstdio>
+#include "Docent.h"
 
-void Random::seed() {
-	FILE *urandom = std::fopen("/dev/urandom", "rb");
-	if(!urandom)
-		goto time_seed;
+#include <iostream>
 
-	uint seed;
-	
-	if(std::fread(&seed, sizeof(uint), 1, urandom) != 1)
-		goto time_seed;
-	
-	std::fclose(urandom);
-	impl_->seed(seed);
-	return;
+#include <boost/unordered_map.hpp>
 
-time_seed:
-	if(urandom)
-		std::fclose(urandom);
-	
-	impl_->seed(static_cast<uint>(std::time(0)));
-}
+enum LogLevel {
+	debug,
+	verbose,
+	normal,
+	error
+};
 
-void Random::seed(uint seed) {
-	impl_->seed(seed);
-}
+class Logger {
+private:
+	typedef boost::unordered_map<std::string,LogLevel> ConfigurationMap_;
+	static ConfigurationMap_ configuration_;
 
-RandomImplementation::RandomImplementation() :
-	logger_("RandomImplementation"),
-	generator_(), uintGenerator_(generator_, boost::uniform_int<uint>()) {}
-	
-void RandomImplementation::seed(uint seed) {
-	generator_.seed(seed);
-	LOG(logger_, normal) << "Random number generator seed: " << seed;
-}
+	LogLevel level_;
 
+public:
+	static void setLogLevel(const std::string &channel, LogLevel level);
+
+	Logger(const std::string &channel);
+
+	bool loggable(LogLevel l) const {
+		return l >= level_;
+	}
+
+	std::ostream &getLogStream() const {
+		return std::cerr;
+	}
+};
+
+// beware of double evaluation in the following macro
+#define LOG(logger, level) \
+	for(bool flagInLoggerMacro = (logger).loggable(level); flagInLoggerMacro; flagInLoggerMacro = false) \
+		(logger).getLogStream()
+
+#endif

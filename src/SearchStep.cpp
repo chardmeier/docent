@@ -35,7 +35,7 @@
 #include <boost/tuple/tuple_comparison.hpp>
 
 SearchStep::SearchStep(const StateOperation *op, const DocumentState &doc, const std::vector<FeatureFunction::State *> &featureStates)
-		: logger_(logkw::channel = "SearchStep"),
+		: logger_("SearchStep"),
 		  document_(doc), generation_(doc.getGeneration()), featureStates_(featureStates),
 		  configuration_(*doc.getDecoderConfiguration()),
 		  stateModifications_(configuration_.getFeatureFunctions().size()), operation_(op),

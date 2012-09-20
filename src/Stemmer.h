@@ -40,8 +40,8 @@ public:
 	Stemmer(const std::string &algorithm, const std::string &encoding) {
 		stemmer_ = sb_stemmer_new(algorithm.c_str(), encoding.c_str());
 		if(stemmer_ == NULL) {
-			Logger log(logkw::channel = "Stemmer");
-			BOOST_LOG_SEV(log, error) << "Unable to create " << algorithm <<
+			Logger log("Stemmer");
+			LOG(log, error) << "Unable to create " << algorithm <<
 				" stemmer for encoding " << encoding;
 			exit(1);
 		}

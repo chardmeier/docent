@@ -92,8 +92,8 @@ SemanticSpaceImplementation<WV> *SemanticSpaceImplementation<WV>::load(const std
 	else if(std::equal(hdr, hdr + 4, "\000s\0000"))
 		space = SemanticSpaceImplementation<WV>::loadDenseText(is);
 	else {
-		Logger logger(logkw::channel = "SemanticSpace");
-		BOOST_LOG_SEV(logger, error) << file << ": Unknown sspace file format.";
+		Logger logger("SemanticSpace");
+		LOG(logger, error) << file << ": Unknown sspace file format.";
 		exit(1);
 	}
 

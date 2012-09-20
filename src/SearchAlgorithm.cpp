@@ -35,8 +35,8 @@ SearchAlgorithm *SearchAlgorithm::createSearchAlgorithm(const std::string &algo,
 	//else if(algo == "metropolis-hastings-sampler")
 	//	return new MetropolisHastingsSampler(config, params);
 	else {
-		Logger logger(logkw::channel = "DecoderConfiguration");
-		BOOST_LOG_SEV(logger, error) << "Unknown search algorithm: " << algo;
+		Logger logger("DecoderConfiguration");
+		LOG(logger, error) << "Unknown search algorithm: " << algo;
 		exit(1);
 	}
 }

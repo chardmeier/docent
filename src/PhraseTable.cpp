@@ -42,7 +42,7 @@
 #include <iterator>
 
 PhraseTable::PhraseTable(const Parameters &params, Random random) :
-		logger_(logkw::channel = "PhraseTable"), random_(random) {
+		logger_("PhraseTable"), random_(random) {
 	filename_ = params.get<std::string>("file");
 	nscores_ = params.get<uint>("nscores", 5);
 	maxPhraseLength_ = params.get<uint>("max-phrase-length", 7);
@@ -107,7 +107,7 @@ FeatureFunction::StateModifications *PhraseTable::updateScore(const DocumentStat
 
 boost::shared_ptr<const PhrasePairCollection> PhraseTable::getPhrasesForSentence(const std::vector<Word> &sentence) const {
 	using namespace boost::lambda;
-	BOOST_LOG_SEV(logger_, verbose) << "getPhrasesForSentence " << sentence;
+	LOG(logger_, verbose) << "getPhrasesForSentence " << sentence;
 	boost::shared_ptr<PhrasePairCollection> ptc(new PhrasePairCollection(*this, sentence.size(), random_));	
 	CoverageBitmap cov(sentence.size());
 
@@ -147,13 +147,13 @@ boost::shared_ptr<const PhrasePairCollection> PhraseTable::getPhrasesForSentence
 				for(uint i = 0; i < it->first.size(); i++) {
 					std::istringstream is(*it->first[i]);
 					if(!getline(is, tgtphrase[i], '|')) {
-						BOOST_LOG_SEV(logger_, error) << "Problem parsing target phrase: "
+						LOG(logger_, error) << "Problem parsing target phrase: "
 							<< *it->first[i];
 						BOOST_THROW_EXCEPTION(FileFormatException());
 					}
 					for(uint j = 0; j < annotationCount_; j++)
 						if(!getline(is, annotations[j][i], '|')) {
-							BOOST_LOG_SEV(logger_, error) << "Problem parsing target phrase: "
+							LOG(logger_, error) << "Problem parsing target phrase: "
 								<< *it->first[i];
 							BOOST_THROW_EXCEPTION(FileFormatException());
 						}

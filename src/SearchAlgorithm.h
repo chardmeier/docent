@@ -46,11 +46,11 @@ private:
 
 public:
 	AcceptanceDecision(Float threshold)
-		: logger_(logkw::channel = "AcceptanceDecision"),
+		: logger_("AcceptanceDecision"),
 		  threshold_(threshold), d_(0), T_(0), oldScore_(0) {}
 
 	AcceptanceDecision(Random rnd, Float T, Float oldScore)
-		: logger_(logkw::channel = "AcceptanceDecision") {
+		: logger_("AcceptanceDecision") {
 		// compute acceptance threshold for acceptance with probability exp((old - new) / T)
 		Float d = rnd.draw01();
 		threshold_ = T * log(d) + oldScore;
@@ -61,14 +61,14 @@ public:
 	}
 
 	bool operator()(Float newScore) const {
-		BOOST_LOG_SEV(logger_, debug) << "new:                  " << newScore;
-		BOOST_LOG_SEV(logger_, debug) << "old:                  " << oldScore_;
-		BOOST_LOG_SEV(logger_, debug) << "threshold:            " << threshold_;
-		BOOST_LOG_SEV(logger_, debug) << "T:                    " << T_;
-		BOOST_LOG_SEV(logger_, debug) << "d:                    " << d_;
-		BOOST_LOG_SEV(logger_, debug) << "exp((new - old) / T): " << exp(-(oldScore_ - newScore) / T_);
-		BOOST_LOG_SEV(logger_, debug) << "should accept:        " << (exp(-(oldScore_ - newScore) / T_) >= d_);
-		BOOST_LOG_SEV(logger_, debug) << "will accept:          " << (newScore > threshold_);
+		LOG(logger_, debug) << "new:                  " << newScore;
+		LOG(logger_, debug) << "old:                  " << oldScore_;
+		LOG(logger_, debug) << "threshold:            " << threshold_;
+		LOG(logger_, debug) << "T:                    " << T_;
+		LOG(logger_, debug) << "d:                    " << d_;
+		LOG(logger_, debug) << "exp((new - old) / T): " << exp(-(oldScore_ - newScore) / T_);
+		LOG(logger_, debug) << "should accept:        " << (exp(-(oldScore_ - newScore) / T_) >= d_);
+		LOG(logger_, debug) << "will accept:          " << (newScore > threshold_);
 		return newScore > threshold_;
 	}
 };

@@ -50,7 +50,7 @@ CoolingSchedule *CoolingSchedule::createCoolingSchedule(const Parameters &params
 }
 
 AartsLaarhovenSchedule::AartsLaarhovenSchedule(const Parameters &params)
-	: logger_(logkw::channel = "AartsLaarhovenSchedule"),
+	: logger_("AartsLaarhovenSchedule"),
 	  m1_(0), m2_(0), scoreDecrease_(.0), stepsInChain_(0),
 	  lastScore_(-std::numeric_limits<Float>::infinity()),
 	  temperature_(50) {
@@ -74,16 +74,15 @@ bool AartsLaarhovenSchedule::isDone() const {
 	if(!muBuffer_.full())
 		return false;
 
-	BOOST_LOG_SEV(logger_, debug) << "isDone: T = " << temperature_ <<
+	LOG(logger_, debug) << "isDone: T = " << temperature_ <<
 		"; mu1 = " << mu1_ << "; Tlast = " << lastTemperature_;
-	boost::log::record rec = logger_.open_record();
-	if(rec) {
-		boost::log::record_ostream logstr(rec);
-		std::copy(muBuffer_.begin(), muBuffer_.end(), std::ostream_iterator<Float>(logstr, " "));
-		logger_.push_record(logstr.record());
-	}
+
+	if(logger_.loggable(debug))
+		std::copy(muBuffer_.begin(), muBuffer_.end(),
+			std::ostream_iterator<Float>(logger_.getLogStream(), " "));
+
 	Float q = temperature_ / mu1_ * ((muBuffer_.front() - muBuffer_.back()) / (muBuffer_.size() - 1)) / (lastTemperature_ - temperature_);
-	BOOST_LOG_SEV(logger_, debug) << "q = " << q;
+	LOG(logger_, debug) << "q = " << q;
 	return q < epsilon_;
 }
 
@@ -96,7 +95,7 @@ void AartsLaarhovenSchedule::step(Float score, bool accept) {
 		if(++stepsInChain_ == chainLength_)
 			startNextChain();
 	}
-	BOOST_LOG_SEV(logger_, debug) << "T:  " << temperature_;
+	LOG(logger_, debug) << "T:  " << temperature_;
 }
 
 void AartsLaarhovenSchedule::adaptInitialTemperature(Float score) {
@@ -117,24 +116,22 @@ void AartsLaarhovenSchedule::adaptInitialTemperature(Float score) {
 		temperature_ = (scoreDecrease_ / m2_) / log(m2_ / logdenom);
 		initSteps_--;
 	} else {
-		BOOST_LOG_SEV(logger_, debug) << "Hardwiring temperature to 100 (m1 = " << m1_ <<
+		LOG(logger_, debug) << "Hardwiring temperature to 100 (m1 = " << m1_ <<
 			", m2 = " << m2_ << ")";
 		temperature_ = 100;
 	}
 	
-	BOOST_LOG_SEV(logger_, debug) << "adaptInitialTemperature: m1: " << m1_ <<
+	LOG(logger_, debug) << "adaptInitialTemperature: m1: " << m1_ <<
 		"; m2: " << m2_;
 }
 
 void AartsLaarhovenSchedule::startNextChain() {
 	using namespace boost::lambda;
-	BOOST_LOG_SEV(logger_, debug) << "chainScores:";
-	boost::log::record rec = logger_.open_record();
-	if(rec) {
-		boost::log::record_ostream logstr(rec);
-		std::copy(chainCosts_.begin(), chainCosts_.end(), std::ostream_iterator<Float>(logstr, " "));
-		logger_.push_record(logstr.record());
-	}
+	LOG(logger_, debug) << "chainScores:";
+	if(logger_.loggable(debug))
+		std::copy(chainCosts_.begin(), chainCosts_.end(),
+			std::ostream_iterator<Float>(logger_.getLogStream(), " "));
+
 	Float mu = std::accumulate(chainCosts_.begin(), chainCosts_.end(), static_cast<Float>(0)) / chainCosts_.size();
 	Float sigma_sq = std::accumulate(chainCosts_.begin(), chainCosts_.end(), static_cast<Float>(0), _1 + (_2 - mu) * (_2 - mu)) / chainCosts_.size();
 	lastTemperature_ = temperature_;

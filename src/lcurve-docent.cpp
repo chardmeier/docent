@@ -54,39 +54,10 @@ void usage();
 template<class Testset>
 void processTestset(const std::string &configFile, Testset &testset, const std::string &outstem, bool dumpStates);
 
-class LogFilter : public std::unary_function<const boost::log::attribute_values_view &,bool> {
-private:
-	typedef boost::unordered_map<std::string,LogLevel> ChannelMapType_;
-	ChannelMapType_ channelMap_;
-	LogLevel defaultLevel_;
-
-public:
-	LogFilter() : defaultLevel_(normal) {}
-
-	void setDefaultLevel(LogLevel deflt) {
-		defaultLevel_ = deflt;
-	}
-
-	LogLevel &operator[](const std::string &channel) {
-		return channelMap_[channel];
-	}
-
-	bool operator()(const boost::log::attribute_values_view &attrs) const {
-		LogLevel level = *attrs["Severity"].extract<LogLevel>();
-		ChannelMapType_::const_iterator it = channelMap_.find(*attrs["Channel"].extract<std::string>());
-		if(it == channelMap_.end())
-			return level >= defaultLevel_;
-		else
-			return level >= it->second;
-	}
-};
-
 int main(int argc, char **argv) {
 	std::vector<std::string> args;
 	std::string mmax, nistxml;
 	bool dumpstates = false;
-
-	LogFilter logFilter;
 
 	for(int i = 1; i < argc; i++) {
 		if(strcmp(argv[i], "-m") == 0) {
@@ -99,15 +70,12 @@ int main(int argc, char **argv) {
 				usage();
 			nistxml = argv[++i];
 		} else if(strcmp(argv[i], "-d") == 0) {
-			logFilter[argv[++i]] = debug;
+			Logger::setLogLevel(argv[++i], debug);
 		} else if(strcmp(argv[i], "--dumpstates") == 0)
 			dumpstates = true;
 		else
 			args.push_back(argv[i]);
 	}
-
-	boost::log::init_log_to_console()->set_filter(boost::log::filters::wrap(logFilter));
-	boost::log::add_common_attributes();
 
 	if(nistxml.empty() || args.size() != 2)
 		usage();

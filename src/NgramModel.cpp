@@ -96,7 +96,7 @@ FeatureFunction *NgramModelFactory::createNgramModel(const Parameters &params) {
 
 	std::string smtype = params.get<std::string>("model-type", "");
 
-	Logger logger(logkw::channel = "NgramModel");
+	Logger logger("NgramModel");
 
 	if(!lm::ngram::RecognizeBinary(file.c_str(), mtype)) {
 		if(smtype.empty() || smtype == "hash-probing")
@@ -108,7 +108,7 @@ FeatureFunction *NgramModelFactory::createNgramModel(const Parameters &params) {
 		//else if(smtype == "quant-trie-sorted")
 			//mtype = lm::ngram::QUANT_TRIE_SORTED;
 		else {
-			BOOST_LOG_SEV(logger, error) << "Unsupported LM type " << smtype <<
+			LOG(logger, error) << "Unsupported LM type " << smtype <<
 				" for file " << file;
 		}
 	}
@@ -116,25 +116,25 @@ FeatureFunction *NgramModelFactory::createNgramModel(const Parameters &params) {
 	switch(mtype) {
 	case lm::ngram::HASH_PROBING:
 		if(!smtype.empty() && smtype != "hash-probing")
-			BOOST_LOG_SEV(logger, error) << "Incorrect LM type in configuration "
+			LOG(logger, error) << "Incorrect LM type in configuration "
 				"for file " << file;
 
 		return new NgramModel<lm::ngram::ProbingModel>(file);
 	case lm::ngram::TRIE_SORTED:
 		if(!smtype.empty() && smtype != "trie-sorted")
-			BOOST_LOG_SEV(logger, error) << "Incorrect LM type in configuration "
+			LOG(logger, error) << "Incorrect LM type in configuration "
 				"for file " << file;
 		return new NgramModel<lm::ngram::TrieModel>(file);
 /*
 	case lm::ngram::QUANT_TRIE_SORTED:
 		if(!smtype.empty() && smtype != "quant-trie-sorted")
-			BOOST_LOG_SEV(logger, error) << "Incorrect LM type in configuration "
+			LOG(logger, error) << "Incorrect LM type in configuration "
 				"for file " << file;
 
 		return new NgramModel<lm::ngram::QuantTrieModel>(file);
 */
 	default:
-		BOOST_LOG_SEV(logger, error) << "Unsupported LM type for file " << file;
+		LOG(logger, error) << "Unsupported LM type for file " << file;
 		exit(1);
 	}
 }
@@ -161,7 +161,7 @@ struct NgramDocumentModifications : public FeatureFunction::StateModifications {
 
 template<class Model>
 NgramModel<Model>::NgramModel(const std::string &file) :
-		logger_(logkw::channel = "NgramModel") {
+		logger_("NgramModel") {
 	model_ = new Model(file.c_str());
 }
 
@@ -202,9 +202,9 @@ FeatureFunction::StateModifications *NgramModel<M>::estimateScoreUpdate(const Do
 	Float s = *psbegin;
 	const std::vector<SearchStep::Modification> &mods = step.getModifications();
 	std::vector<SearchStep::Modification>::const_iterator it = mods.begin();
-	BOOST_LOG_SEV(logger_, debug) << "NgramModel::estimateScoreUpdate";
+	LOG(logger_, debug) << "NgramModel::estimateScoreUpdate";
 	while(it != mods.end()) {
-		BOOST_LOG_SEV(logger_, debug) << "next modification";
+		LOG(logger_, debug) << "next modification";
 		uint sentno = it->sentno;
 		PhraseSegmentation::const_iterator from_it = it->from_it;
 		PhraseSegmentation::const_iterator to_it = it->to_it;
@@ -226,7 +226,7 @@ FeatureFunction::StateModifications *NgramModel<M>::estimateScoreUpdate(const Do
 			clear_to = state.lmCache[sentno].size();
 
 		for(uint i = clear_from; i < clear_to; i++) {
-			BOOST_LOG_SEV(logger_, debug) << "*** minus " << state.lmCache[sentno][i].second;
+			LOG(logger_, debug) << "*** minus " << state.lmCache[sentno][i].second;
 			s -= state.lmCache[sentno][i].second;
 		}
 	}
@@ -239,7 +239,7 @@ template<class M>
 FeatureFunction::StateModifications *NgramModel<M>::updateScore(const DocumentState &doc,
 		const SearchStep &step, const FeatureFunction::State *ffstate,
 		StateModifications *estmods, Scores::const_iterator psbegin, Scores::iterator sbegin) const {
-	BOOST_LOG_SEV(logger_, debug) << "NgramModel::updateScore";
+	LOG(logger_, debug) << "NgramModel::updateScore";
 	const NgramDocumentState_ &state = dynamic_cast<const NgramDocumentState_ &>(*ffstate);
 	Float &s = *sbegin;
 	Float estimated = s;
@@ -282,7 +282,7 @@ FeatureFunction::StateModifications *NgramModel<M>::updateScore(const DocumentSt
 		pieces.push_back(next_from_it);
 
 		for(std::vector<SearchStep::Modification>::const_iterator modit = it1; modit != it2; ++modit) {
-			BOOST_LOG_SEV(logger_, debug) << "next modification";
+			LOG(logger_, debug) << "next modification";
 			PhraseSegmentation::const_iterator from_it = modit->from_it;
 			PhraseSegmentation::const_iterator to_it = modit->to_it;
 			const PhraseSegmentation &proposal = modit->proposal;
@@ -306,7 +306,7 @@ FeatureFunction::StateModifications *NgramModel<M>::updateScore(const DocumentSt
 			oldstate1 = oldstate2 + countTargetWords(from_it, to_it);
 			
 			for(typename SentenceState_::const_iterator pit = oldstate2; pit != oldstate1; ++pit) {
-				BOOST_LOG_SEV(logger_, debug) << "(a) minus " << pit->second;
+				LOG(logger_, debug) << "(a) minus " << pit->second;
 				s -= pit->second;
 			}
 			sntstate.insert(sntstate.end(), countTargetWords(proposal), WordState_());
@@ -366,10 +366,10 @@ Float NgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, Phras
 
 	uint last_statelen = last_state->Length();
 
-	BOOST_LOG_SEV(logger_, debug) << 4;
+	LOG(logger_, debug) << 4;
 	Float s = .0;
 	while(ng_it != to_it) {
-		BOOST_LOG_SEV(logger_, debug) << "running (a) loop";
+		LOG(logger_, debug) << "running (a) loop";
 		for(PhraseData::const_iterator wi = ng_it->second.get().getTargetPhrase().get().begin();
 				wi != ng_it->second.get().getTargetPhrase().get().end(); ++wi) {
 			Float lscore = scoreNgram(*last_state, vocab.Index(*wi), *state_it);
@@ -377,20 +377,20 @@ Float NgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, Phras
 			last_state = &state_it->first;
 			++state_it;
 			s += lscore;
-			BOOST_LOG_SEV(logger_, debug) << "(a) plus " << lscore << "\t" << *wi;
+			LOG(logger_, debug) << "(a) plus " << lscore << "\t" << *wi;
 		}
 		++ng_it;
 	}
 	
-	BOOST_LOG_SEV(logger_, debug) << 5;
+	LOG(logger_, debug) << 5;
 	uint future = 1;
 	bool independent = false;
 	while(!ScoreCompleteSentence && ng_it != eos && !independent) {
-		BOOST_LOG_SEV(logger_, debug) << "running (b) loop";
+		LOG(logger_, debug) << "running (b) loop";
 		for(PhraseData::const_iterator wi = ng_it->second.get().getTargetPhrase().get().begin();
 				wi != ng_it->second.get().getTargetPhrase().get().end(); ++wi) {
 			if(future > last_state->Length() && future > last_statelen) {
-				BOOST_LOG_SEV(logger_, debug) << "breaking, future = " << future
+				LOG(logger_, debug) << "breaking, future = " << future
 					<< ", last state size is " << uint(last_state->Length())
 					<< ", old state size was " << uint(state_it->first.Length())
 					<< ", last_statelen is " << last_statelen;
@@ -401,12 +401,12 @@ Float NgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, Phras
 
 			last_statelen = state_it->first.Length();
 			s -= state_it->second;
-			BOOST_LOG_SEV(logger_, debug) << "(b) minus " << state_it->second;
+			LOG(logger_, debug) << "(b) minus " << state_it->second;
 			Float lscore = scoreNgram(*last_state, vocab.Index(*wi), *state_it);
 			last_state = &state_it->first;
 			++state_it;
 			s += lscore;
-			BOOST_LOG_SEV(logger_, debug) << "(b) plus " << lscore << "\t" << *wi;
+			LOG(logger_, debug) << "(b) plus " << lscore << "\t" << *wi;
 		}
 		++ng_it;
 	}
@@ -414,15 +414,15 @@ Float NgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, Phras
 	if(future > last_state->Length() && future > last_statelen)
 		independent = true;
 
-	BOOST_LOG_SEV(logger_, debug) << 6;
+	LOG(logger_, debug) << 6;
 	if((ScoreCompleteSentence || atEos) && !independent) {
 		if(!ScoreCompleteSentence) {
 			s -= state_it->second;
-			BOOST_LOG_SEV(logger_, debug) << "(c) minus " << state_it->second;
+			LOG(logger_, debug) << "(c) minus " << state_it->second;
 		}
 		Float lscore = scoreNgram(*last_state, vocab.EndSentence(), *state_it);
 		s += lscore;
-		BOOST_LOG_SEV(logger_, debug) << "(c) plus " << lscore << "\t</s>";
+		LOG(logger_, debug) << "(c) plus " << lscore << "\t</s>";
 	}
 
 	return s;

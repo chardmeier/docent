@@ -43,14 +43,14 @@
 #include <boost/lambda/if.hpp>
 
 DocumentState::DocumentState(const DecoderConfiguration &config, const boost::shared_ptr<const MMAXDocument> &inputdoc) :
-		logger_(logkw::channel = "DocumentState"),
+		logger_("DocumentState"),
 		configuration_(&config), inputdoc_(inputdoc),
 		scores_(configuration_->getTotalNumberOfScores()), generation_(0) {
 	init();
 }
 
 DocumentState::DocumentState(const DecoderConfiguration &config, const boost::shared_ptr<const NistXmlDocument> &inputdoc) :
-		logger_(logkw::channel = "DocumentState"),
+		logger_("DocumentState"),
 		configuration_(&config), inputdoc_(inputdoc->asMMAXDocument()),
 		scores_(configuration_->getTotalNumberOfScores()), generation_(0) {
 	init();
@@ -82,7 +82,7 @@ void DocumentState::init() {
 }
 
 DocumentState::DocumentState(const DocumentState &o)
-	: logger_(logkw::channel = "DocumentState"),
+	: logger_("DocumentState"),
 	  configuration_(o.configuration_), inputdoc_(o.inputdoc_),
 	  sentences_(o.sentences_), phraseTranslations_(o.phraseTranslations_),
 	  cumulativeSentenceLength_(o.cumulativeSentenceLength_), scores_(o.scores_),
@@ -200,13 +200,13 @@ void DocumentState::debugSentenceCoverage(const PhraseSegmentation &seg) const {
 	CoverageBitmap bm(seg.front().first.size());
 	BOOST_FOREACH(const AnchoredPhrasePair &app, seg) {
 		if((bm & app.first).any()) {
-			BOOST_LOG_SEV(logger_, error) << "OVERLAP\n" << (bm & app.first) << '\n' << *this;
+			LOG(logger_, error) << "OVERLAP\n" << (bm & app.first) << '\n' << *this;
 			abort();
 		}
 		bm |= app.first;
 	}
 	if(bm.count() != bm.size()) {
-		BOOST_LOG_SEV(logger_, error) << "INCOMPLETE COVERAGE\n" << bm << '\n' << *this;
+		LOG(logger_, error) << "INCOMPLETE COVERAGE\n" << bm << '\n' << *this;
 		abort();
 	}
 }

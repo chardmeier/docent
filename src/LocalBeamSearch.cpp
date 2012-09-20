@@ -34,6 +34,7 @@
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>
 #include <boost/foreach.hpp>
+#include <boost/make_shared.hpp>
 
 struct LocalBeamSearchState : public SearchState {
 	NbestStorage beam;
@@ -47,7 +48,7 @@ struct LocalBeamSearchState : public SearchState {
 };
 
 LocalBeamSearch::LocalBeamSearch(const DecoderConfiguration &config, const Parameters &params)
-		: logger_(logkw::channel = "LocalBeamSearch"), random_(config.getRandom()),
+		: logger_("LocalBeamSearch"), random_(config.getRandom()),
 		  generator_(config.getStateGenerator()) {
 	totalMaxSteps_ = params.get<uint>("max-steps");
 	maxRejected_ = params.get<uint>("max-rejected");
@@ -75,21 +76,21 @@ void LocalBeamSearch::search(SearchState *sstate, NbestStorage &nbest, uint maxS
 		doc->registerAttemptedMove(step);
 		if(step->isProvisionallyAcceptable(accept)) {
 			if(accept(step->getScore())) {
-				BOOST_LOG_SEV(logger_, debug) << "Accepting.";
+				LOG(logger_, debug) << "Accepting.";
 				boost::shared_ptr<DocumentState> clone =
 					boost::make_shared<DocumentState>(*doc);
 				doc->applyModifications(step);
-				BOOST_LOG_SEV(logger_, debug) << *doc;
+				LOG(logger_, debug) << *doc;
 				state.beam.offer(doc);
 				nbest.offer(doc);
 				accepted++;
 			} else {
-				BOOST_LOG_SEV(logger_, debug) << "Discarding.";
+				LOG(logger_, debug) << "Discarding.";
 				state.rejected++;
 				delete step;
 			}
 		} else {
-			BOOST_LOG_SEV(logger_, debug) << "Discarding.";
+			LOG(logger_, debug) << "Discarding.";
 			state.rejected++;
 			delete step;
 		}
@@ -98,26 +99,26 @@ void LocalBeamSearch::search(SearchState *sstate, NbestStorage &nbest, uint maxS
 	}
 	
 	if(state.rejected >= maxRejected_)
-		BOOST_LOG_SEV(logger_, normal) << "Maximum number of rejections ("
+		LOG(logger_, normal) << "Maximum number of rejections ("
 			<< maxRejected_ << ") reached.";
 	
 	if(i > maxSteps)
-		BOOST_LOG_SEV(logger_, normal) << "Search interrupted.";
+		LOG(logger_, normal) << "Search interrupted.";
 
 	if(accepted >= maxAccepted)
-		BOOST_LOG_SEV(logger_, normal) << "Maximum number of accepted steps (" << maxAccepted << ") reached.";
+		LOG(logger_, normal) << "Maximum number of accepted steps (" << maxAccepted << ") reached.";
 
 	if(state.nsteps > totalMaxSteps_)
-		BOOST_LOG_SEV(logger_, normal) << "Maximum number of steps (" << totalMaxSteps_ << ") reached.";
+		LOG(logger_, normal) << "Maximum number of steps (" << totalMaxSteps_ << ") reached.";
 	
 	if(nbest.getBestScore() > targetScore_)
-		BOOST_LOG_SEV(logger_, normal) << "Found solution with better than target score.";
+		LOG(logger_, normal) << "Found solution with better than target score.";
 
 	for(NbestStorage::const_iterator beamit = state.beam.begin(); beamit != state.beam.end(); ++beamit) {
 		const boost::shared_ptr<DocumentState> &doc = *beamit;
 		DocumentState::MoveCounts::const_iterator it = doc->getMoveCounts().begin();
 		while(it != doc->getMoveCounts().end()) {
-			BOOST_LOG_SEV(logger_, normal) << it->second.first << '\t' << it->second.second << '\t'
+			LOG(logger_, normal) << it->second.first << '\t' << it->second.second << '\t'
 				<< it->first->getDescription();
 			++it;
 		}

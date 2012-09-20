@@ -43,7 +43,7 @@
 #include <boost/scoped_ptr.hpp>
 
 BeamSearchAdapter::BeamSearchAdapter(const std::string &moses_ini) :
-		logger_(logkw::channel = "BeamSearchAdapter") {
+		logger_("BeamSearchAdapter") {
 	Moses::Parameter *mosesParams = new Moses::Parameter(); // will be owned by Moses::StaticData
 	mosesParams->LoadParam(moses_ini);
 
@@ -67,7 +67,7 @@ PhraseSegmentation BeamSearchAdapter::search(boost::shared_ptr<const PhrasePairC
 	 
 	const Moses::TranslationSystem &system =
 		Moses::StaticData::Instance().GetTranslationSystem(Moses::TranslationSystem::DEFAULT);
-	boost::scoped_ptr<Moses::Manager> manager(new Moses::Manager(*msent, Moses::StaticData::Instance().GetSearchAlgorithm(), &system));
+	boost::scoped_ptr<Moses::Manager> manager(new Moses::Manager(0, *msent, Moses::StaticData::Instance().GetSearchAlgorithm(), &system));
 	manager->ProcessSentence();
 	const Moses::Hypothesis *hypo = manager->GetBestHypothesis();
 	
@@ -78,7 +78,7 @@ PhraseSegmentation BeamSearchAdapter::search(boost::shared_ptr<const PhrasePairC
 	std::sort(ppvec.begin(), ppvec.end(), comparePhrasePairs);
 	PhraseSegmentation seg;
 	if(hypo == NULL)
-		BOOST_LOG_SEV(logger_, error) << "No answer from moses.";
+		LOG(logger_, error) << "No answer from moses.";
 	while(hypo && hypo->GetPrevHypo() != NULL) {
 		CoverageBitmap cov(sentence.size());
 		const Moses::WordsRange &mrange = hypo->GetCurrSourceWordsRange();

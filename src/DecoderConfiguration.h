@@ -112,7 +112,7 @@ private:
 			Arabica::DOM::Element<std::string> pnode = static_cast<Arabica::DOM::Element<std::string> >(c);
 			std::string pname = pnode.getAttribute("name");
 			if(pname == "") {
-				BOOST_LOG_SEV(logger_, error) <<
+				LOG(logger_, error) <<
 					"Lacking required attribute 'name' on p element.";
 				exit(1);
 			}
@@ -122,7 +122,7 @@ private:
 						outstr = v.getNodeValue();
 						return true;
 					}
-				BOOST_LOG_SEV(logger_, error) <<
+				LOG(logger_, error) <<
 					"No value for parameter " << name << ".";
 			}
 		}

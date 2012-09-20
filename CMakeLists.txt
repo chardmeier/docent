@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.8.1)
 project(docent)
 
 set(CMAKE_CXX_FLAGS "-g -Wall -march=native")
@@ -6,17 +6,49 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
+set(KENLM_MAX_ORDER 7)
+
+cmake_policy(SET CMP0015 NEW)
+
 find_package(MPI)
 
 set(Boost_NO_SYSTEM_PATHS TRUE)
 if(MPI_FOUND)
-	find_package(Boost 1.44 COMPONENTS mpi thread random log serialization regex REQUIRED)
+	find_package(Boost 1.44 COMPONENTS mpi thread random serialization
+		regex system filesystem REQUIRED)
 else()
-	find_package(Boost 1.44 COMPONENTS random log serialization regex REQUIRED)
+	find_package(Boost 1.44 COMPONENTS random serialization regex system
+		filesystem REQUIRED)
 endif()
 
-find_package(Moses REQUIRED)
+find_package(ZLIB REQUIRED)
 find_package(Arabica REQUIRED)
+
+add_definitions(-DKENLM_MAX_ORDER=${KENLM_MAX_ORDER})
+
+set(MOSES_INCLUDE_DIRS
+	external/mosesdecoder/moses/src
+	external/mosesdecoder
+	${ZLIB_INCLUDE_DIRS})
+set(MOSES_LIBRARY_DIRS
+	external/mosesdecoder/lib)
+set(MOSES_LIBRARIES
+	-Wl,--start-group
+	CompactPT
+	CYKPlusParser
+	dynsa
+	fuzzy-match
+	kenlm
+	kenutil
+	LM
+	moses
+	moses_internal
+	OnDiskPt
+	pcfg_common
+	RuleTable
+	Scope3Parser
+	-Wl,--end-group
+	${ZLIB_LIBRARIES})
 
 link_directories(${Boost_LIBRARY_DIRS}
 	${MOSES_LIBRARY_DIRS}
@@ -26,7 +58,6 @@ link_directories(${Boost_LIBRARY_DIRS}
 
 include_directories(
 	src
-	kenlm
 	external/libstemmer_c/include
 	${Boost_INCLUDE_DIRS}
 	${MOSES_INCLUDE_DIRS}
@@ -42,18 +73,15 @@ add_library(
 	src/DecoderConfiguration.cpp
 	src/DocumentState.cpp
 	src/FeatureFunction.cpp
-	#src/LexicalChainCohesionModel.cpp
 	src/LocalBeamSearch.cpp
-	#src/MetropolisHastingsSampler.cpp
+	src/Logger.cpp
 	src/MMAXDocument.cpp
 	src/NbestStorage.cpp
 	src/NgramModel.cpp
-	#src/NgramModelIrstlm.cpp
 	src/NistXmlTestset.cpp
 	src/PhrasePair.cpp
 	src/PhrasePairCollection.cpp
 	src/PhraseTable.cpp
-	#src/PronominalAnaphoraModel.cpp
 	src/Random.cpp
 	src/SearchAlgorithm.cpp
 	src/SearchStep.cpp
@@ -61,7 +89,6 @@ add_library(
 	src/SentenceParityModel.cpp
 	src/SimulatedAnnealing.cpp
 	src/StateGenerator.cpp
-	#src/WordSpaceCohesionModel.cpp
 )
 
 add_library(stemmer STATIC IMPORTED)
@@ -76,7 +103,6 @@ add_executable(
 target_link_libraries(
 	docent
 	decoder
-	#kenlm
 	stemmer
 
 	${MOSES_LIBRARIES}
@@ -92,29 +118,12 @@ add_executable(
 target_link_libraries(
 	lcurve-docent
 	decoder
-	#kenlm
 	stemmer
 
 	${Boost_LIBRARIES}
 	${MOSES_LIBRARIES}
 	${Arabica_LIBRARIES}
 )
-
-#add_executable(
-	#mh-sampler
-	#src/mh-sampler.cpp
-#)
-
-#target_link_libraries(
-	#mh-sampler
-	#decoder
-	#kenlm
-	#stemmer
-
-	#${Boost_LIBRARIES}
-	#${MOSES_LIBRARIES}
-	#${Arabica_LIBRARIES}
-#)
 
 if(MPI_FOUND)
 	add_executable(
@@ -133,7 +142,6 @@ if(MPI_FOUND)
 	target_link_libraries(
 		mpi-docent
 		decoder
-		#kenlm
 		stemmer
 
 		${Boost_LIBRARIES}

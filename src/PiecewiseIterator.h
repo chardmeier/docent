@@ -51,25 +51,25 @@ private:
 		goingForward_ = true;
 
 #ifndef NDEBUG
-		BOOST_LOG_SEV(logger_, debug) << "Initialising PiecewiseIterator.";
+		LOG(logger_, debug) << "Initialising PiecewiseIterator.";
 #endif
 
 		// normalise iterator if it's the end iterator of a piece or the adjacent pieces are empty
 		if(initIterator == *currentPiece_) {
 #ifndef NDEBUG
-			BOOST_LOG_SEV(logger_, debug) << "Normalising.";
+			LOG(logger_, debug) << "Normalising.";
 #endif
 			++currentPiece_;
 			while(currentPiece_ != piecesEnd_ && *currentPiece_ == *boost::next(currentPiece_)) {
 #ifndef NDEBUG
-				BOOST_LOG_SEV(logger_, debug) << "Skipping empty piece.";
+				LOG(logger_, debug) << "Skipping empty piece.";
 #endif
 				incrementPiece();
 				incrementPiece();
 			}
 			if(currentPiece_ == piecesEnd_) {
 #ifndef NDEBUG
-				BOOST_LOG_SEV(logger_, debug) << "at end";
+				LOG(logger_, debug) << "at end";
 #endif
 				decrementPiece();
 				this->base_reference() = *currentPiece_;
@@ -79,7 +79,7 @@ private:
 			}
 		}
 #ifndef NDEBUG
-		BOOST_LOG_SEV(logger_, debug) << "now at "
+		LOG(logger_, debug) << "now at "
 			<< std::distance(piecesBegin_, currentPiece_) << " of "
 			<< std::distance(piecesBegin_, piecesEnd_) << ".";
 #endif
@@ -88,14 +88,14 @@ private:
 public:
 	PiecewiseIterator(PieceIterator begin, PieceIterator end) :
 			PiecewiseIterator::iterator_adaptor_(*begin),
-			logger_(logkw::channel = "PiecewiseIterator") {
+			logger_("PiecewiseIterator") {
 		init(begin, begin, end, *begin);
 	}
 	
 	PiecewiseIterator(PieceIterator begin, PieceIterator startPiece, PieceIterator end,
 				BaseIterator initIterator) :
 			PiecewiseIterator::iterator_adaptor_(initIterator),
-			logger_(logkw::channel = "PiecewiseIterator") {
+			logger_("PiecewiseIterator") {
 		init(begin, startPiece, end, initIterator);
 	}
 
@@ -103,7 +103,7 @@ private:
 	void incrementPiece() {
 		++currentPiece_;
 #ifndef NDEBUG
-		BOOST_LOG_SEV(logger_, debug) << "Incremented piece iterator, now at "
+		LOG(logger_, debug) << "Incremented piece iterator, now at "
 			<< std::distance(piecesBegin_, currentPiece_) << " of "
 			<< std::distance(piecesBegin_, piecesEnd_) << ".";
 #endif
@@ -112,7 +112,7 @@ private:
 	void decrementPiece() {
 		--currentPiece_;
 #ifndef NDEBUG
-		BOOST_LOG_SEV(logger_, debug) << "Decremented piece iterator, now at "
+		LOG(logger_, debug) << "Decremented piece iterator, now at "
 			<< std::distance(piecesBegin_, currentPiece_) << " of "
 			<< std::distance(piecesBegin_, piecesEnd_) << ".";
 #endif
@@ -121,12 +121,12 @@ private:
 	void increment() {
 		assert(currentPiece_ != piecesEnd_);
 #ifndef NDEBUG
-		BOOST_LOG_SEV(logger_, debug) << "Incrementing PiecewiseIterator.";
+		LOG(logger_, debug) << "Incrementing PiecewiseIterator.";
 #endif
 
 		if(!goingForward_) {
 #ifndef NDEBUG
-			BOOST_LOG_SEV(logger_, debug) << "Going forward.";
+			LOG(logger_, debug) << "Going forward.";
 #endif
 			incrementPiece();
 			goingForward_ = true;
@@ -135,8 +135,8 @@ private:
 		++this->base_reference();
 		if(this->base() == *currentPiece_) {
 #ifndef NDEBUG
-			BOOST_LOG_SEV(logger_, debug) << "Reached end of piece.";
-			BOOST_LOG_SEV(logger_, debug) << "Going backward.";
+			LOG(logger_, debug) << "Reached end of piece.";
+			LOG(logger_, debug) << "Going backward.";
 #endif
 			incrementPiece();
 			goingForward_ = false;
@@ -144,14 +144,14 @@ private:
 				assert(boost::next(currentPiece_) != piecesEnd_);
 				if( *currentPiece_ != *boost::next(currentPiece_)) break;
 #ifndef NDEBUG
-				BOOST_LOG_SEV(logger_, debug) << "Skipping empty piece.";
+				LOG(logger_, debug) << "Skipping empty piece.";
 #endif
 				incrementPiece();
 				incrementPiece();
 			}
 			if(currentPiece_ == piecesEnd_) {
 #ifndef NDEBUG
-				BOOST_LOG_SEV(logger_, debug) << "at end, going forward";
+				LOG(logger_, debug) << "at end, going forward";
 #endif
 				decrementPiece();
 				goingForward_ = true;
@@ -162,12 +162,12 @@ private:
 	
 	void decrement() {
 #ifndef NDEBUG
-		BOOST_LOG_SEV(logger_, debug) << "Decrementing PiecewiseIterator.";
+		LOG(logger_, debug) << "Decrementing PiecewiseIterator.";
 #endif
 
 		if(goingForward_) {
 #ifndef NDEBUG
-			BOOST_LOG_SEV(logger_, debug) << "Going backward.";
+			LOG(logger_, debug) << "Going backward.";
 #endif
 			decrementPiece();
 			goingForward_ = false;
@@ -175,15 +175,15 @@ private:
 		
 		if(this->base() == *currentPiece_) {
 #ifndef NDEBUG
-			BOOST_LOG_SEV(logger_, debug) << "Reached beginning of piece.";
+			LOG(logger_, debug) << "Reached beginning of piece.";
 			assert(currentPiece_ != piecesBegin_);
-			BOOST_LOG_SEV(logger_, debug) << "Going forward.";
+			LOG(logger_, debug) << "Going forward.";
 #endif
 			decrementPiece();
 			goingForward_ = true;
 			while(currentPiece_ != piecesBegin_ && *currentPiece_ == *boost::prior(currentPiece_)) {
 #ifndef NDEBUG
-				BOOST_LOG_SEV(logger_, debug) << "Skipping empty piece.";
+				LOG(logger_, debug) << "Skipping empty piece.";
 #endif
 				decrementPiece();
 				decrementPiece();

@@ -32,22 +32,22 @@
 #include <DOM/SAX2DOM/SAX2DOM.hpp>
 #include <SAX/helpers/CatchErrorHandler.hpp>
 
-MMAXDocument::MMAXDocument() : logger_(logkw::channel = "MMAXDocument"), nistxml_() {
+MMAXDocument::MMAXDocument() : logger_("MMAXDocument"), nistxml_() {
 	sentences_.push_back(0);
 }
 
 MMAXDocument::MMAXDocument(const std::string &file) :
-		logger_(logkw::channel = "MMAXDocument"), nistxml_() {
+		logger_("MMAXDocument"), nistxml_() {
 	load(boost::filesystem::path(file));
 }
 
 MMAXDocument::MMAXDocument(const boost::filesystem::path &file) :
-		logger_(logkw::channel = "MMAXDocument"), nistxml_() {
+		logger_("MMAXDocument"), nistxml_() {
 	load(file);
 }
 
 MMAXDocument::MMAXDocument(const boost::filesystem::path &file, const boost::shared_ptr<NistXmlDocument> &nistxml) :
-		logger_(logkw::channel = "MMAXDocument"), nistxml_(nistxml) {
+		logger_("MMAXDocument"), nistxml_(nistxml) {
 	load(file);
 }
 
@@ -75,7 +75,7 @@ void MMAXDocument::load(const boost::filesystem::path &mmax) {
 
 	Arabica::DOM::Document<std::string> doc = domParser.getDocument();
 	if(doc == 0) {
-		BOOST_LOG_SEV(logger_, error) << "Error parsing common_paths.xml";
+		LOG(logger_, error) << "Error parsing common_paths.xml";
 		exit(1);
 	}
 
@@ -113,7 +113,7 @@ void MMAXDocument::load(const boost::filesystem::path &mmax) {
 					p = boost::algorithm::replace_first_copy(getTextValue(elem), "$", mmaxstem);
 					if(p.is_relative())
 						p = markablePath / p;
-					BOOST_LOG_SEV(logger_, debug) << "Level " << name << " in " << p;
+					LOG(logger_, debug) << "Level " << name << " in " << p;
 					levels_.insert(std::make_pair(name, std::make_pair(p.string(),
 						static_cast<MarkableLevel *>(NULL))));
 				}
@@ -126,7 +126,7 @@ void MMAXDocument::load(const boost::filesystem::path &mmax) {
 }
 
 MMAXDocument::MMAXDocument(const MMAXDocument &o) :
-		logger_(logkw::channel = "MMAXDocument"),
+		logger_("MMAXDocument"),
 		words_(o.words_), sentences_(o.sentences_) {
 	BOOST_FOREACH(LevelMap_::value_type &v, o.levels_) {
 		const MarkableLevel *lvl;
@@ -175,7 +175,7 @@ void MMAXDocument::loadBasedata(const boost::filesystem::path &mmax, const boost
 
 	Arabica::DOM::Document<std::string> doc = domParser.getDocument();
 	if(doc == 0) {
-		BOOST_LOG_SEV(logger_, error) << "Error parsing " << mmax;
+		LOG(logger_, error) << "Error parsing " << mmax;
 		exit(1);
 	}
 
@@ -194,7 +194,7 @@ void MMAXDocument::loadBasedata(const boost::filesystem::path &mmax, const boost
 	}
 
 	if(file.empty()) {
-		BOOST_LOG_SEV(logger_, error) << "No or empty <words> tag in .mmax file " << mmax;
+		LOG(logger_, error) << "No or empty <words> tag in .mmax file " << mmax;
 		BOOST_THROW_EXCEPTION(FileFormatException() << err_info::Filename(mmax.string()));
 	}
 
@@ -206,7 +206,7 @@ void MMAXDocument::loadBasedata(const boost::filesystem::path &mmax, const boost
 
 	doc = domParser.getDocument();
 	if(doc == 0) {
-		BOOST_LOG_SEV(logger_, error) << "Error parsing " << file;
+		LOG(logger_, error) << "Error parsing " << file;
 		exit(1);
 	}
 
@@ -226,7 +226,7 @@ void MMAXDocument::loadBasedata(const boost::filesystem::path &mmax, const boost
 			const std::string &id = elem.getAttribute("id");
 
 			if(id != os.str()) {
-				BOOST_LOG_SEV(logger_, error) << file << ": Expected word " <<
+				LOG(logger_, error) << file << ": Expected word " <<
 					os.str() << ", found " << id;
 				exit(1);
 			}
@@ -244,7 +244,7 @@ void MMAXDocument::loadSentenceLevel(const std::string &sentenceLevel) {
 
 	LevelMap_::const_iterator it = levels_.find(sentenceLevel);
 	if(it == levels_.end()) {
-		BOOST_LOG_SEV(logger_, error) << "Sentence level " << sentenceLevel << " undefined.";
+		LOG(logger_, error) << "Sentence level " << sentenceLevel << " undefined.";
 		BOOST_THROW_EXCEPTION(FileFormatException());
 	}
 	const std::string &file = it->second.first;
@@ -254,7 +254,7 @@ void MMAXDocument::loadSentenceLevel(const std::string &sentenceLevel) {
 
 	Arabica::DOM::Document<std::string> doc = domParser.getDocument();
 	if(doc == 0) {
-		BOOST_LOG_SEV(logger_, error) << "Error parsing " << file;
+		LOG(logger_, error) << "Error parsing " << file;
 		BOOST_THROW_EXCEPTION(FileFormatException() << err_info::Filename(file));
 	}
 
@@ -277,13 +277,13 @@ void MMAXDocument::loadSentenceLevel(const std::string &sentenceLevel) {
 			const std::string &span = elem.getAttribute("span");
 
 			if(level != sentenceLevel) {
-				BOOST_LOG_SEV(logger_, error) << file << ": Expected level " << sentenceLevel <<
+				LOG(logger_, error) << file << ": Expected level " << sentenceLevel <<
 					", found " << level;
 				BOOST_THROW_EXCEPTION(FileFormatException() << err_info::Filename(file));
 			}
 
 			if(orderid != boost::lexical_cast<std::string>(sidx)) {
-				BOOST_LOG_SEV(logger_, error) << file << ": Expected sentence " << sidx <<
+				LOG(logger_, error) << file << ": Expected sentence " << sidx <<
 					", found " << orderid;
 				BOOST_THROW_EXCEPTION(FileFormatException() << err_info::Filename(file));
 			}
@@ -291,14 +291,14 @@ void MMAXDocument::loadSentenceLevel(const std::string &sentenceLevel) {
 			boost::smatch m;
 			if(!boost::regex_match(span.begin(), span.end(), m, spxm) &&
 					!boost::regex_match(span.begin(), span.end(), m, spx1)) {
-				BOOST_LOG_SEV(logger_, error) << file << ": Can't parse sentence span: " << span;
+				LOG(logger_, error) << file << ": Can't parse sentence span: " << span;
 				BOOST_THROW_EXCEPTION(FileFormatException() << err_info::Filename(file));
 			}
 
 			if(m.size() == 2) {
 				uint idx = boost::lexical_cast<uint>(m[1]);
 				if(idx != nextstart) {
-					BOOST_LOG_SEV(logger_, error) << file <<
+					LOG(logger_, error) << file <<
 						": Sentence " << sidx << " starts at word_" << idx <<
 						" instead of word_" << nextstart << " as expected.";
 					BOOST_THROW_EXCEPTION(FileFormatException() << err_info::Filename(file));
@@ -309,7 +309,7 @@ void MMAXDocument::loadSentenceLevel(const std::string &sentenceLevel) {
 				uint start = boost::lexical_cast<uint>(m[1]);
 				uint end = boost::lexical_cast<uint>(m[2]);
 				if(start != nextstart) {
-					BOOST_LOG_SEV(logger_, error) << file <<
+					LOG(logger_, error) << file <<
 						": Sentence " << sidx << " starts at word_" << start <<
 						" instead of word_" << nextstart << " as expected.";
 					BOOST_THROW_EXCEPTION(FileFormatException() << err_info::Filename(file));
@@ -329,7 +329,7 @@ const MarkableLevel &MMAXDocument::getMarkableLevel(const std::string &name) con
 	LevelMap_::iterator it = levels_.find(name);
 
 	if(it == levels_.end()) {
-		BOOST_LOG_SEV(logger_, error) << "Unknown markable level (not in common_paths.xml): " << name;
+		LOG(logger_, error) << "Unknown markable level (not in common_paths.xml): " << name;
 		exit(1);
 	}
 
@@ -340,7 +340,7 @@ const MarkableLevel &MMAXDocument::getMarkableLevel(const std::string &name) con
 }
 
 MarkableLevel::MarkableLevel(const MMAXDocument &mmax, const std::string &name, const std::string &file)
-		: logger_(logkw::channel = "MMAXDocument"), name_(name) {
+		: logger_("MMAXDocument"), name_(name) {
 	Arabica::SAX2DOM::Parser<std::string> domParser;
 	Arabica::SAX::CatchErrorHandler<std::string> errh;
 	domParser.setErrorHandler(errh);
@@ -350,7 +350,7 @@ MarkableLevel::MarkableLevel(const MMAXDocument &mmax, const std::string &name, 
 
 	Arabica::DOM::Document<std::string> doc = domParser.getDocument();
 	if(doc == 0) {
-		BOOST_LOG_SEV(logger_, error) << "Error parsing " << file;
+		LOG(logger_, error) << "Error parsing " << file;
 		exit(1);
 	}
 
@@ -371,7 +371,7 @@ MarkableLevel::MarkableLevel(const MMAXDocument &mmax, const std::string &name, 
 			const std::string &id = elem.getAttribute("id");
 
 			if(level != name) {
-				BOOST_LOG_SEV(logger_, error) << file << ": Expected level " << name <<
+				LOG(logger_, error) << file << ": Expected level " << name <<
 					", found " << level;
 				BOOST_THROW_EXCEPTION(FileFormatException() << err_info::Filename(file));
 			}
@@ -379,7 +379,7 @@ MarkableLevel::MarkableLevel(const MMAXDocument &mmax, const std::string &name, 
 			boost::smatch m;
 			if(!boost::regex_match(span.begin(), span.end(), m, spxm) &&
 					!boost::regex_match(span.begin(), span.end(), m, spx1)) {
-				BOOST_LOG_SEV(logger_, error) << file << ": Can't parse sentence span: " << span;
+				LOG(logger_, error) << file << ": Can't parse sentence span: " << span;
 				BOOST_THROW_EXCEPTION(FileFormatException() << err_info::Filename(file));
 			}
 
@@ -392,7 +392,7 @@ MarkableLevel::MarkableLevel(const MMAXDocument &mmax, const std::string &name, 
 			}
 
 			if(start == 0 || end == 0) {
-				BOOST_LOG_SEV(logger_, error) << file << ": " << id << 
+				LOG(logger_, error) << file << ": " << id << 
 					": Word numbering must be 1-based.";
 				BOOST_THROW_EXCEPTION(FileFormatException() << err_info::Filename(file));
 			} else {
@@ -402,13 +402,13 @@ MarkableLevel::MarkableLevel(const MMAXDocument &mmax, const std::string &name, 
 			}
 
 			if(start >= mmax.sentences_.back() || end >= mmax.sentences_.back()) {
-				BOOST_LOG_SEV(logger_, error) << file << ": " << id <<
+				LOG(logger_, error) << file << ": " << id <<
 					": Word index beyond end of document.";
 				BOOST_THROW_EXCEPTION(FileFormatException() << err_info::Filename(file));
 			}
 
 			if(start > end) {
-				BOOST_LOG_SEV(logger_, error) << file << ": " << id <<
+				LOG(logger_, error) << file << ": " << id <<
 					": Invalid span (start > end).";
 				BOOST_THROW_EXCEPTION(FileFormatException() << err_info::Filename(file));
 			}
@@ -420,7 +420,7 @@ MarkableLevel::MarkableLevel(const MMAXDocument &mmax, const std::string &name, 
 			MMAXDocument::SentenceVector_::const_iterator startit = endit - 1;
 
 			if(end >= *endit) {
-				BOOST_LOG_SEV(logger_, error) << file << ": " << id <<
+				LOG(logger_, error) << file << ": " << id <<
 					": Ignoring cross-sentence markable.";
 				continue;
 			}
@@ -461,7 +461,7 @@ const Markable &MarkableLevel::getUniqueMarkableForCoverage(uint sentence, const
 	MarkableVector_::const_iterator it = std::lower_bound(markables_.begin(), markables_.end(), tgt);
 
 	if(it == markables_.end() || it->getSentence() != sentence || it->getCoverage() != coverage) {
-		BOOST_LOG_SEV(logger_, error) << "Missing markable in sentence " << sentence <<
+		LOG(logger_, error) << "Missing markable in sentence " << sentence <<
 			", coverage " << coverage;
 		BOOST_THROW_EXCEPTION(FileFormatException());
 	}
@@ -470,7 +470,7 @@ const Markable &MarkableLevel::getUniqueMarkableForCoverage(uint sentence, const
 
 	++it;
 	if(it != markables_.end() && it->getSentence() == sentence && it->getCoverage() == coverage) {
-		BOOST_LOG_SEV(logger_, error) << "Multiple markables in sentence " << sentence <<
+		LOG(logger_, error) << "Multiple markables in sentence " << sentence <<
 			", coverage " << coverage;
 		BOOST_THROW_EXCEPTION(FileFormatException());
 	}
@@ -500,7 +500,7 @@ std::vector<Markable> MarkableLevel::getMarkablesForCoverage(uint sentence, cons
 }
 
 MMAXTestset::MMAXTestset(const std::string &directory, const std::string &nistxml) :
-		logger_(logkw::channel = "MMAXTestset"), nistxml_(nistxml) {
+		logger_("MMAXTestset"), nistxml_(nistxml) {
 	namespace fs = boost::filesystem;
 
 	fs::path dir(directory);
@@ -511,7 +511,7 @@ MMAXTestset::MMAXTestset(const std::string &directory, const std::string &nistxm
 	std::sort(mmaxFiles_.begin(), mmaxFiles_.end());
 
 	if(mmaxFiles_.size() != nistxml_.size()) {
-		BOOST_LOG_SEV(logger_, error) << "MMAX test set has " << mmaxFiles_.size()
+		LOG(logger_, error) << "MMAX test set has " << mmaxFiles_.size()
 			<< " documents, NIST file has " << nistxml_.size();
 		BOOST_THROW_EXCEPTION(FileFormatException());
 	}

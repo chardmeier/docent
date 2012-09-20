@@ -47,35 +47,7 @@
 
 template<class Testset> void processTestset(const DecoderConfiguration &config, Testset &testset);
 
-class LogFilter : public std::unary_function<const boost::log::attribute_values_view &,bool> {
-private:
-	typedef boost::unordered_map<std::string,LogLevel> ChannelMapType_;
-	ChannelMapType_ channelMap_;
-	LogLevel defaultLevel_;
-
-public:
-	LogFilter() : defaultLevel_(normal) {}
-
-	void setDefaultLevel(LogLevel deflt) {
-		defaultLevel_ = deflt;
-	}
-
-	LogLevel &operator[](const std::string &channel) {
-		return channelMap_[channel];
-	}
-
-	bool operator()(const boost::log::attribute_values_view &attrs) const {
-		LogLevel level = *attrs["Severity"].extract<LogLevel>();
-		ChannelMapType_::const_iterator it = channelMap_.find(*attrs["Channel"].extract<std::string>());
-		if(it == channelMap_.end())
-			return level >= defaultLevel_;
-		else
-			return level >= it->second;
-	}
-};
-
 int main(int argc, char **argv) {
-	LogFilter logFilter;
 	bool showUsage = false;
 	std::vector<std::string> args;
 	for(int i = 1; i < argc; i++) {
@@ -84,15 +56,12 @@ int main(int argc, char **argv) {
 				showUsage = true;
 				break;
 			} else
-				logFilter[argv[i+1]] = debug;
+				Logger::setLogLevel(argv[i+1], debug);
 
 			i++;
 		} else
 			args.push_back(argv[i]);
 	}
-
-	boost::log::init_log_to_console()->set_filter(boost::log::filters::wrap(logFilter));
-	boost::log::add_common_attributes();
 
 	if(showUsage || args.size() < 1 || args.size() > 3) {
 		std::cerr << "Usage: docent config.xml [[input.mmax-dir] input.xml]" << std::endl;

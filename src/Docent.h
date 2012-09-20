@@ -25,6 +25,8 @@
 
 #define HAVE_BOOST // for moses. We always have boost.
 
+#include "Logger.h"
+
 #include <algorithm>
 #include <list>
 #include <string>
@@ -33,10 +35,14 @@
 #include <boost/exception/all.hpp>
 #include <boost/flyweight.hpp>
 #include <boost/functional/hash.hpp>
-#include <boost/log/common.hpp>
 #include <boost/serialization/split_free.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/throw_exception.hpp>
+#include <boost/version.hpp>
+
+#if BOOST_VERSION < 104400
+#error "Docent requires at least Boost version 1.44.0. Is your compiler picking up the right header files?"
+#endif
 
 typedef unsigned int uint;
 typedef float Float;
@@ -138,19 +144,6 @@ namespace err_info {
 	typedef boost::error_info<struct tag_Filename,std::string> Filename;
 	typedef boost::error_info<struct tag_Parameter,std::string> Parameter;
 }
-
-/*** Logging ***/
-
-namespace logkw = boost::log::keywords;
-
-enum LogLevel {
-	debug,
-	verbose,
-	normal,
-	error
-};
-
-typedef boost::log::sources::severity_channel_logger<LogLevel> Logger;
 
 #endif
 
