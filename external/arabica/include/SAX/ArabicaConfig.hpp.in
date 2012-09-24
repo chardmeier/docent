@@ -1,0 +1,95 @@
+/* include/SAX/ArabicaConfig.hpp.in.  Generated from configure.ac by autoheader.  */
+
+/* defined if we don't need extra codecvt template specialisations */
+#undef ARABICA_NO_CODECVT_SPECIALISATIONS
+
+/* no mbstate_t */
+#undef ARABICA_NO_MBSTATE_T
+
+/* no std::mbstate_t */
+#undef ARABICA_NO_STD_MBSTATE_T
+
+/* disables wchar_t */
+#undef ARABICA_NO_WCHAR_T
+
+/* defined for Windows builds using Winsock rather than BSD-style sockets */
+#undef ARABICA_USE_WINSOCK
+
+/* define if the Boost library is available */
+#undef HAVE_BOOST
+
+/* Define to 1 if you have the <dlfcn.h> header file. */
+#undef HAVE_DLFCN_H
+
+/* define to use the Elephant memory leak detector */
+#undef HAVE_ELEPHANT
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the <memory.h> header file. */
+#undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
+
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
+#undef LT_OBJDIR
+
+/* Name of package */
+#undef PACKAGE
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* Define to 1 if you have the ANSI C header files. */
+#undef STDC_HEADERS
+
+/* define to build against Expat */
+#undef USE_EXPAT
+
+/* define to build using Garden */
+#undef USE_GARDEN
+
+/* define to build against LibXML2 */
+#undef USE_LIBXML2
+
+/* define to build against Xerces */
+#undef USE_XERCES
+
+/* Version number of package */
+#undef VERSION
