@@ -1,16 +1,22 @@
 cmake_minimum_required(VERSION 2.8.1)
+cmake_policy(SET CMP0015 NEW)
 project(docent)
+
+include(ExternalProject)
+set_directory_properties(PROPERTY EP_BASE external)
+
+### Configurable section
 
 set(CMAKE_CXX_FLAGS "-g -Wall -march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
-
 set(KENLM_MAX_ORDER 7)
 
-cmake_policy(SET CMP0015 NEW)
+### Find out if we have MPI support
 
 find_package(MPI)
+
+### Find Boost
 
 set(Boost_NO_SYSTEM_PATHS TRUE)
 if(MPI_FOUND)
@@ -21,34 +27,90 @@ else()
 		filesystem REQUIRED)
 endif()
 
-find_package(ZLIB REQUIRED)
-find_package(Arabica REQUIRED)
+### Build libstemmer_c
+
+set(STEMMER_ROOT ${CMAKE_SOURCE_DIR}/external/libstemmer_c)
+set(STEMMER_INSTALL_DIR ${CMAKE_BINARY_DIR}/external/Install/stemmer_external)
+
+ExternalProject_add(stemmer_external
+	SOURCE_DIR ${STEMMER_ROOT}
+	CONFIGURE_COMMAND true
+	BUILD_COMMAND ${MAKE}
+	INSTALL_COMMAND ${CMAKE_COMMAND} -E copy_if_different ${STEMMER_ROOT}/libstemmer.o ${STEMMER_INSTALL_DIR}
+	INSTALL_DIR ${STEMMER_INSTALL_DIR}
+	BUILD_IN_SOURCE 1)
+
+add_library(stemmer STATIC IMPORTED)
+add_dependencies(stemmer stemmer_external)
+set_target_properties(stemmer PROPERTIES
+	IMPORTED_LOCATION "${STEMMER_INSTALL_DIR}/libstemmer.o")
+
+set(STEMMER_INCLUDE_DIRS ${STEMMER_ROOT}/include)
+
+### Build Arabica
+
+set(Arabica_ROOT ${CMAKE_SOURCE_DIR}/external/arabica)
+set(Arabica_INSTALL_DIR ${CMAKE_BINARY_DIR}/external/Install/arabica_external)
+
+ExternalProject_add(arabica_external
+	SOURCE_DIR ${Arabica_ROOT}
+	CONFIGURE_COMMAND ${Arabica_ROOT}/configure --prefix=${Arabica_INSTALL_DIR}
+	BUILD_COMMAND ${MAKE}
+	INSTALL_COMMAND make install && sh -c ". ${Arabica_INSTALL_DIR}/lib/libarabica.la && echo $dependency_libs >${Arabica_INSTALL_DIR}/lib/libarabica.deps"
+	INSTALL_DIR ${Arabica_INSTALL_DIR})
+
+add_library(arabica STATIC IMPORTED)
+add_dependencies(arabica arabica_external)
+set_target_properties(arabica PROPERTIES
+	IMPORTED_LOCATION "${Arabica_INSTALL_DIR}/lib/libarabica.a")
+
+set(Arabica_INCLUDE_DIRS ${Arabica_INSTALL_DIR}/include/arabica)
+set(Arabica_LIBRARY_DIRS ${Arabica_INSTALL_DIR}/lib)
+set(Arabica_LIBRARIES
+	arabica
+	-Wl,@${Arabica_INSTALL_DIR}/lib/libarabica.deps)
+
+### Build Moses
+
+set(MOSES_ROOT ${CMAKE_SOURCE_DIR}/external/mosesdecoder)
+set(MOSES_INSTALL_DIR ${CMAKE_BINARY_DIR}/external/Install/moses_external)
+
+ExternalProject_add(moses_external
+	SOURCE_DIR ${MOSES_ROOT}
+	CONFIGURE_COMMAND true
+	BUILD_COMMAND ./bjam --max-kenlm-order=${KENLM_MAX_ORDER} --with-boost=${BOOST_ROOT}
+	INSTALL_COMMAND ./bjam --prefix=${MOSES_INSTALL_DIR} install
+	INSTALL_DIR ${MOSES_INSTALL_DIR}
+	BUILD_IN_SOURCE 1)
+
+add_library(moses STATIC IMPORTED)
+add_dependencies(moses moses_external)
 
 add_definitions(-DKENLM_MAX_ORDER=${KENLM_MAX_ORDER})
 
+find_package(ZLIB REQUIRED)
 set(MOSES_INCLUDE_DIRS
-	external/mosesdecoder/moses/src
-	external/mosesdecoder
+	${MOSES_INSTALL_DIR}/include
 	${ZLIB_INCLUDE_DIRS})
-set(MOSES_LIBRARY_DIRS
-	external/mosesdecoder/lib)
 set(MOSES_LIBRARIES
 	-Wl,--start-group
-	CompactPT
-	CYKPlusParser
-	dynsa
-	fuzzy-match
-	kenlm
-	kenutil
-	LM
-	moses
-	moses_internal
-	OnDiskPt
-	pcfg_common
-	RuleTable
-	Scope3Parser
+	${MOSES_INSTALL_DIR}/lib/libCompactPT.a
+	${MOSES_INSTALL_DIR}/lib/libCYKPlusParser.a
+	${MOSES_INSTALL_DIR}/lib/libdynsa.a
+	${MOSES_INSTALL_DIR}/lib/libfuzzy-match.a
+	${MOSES_INSTALL_DIR}/lib/libkenlm.a
+	${MOSES_INSTALL_DIR}/lib/libkenutil.a
+	${MOSES_INSTALL_DIR}/lib/libLM.a
+	${MOSES_INSTALL_DIR}/lib/libmoses.a
+	${MOSES_INSTALL_DIR}/lib/libmoses_internal.a
+	${MOSES_INSTALL_DIR}/lib/libOnDiskPt.a
+	${MOSES_INSTALL_DIR}/lib/libpcfg_common.a
+	${MOSES_INSTALL_DIR}/lib/libRuleTable.a
+	${MOSES_INSTALL_DIR}/lib/libScope3Parser.a
 	-Wl,--end-group
 	${ZLIB_LIBRARIES})
+
+### Build Docent
 
 link_directories(${Boost_LIBRARY_DIRS}
 	${MOSES_LIBRARY_DIRS}
@@ -58,7 +120,7 @@ link_directories(${Boost_LIBRARY_DIRS}
 
 include_directories(
 	src
-	external/libstemmer_c/include
+	${STEMMER_INCLUDE_DIRS}
 	${Boost_INCLUDE_DIRS}
 	${MOSES_INCLUDE_DIRS}
 	${Arabica_INCLUDE_DIRS}
@@ -91,9 +153,15 @@ add_library(
 	src/StateGenerator.cpp
 )
 
-add_library(stemmer STATIC IMPORTED)
-set_target_properties(stemmer PROPERTIES
-	IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/external/libstemmer_c/libstemmer.o")
+add_dependencies(decoder
+	stemmer arabica moses)
+
+set(DECODER_LIBRARIES
+	decoder
+	stemmer
+	${Arabica_LIBRARIES}
+	${MOSES_LIBRARIES}
+	${Boost_LIBRARIES})
 
 add_executable(
 	docent
@@ -102,12 +170,7 @@ add_executable(
 
 target_link_libraries(
 	docent
-	decoder
-	stemmer
-
-	${MOSES_LIBRARIES}
-	${Arabica_LIBRARIES}
-	${Boost_LIBRARIES}
+	${DECODER_LIBRARIES}
 )
 
 add_executable(
@@ -117,12 +180,7 @@ add_executable(
 
 target_link_libraries(
 	lcurve-docent
-	decoder
-	stemmer
-
-	${Boost_LIBRARIES}
-	${MOSES_LIBRARIES}
-	${Arabica_LIBRARIES}
+	${DECODER_LIBRARIES}
 )
 
 if(MPI_FOUND)
@@ -141,12 +199,7 @@ if(MPI_FOUND)
 
 	target_link_libraries(
 		mpi-docent
-		decoder
-		stemmer
-
-		${Boost_LIBRARIES}
-		${MOSES_LIBRARIES}
-		${Arabica_LIBRARIES}
+		${DECODER_LIBRARIES}
 		${MPI_LIBRARIES}
 	)
 endif()
