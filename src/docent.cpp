@@ -28,11 +28,6 @@
 
 #include <boost/foreach.hpp>
 #include <boost/lambda/lambda.hpp>
-#include <boost/log/attributes/attribute.hpp>
-#include <boost/log/attributes/attribute_values_view.hpp>
-#include <boost/log/filters/basic_filters.hpp>
-#include <boost/log/utility/init/common_attributes.hpp>
-#include <boost/log/utility/init/to_console.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/unordered_map.hpp>
 

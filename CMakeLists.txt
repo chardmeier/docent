@@ -7,10 +7,25 @@ set_directory_properties(PROPERTY EP_BASE external)
 
 ### Configurable section
 
-set(CMAKE_CXX_FLAGS "-g -Wall -march=native")
+#set(CMAKE_CXX_FLAGS "-g -Wall -march=native")
+set(CMAKE_CXX_FLAGS "-g -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 set(KENLM_MAX_ORDER 7)
+
+### Portability hacks
+
+if(APPLE)
+	# Darwin ld doesn't support, and doesn't seem to need, start-/end-group
+	set(LD_START_GROUP "")
+	set(LD_END_GROUP "")
+
+	# This is to enable -Wl,@ processing on platforms that don't use GNU ld
+	set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ${CMAKE_SOURCE_DIR}/at-wrapper.sh)
+else()
+	set(LD_START_GROUP -Wl,--start-group)
+	set(LD_END_GROUP -Wl,--end-group)
+endif()
 
 ### Find out if we have MPI support
 
@@ -19,13 +34,16 @@ find_package(MPI)
 ### Find Boost
 
 set(Boost_NO_SYSTEM_PATHS TRUE)
+
 if(MPI_FOUND)
-	find_package(Boost 1.44 COMPONENTS mpi thread random serialization
-		regex system filesystem REQUIRED)
-else()
-	find_package(Boost 1.44 COMPONENTS thread random serialization regex system
-		filesystem REQUIRED)
+	find_package(Boost 1.44 COMPONENTS mpi)
+	if(NOT Boost_MPI_FOUND)
+		message(WARNING "Found MPI but not boost::mpi. Building without MPI support.")
+		set(MPI_FOUND FALSE)
+	endif()
 endif()
+
+find_package(Boost 1.44 COMPONENTS thread random serialization regex system filesystem REQUIRED)
 
 ### Build libstemmer_c
 
@@ -54,7 +72,7 @@ set(Arabica_INSTALL_DIR ${CMAKE_BINARY_DIR}/external/Install/arabica_external)
 
 ExternalProject_add(arabica_external
 	SOURCE_DIR ${Arabica_ROOT}
-	CONFIGURE_COMMAND ${Arabica_ROOT}/configure --prefix=${Arabica_INSTALL_DIR}
+	CONFIGURE_COMMAND ${Arabica_ROOT}/configure --with-boost=${BOOST_ROOT}/include --prefix=${Arabica_INSTALL_DIR}
 	BUILD_COMMAND ${MAKE}
 	INSTALL_COMMAND make install && sh -c ". ${Arabica_INSTALL_DIR}/lib/libarabica.la && echo $dependency_libs >${Arabica_INSTALL_DIR}/lib/libarabica.deps"
 	INSTALL_DIR ${Arabica_INSTALL_DIR})
@@ -79,7 +97,7 @@ ExternalProject_add(moses_external
 	SOURCE_DIR ${MOSES_ROOT}
 	CONFIGURE_COMMAND true
 	BUILD_COMMAND ./bjam --max-kenlm-order=${KENLM_MAX_ORDER} --with-boost=${BOOST_ROOT}
-	INSTALL_COMMAND ./bjam --prefix=${MOSES_INSTALL_DIR} install
+	INSTALL_COMMAND ./bjam --prefix=${MOSES_INSTALL_DIR} --with-boost=${BOOST_ROOT} install
 	INSTALL_DIR ${MOSES_INSTALL_DIR}
 	BUILD_IN_SOURCE 1)
 
@@ -93,7 +111,7 @@ set(MOSES_INCLUDE_DIRS
 	${MOSES_INSTALL_DIR}/include
 	${ZLIB_INCLUDE_DIRS})
 set(MOSES_LIBRARIES
-	-Wl,--start-group
+	${LD_START_GROUP}
 	${MOSES_INSTALL_DIR}/lib/libCompactPT.a
 	${MOSES_INSTALL_DIR}/lib/libCYKPlusParser.a
 	${MOSES_INSTALL_DIR}/lib/libdynsa.a
@@ -107,7 +125,7 @@ set(MOSES_LIBRARIES
 	${MOSES_INSTALL_DIR}/lib/libpcfg_common.a
 	${MOSES_INSTALL_DIR}/lib/libRuleTable.a
 	${MOSES_INSTALL_DIR}/lib/libScope3Parser.a
-	-Wl,--end-group
+	${LD_END_GROUP}
 	${ZLIB_LIBRARIES})
 
 ### Build Docent

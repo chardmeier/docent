@@ -29,11 +29,6 @@
 #include <mpi.h>
 
 #include <boost/foreach.hpp>
-#include <boost/log/attributes/attribute.hpp>
-#include <boost/log/attributes/attribute_values_view.hpp>
-#include <boost/log/filters/basic_filters.hpp>
-#include <boost/log/utility/init/common_attributes.hpp>
-#include <boost/log/utility/init/to_console.hpp>
 #include <boost/mpi/communicator.hpp>
 #include <boost/mpi/nonblocking.hpp>
 #include <boost/serialization/utility.hpp>

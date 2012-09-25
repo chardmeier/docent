@@ -217,7 +217,7 @@ inline uint countTargetWords(PhrasePairContainer cont) {
 }
 
 struct CompareAnchoredPhrasePairs :
-		public std::binary_function<const AnchoredPhrasePair &,const AnchoredPhrasePair &,bool> {
+		public std::binary_function<const AnchoredPhrasePair,const AnchoredPhrasePair,bool> {
 	typedef boost::tuples::tuple<const CoverageBitmap &,const PhraseData &,const PhraseData &> PhrasePairKey;
 
 	bool operator()(const PhrasePairKey &a, const PhrasePairKey &b) const {

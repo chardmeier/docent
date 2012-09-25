@@ -30,7 +30,6 @@
 #include <numeric>
 
 #include <boost/lambda/lambda.hpp>
-#include <boost/log/sources/record_ostream.hpp>
 
 CoolingSchedule *CoolingSchedule::createCoolingSchedule(const Parameters &params) {
 	std::string s_schedule = params.get<std::string>("schedule");
