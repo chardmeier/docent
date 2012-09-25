@@ -7,11 +7,24 @@ set_directory_properties(PROPERTY EP_BASE external)
 
 ### Configurable section
 
-#set(CMAKE_CXX_FLAGS "-g -Wall -march=native")
 set(CMAKE_CXX_FLAGS "-g -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 set(KENLM_MAX_ORDER 7)
+
+# Add -march=native if the compiler supports it
+
+if(CMAKE_COMPILER_IS_GNUCXX)
+	execute_process(
+		COMMAND ${CMAKE_CXX_COMPILER} -E -x c++ -march=native /dev/null
+		RESULT_VARIABLE MARCH_NATIVE
+		OUTPUT_QUIET
+		ERROR_QUIET)
+
+	if(MARCH_NATIVE EQUAL 0)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+	endif()
+endif()
 
 ### Portability hacks
 
