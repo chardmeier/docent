@@ -1,1 +1,0 @@
-<root xmlns:a="a"><a:a auto-ns1:foo="abc" xmlns:auto-ns1="bar" /></root>

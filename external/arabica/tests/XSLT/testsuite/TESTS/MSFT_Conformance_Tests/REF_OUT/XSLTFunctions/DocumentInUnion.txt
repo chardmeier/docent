@@ -1,9 +1,0 @@
-
-	--BOOK: autobiography
-	--BOOK: textbook
-	--BOOK: storybook
-	--BOOK: textbook
-	--BOOK: textbook
-	--BOOK: textbook
-	--BOOK: novel
-	--FUNCTIONS: 38

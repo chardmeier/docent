@@ -1,8 +1,0 @@
-﻿  
- 
-
-	Text Foo   
-   
-   
-	Text Bar
-   

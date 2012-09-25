@@ -1,5 +1,0 @@
-
-        THIS SHOULD WORK
-        Element Name : elem  ;
-        NodeValue : xxxabyyy  ;
-    

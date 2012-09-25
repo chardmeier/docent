@@ -1,3 +1,0 @@
-<P> SUMMARY: I need a pen and some paper</P>
-<P> DATA: I need bread.</P>
-<P> DATA: I need butter.</P>

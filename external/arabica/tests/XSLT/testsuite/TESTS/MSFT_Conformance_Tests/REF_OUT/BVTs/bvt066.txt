@@ -1,1 +1,0 @@
-<?xml version="1.0"?>             <!DOCTYPE html SYSTEM "system"><html xmlns="http://my.com"><head /><h1><b>Hello</b></h1></html>

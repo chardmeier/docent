@@ -1,7 +1,0 @@
-<HTML>
-<BODY>
-<UL>
-<LI>Additionally, through XSLT you can</LI>
-</UL>
-</BODY>
-</HTML>

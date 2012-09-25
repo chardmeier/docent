@@ -1,2 +1,0 @@
-<qy-compare>true</qy-compare>
-<qy-compare>true</qy-compare>

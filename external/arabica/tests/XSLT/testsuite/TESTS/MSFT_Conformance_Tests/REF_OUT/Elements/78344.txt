@@ -1,5 +1,0 @@
-<foo xmlns="bar">
-<x xmlns="y">
-<i xmlns="j" />
-</x>
-</foo>

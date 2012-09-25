@@ -1,6 +1,0 @@
-
-BEFORE
-   <foo-element A1="yow!">
-content goes here
-   </foo-element>
-AFTER

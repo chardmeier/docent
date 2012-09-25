@@ -1,4 +1,0 @@
-
-BEFORE
-   <foo>content goes here</foo>
-AFTER

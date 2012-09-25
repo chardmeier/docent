@@ -1,3 +1,6 @@
 [submodule "external/mosesdecoder"]
 	path = external/mosesdecoder
 	url = https://github.com/moses-smt/mosesdecoder.git
+[submodule "external/arabica"]
+	path = external/arabica
+	url = https://github.com/jezhiggins/arabica.git

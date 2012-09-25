@@ -1,2 +1,0 @@
-
-BEFORE<!--invalid comment-->AFTER

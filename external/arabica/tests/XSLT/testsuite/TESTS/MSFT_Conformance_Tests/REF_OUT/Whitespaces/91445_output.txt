@@ -1,1 +1,0 @@
-<preceding-sibling-count xmlns:my="http://my.com">7</preceding-sibling-count>

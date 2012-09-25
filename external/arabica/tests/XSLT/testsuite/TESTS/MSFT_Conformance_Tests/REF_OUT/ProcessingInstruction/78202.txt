@@ -1,5 +1,0 @@
-BEFORE
-   <?testcase 
-This is the content of a processing-instruction
-   ?>
-AFTER

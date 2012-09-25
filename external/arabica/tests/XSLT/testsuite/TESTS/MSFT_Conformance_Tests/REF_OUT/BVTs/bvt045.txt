@@ -1,3 +1,0 @@
-The system cannot find the path specified.
-
-Error occurred during compilation of included or imported stylesheet './../xslt10/./xsl2.inc'.

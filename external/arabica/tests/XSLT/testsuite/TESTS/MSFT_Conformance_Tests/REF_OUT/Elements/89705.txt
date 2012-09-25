@@ -1,1 +1,0 @@
-<photo>foo!</photo><photo>foo!</photo><photo>foo!</photo><photo>foo!</photo><photo>foo!</photo>

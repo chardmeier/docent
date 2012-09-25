@@ -1,1 +1,0 @@
-<html><foo-elem foo-attr="Hello">Hello<?style Hello><!--Hello--></foo-elem><foo></foo></html>

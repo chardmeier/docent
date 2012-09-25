@@ -1,2 +1,0 @@
-<!-- This should pull from this same directory (./inc) -->
-<xsl:include href="./xsl1.inc" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>

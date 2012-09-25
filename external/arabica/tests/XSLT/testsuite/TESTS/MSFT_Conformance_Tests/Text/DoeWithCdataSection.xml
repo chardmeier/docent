@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-
-<root>
-  <text><![CDATA[<foo>bar &amp;amp; </foo>]]></text>
-</root>

@@ -1,1 +1,0 @@
-An element is instantiated whose prefix has no namespace declared 

@@ -1,1 +1,0 @@
-<?xml version="1.0"?><html xmlns="http://www.w3.org/TR/xhtml1/strict"><head><title>BookStore</title></head><body><p>Seven Years in Trenton</p></body></html>

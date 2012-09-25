@@ -1,3 +1,0 @@
-
-const char* test_path = "@top_srcdir@/tests/XSLT/testsuite/TESTS/";
-

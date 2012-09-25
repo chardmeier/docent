@@ -1,1 +1,0 @@
-<bob freddy="dead" />

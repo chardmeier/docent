@@ -1,4 +1,0 @@
-  
-XML Declaration expected: method=xml
- omit-xml-declaration=yes
- indent=yesHRHRHR

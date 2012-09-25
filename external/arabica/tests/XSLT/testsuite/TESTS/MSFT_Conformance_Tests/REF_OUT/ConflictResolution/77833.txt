@@ -1,2 +1,0 @@
-
-- <SPAN style="color=red">foo='3.0'</SPAN>

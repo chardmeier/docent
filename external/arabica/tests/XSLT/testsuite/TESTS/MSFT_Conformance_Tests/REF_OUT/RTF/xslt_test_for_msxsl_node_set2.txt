@@ -1,3 +1,0 @@
-﻿<test>
-  <last-name xmlns:my="http://my.com">Brown</last-name>
-</test>

@@ -1,2 +1,0 @@
-
-	BEFORE<foo-element>content goes here</foo-element>AFTER

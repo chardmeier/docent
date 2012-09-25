@@ -1,5 +1,0 @@
-<xslTutorial>
-<HR>
-<HR>
-<HR>
-</xslTutorial>
