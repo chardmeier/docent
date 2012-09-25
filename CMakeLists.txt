@@ -23,7 +23,7 @@ if(MPI_FOUND)
 	find_package(Boost 1.44 COMPONENTS mpi thread random serialization
 		regex system filesystem REQUIRED)
 else()
-	find_package(Boost 1.44 COMPONENTS random serialization regex system
+	find_package(Boost 1.44 COMPONENTS thread random serialization regex system
 		filesystem REQUIRED)
 endif()
 
