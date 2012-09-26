@@ -38,10 +38,13 @@ enum LogLevel {
 
 class Logger {
 private:
-	typedef boost::unordered_map<std::string,LogLevel> ConfigurationMap_;
-	static ConfigurationMap_ configuration_;
+	typedef boost::unordered_map<std::string,uint> IndexMap_;
+	static IndexMap_ indices_;
+	static std::vector<LogLevel> levels_;
 
-	LogLevel level_;
+	uint index_;
+
+	static uint findChannel(const std::string &channel);
 
 public:
 	static void setLogLevel(const std::string &channel, LogLevel level);
@@ -49,7 +52,7 @@ public:
 	Logger(const std::string &channel);
 
 	bool loggable(LogLevel l) const {
-		return l >= level_;
+		return l >= levels_[index_];
 	}
 
 	std::ostream &getLogStream() const {

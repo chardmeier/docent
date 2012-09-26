@@ -22,16 +22,26 @@
 
 #include "Logger.h"
 
-Logger::ConfigurationMap_ Logger::configuration_;
+Logger::IndexMap_ Logger::indices_;
+std::vector<LogLevel> Logger::levels_;
 
-Logger::Logger(const std::string &channel) {
-	ConfigurationMap_::const_iterator it = configuration_.find(channel);
-	if(it == configuration_.end())
-		level_ = normal;
-	else
-		level_ = it->second;
+uint Logger::findChannel(const std::string &channel) {
+	uint idx;
+
+	IndexMap_::const_iterator it = indices_.find(channel);
+	if(it == indices_.end()) {
+		idx = levels_.size();
+		levels_.push_back(normal);
+		indices_.insert(std::make_pair(channel, idx));
+	} else
+		idx = it->second;
+
+	return idx;
 }
 
+Logger::Logger(const std::string &channel) : index_(findChannel(channel)) {}
+
 void Logger::setLogLevel(const std::string &channel, LogLevel level) {
-	configuration_[channel] = level;
+	uint idx = findChannel(channel);
+	levels_[idx] = level;
 }
