@@ -46,6 +46,19 @@ find_package(MPI)
 
 ### Find Boost
 
+if(DEFINED ENV{BOOST_ROOT} AND NOT DEFINED BOOST_ROOT)
+	set(BOOST_ROOT $ENV{BOOST_ROOT})
+endif()
+
+if(DEFINED BOOST_ROOT)
+	set(MOSES_WITH_BOOST "--with-boost=${BOOST_ROOT}")
+	set(Arabica_WITH_BOOST "--with-boost=${BOOST_ROOT}/include")
+else()
+	message("BOOST_ROOT isn't set. If you encounter build problems, consider setting it.")
+	set(MOSES_WITH_BOOST "")
+	set(Arabica_WITH_BOOST "")
+endif()
+
 set(Boost_NO_SYSTEM_PATHS TRUE)
 
 if(MPI_FOUND)
@@ -88,7 +101,7 @@ set(Arabica_INSTALL_DIR ${CMAKE_BINARY_DIR}/external/Install/arabica_external)
 
 ExternalProject_add(arabica_external
 	SOURCE_DIR ${Arabica_ROOT}
-	CONFIGURE_COMMAND ./autogen.sh --with-boost=${BOOST_ROOT}/include --prefix=${Arabica_INSTALL_DIR}
+	CONFIGURE_COMMAND ./autogen.sh ${Arabica_WITH_BOOST} --prefix=${Arabica_INSTALL_DIR}
 	BUILD_COMMAND ${MAKE}
 	INSTALL_COMMAND make install && sh -c ". ${Arabica_INSTALL_DIR}/lib/libarabica.la && echo $dependency_libs >${Arabica_INSTALL_DIR}/lib/libarabica.deps"
 	INSTALL_DIR ${Arabica_INSTALL_DIR}
@@ -113,8 +126,8 @@ set(MOSES_INSTALL_DIR ${CMAKE_BINARY_DIR}/external/Install/moses_external)
 ExternalProject_add(moses_external
 	SOURCE_DIR ${MOSES_ROOT}
 	CONFIGURE_COMMAND true
-	BUILD_COMMAND ./bjam --max-kenlm-order=${KENLM_MAX_ORDER} --with-boost=${BOOST_ROOT}
-	INSTALL_COMMAND ./bjam --prefix=${MOSES_INSTALL_DIR} --with-boost=${BOOST_ROOT} install
+	BUILD_COMMAND ./bjam --max-kenlm-order=${KENLM_MAX_ORDER} ${MOSES_WITH_BOOST}
+	INSTALL_COMMAND ./bjam --prefix=${MOSES_INSTALL_DIR} ${MOSES_WITH_BOOST} install
 	INSTALL_DIR ${MOSES_INSTALL_DIR}
 	BUILD_IN_SOURCE 1)
 
