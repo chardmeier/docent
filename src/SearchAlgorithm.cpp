@@ -37,6 +37,6 @@ SearchAlgorithm *SearchAlgorithm::createSearchAlgorithm(const std::string &algo,
 	else {
 		Logger logger("DecoderConfiguration");
 		LOG(logger, error, "Unknown search algorithm: " << algo);
-		exit(1);
+		BOOST_THROW_EXCEPTION(ConfigurationException());
 	}
 }

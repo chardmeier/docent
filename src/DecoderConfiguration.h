@@ -113,7 +113,7 @@ private:
 			std::string pname = pnode.getAttribute("name");
 			if(pname == "") {
 				LOG(logger_, error, "Lacking required attribute 'name' on p element.");
-				exit(1);
+				BOOST_THROW_EXCEPTION(ConfigurationException());
 			}
 			if(pname == name) {
 				for(Arabica::DOM::Node<std::string> v = pnode.getFirstChild(); v != 0; v = v.getNextSibling())

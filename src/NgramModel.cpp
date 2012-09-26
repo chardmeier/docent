@@ -135,7 +135,7 @@ FeatureFunction *NgramModelFactory::createNgramModel(const Parameters &params) {
 */
 	default:
 		LOG(logger, error, "Unsupported LM type for file " << file);
-		exit(1);
+		BOOST_THROW_EXCEPTION(FileFormatException());
 	}
 }
 

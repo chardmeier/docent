@@ -49,7 +49,7 @@ NistXmlTestset::NistXmlTestset(const std::string &file)
 	Arabica::DOM::Document<std::string> doc = domParser.getDocument();
 	if(doc == 0) {
 		LOG(logger_, error, "Error parsing input file: " << file);
-		exit(1);
+		BOOST_THROW_EXCEPTION(FileFormatException());
 	}
 
 	doc.getDocumentElement().normalize();

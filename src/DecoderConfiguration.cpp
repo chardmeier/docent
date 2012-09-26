@@ -52,7 +52,7 @@ DecoderConfiguration::DecoderConfiguration(const std::string &file) :
 	Arabica::DOM::Document<std::string> doc = domParser.getDocument();
 	if(doc == 0) {
 		LOG(logger_, error, "Error parsing configuration file: " << file);
-		exit(1);
+		BOOST_THROW_EXCEPTION(ConfigurationException());
 	}
 	
 	doc.getDocumentElement().normalize();
@@ -100,14 +100,14 @@ void DecoderConfiguration::setupStateGenerator(Arabica::DOM::Node<std::string> n
 
 	if(c == 0) {
 		LOG(logger_, error, "Element 'initial-state' not found.");
-		exit(1);
+		BOOST_THROW_EXCEPTION(ConfigurationException());
 	}
 
 	Arabica::DOM::Element<std::string> istateNode = static_cast<Arabica::DOM::Element<std::string> >(c);
 	std::string type = istateNode.getAttribute("type");
 	if(type == "") {
 		LOG(logger_, error, "Lacking required attribute 'type' on initial-state element.");
-		exit(1);
+		BOOST_THROW_EXCEPTION(ConfigurationException());
 	}
 
 	stateGenerator_ = new StateGenerator(type, Parameters(logger_, istateNode), random_);
@@ -120,7 +120,7 @@ void DecoderConfiguration::setupStateGenerator(Arabica::DOM::Node<std::string> n
 		std::string weight = onode.getAttribute("weight");
 		if(type == "" || weight == "") {
 			LOG(logger_, error, "Lacking required attribute on operation element.");
-			exit(1);
+			BOOST_THROW_EXCEPTION(ConfigurationException());
 		}
 		
 		stateGenerator_->addOperation(boost::lexical_cast<Float>(weight), type, Parameters(logger_, onode));
@@ -146,11 +146,11 @@ void DecoderConfiguration::setupModels(Arabica::DOM::Node<std::string> n) {
 		std::string id = mnode.getAttribute("id");
 		if(type == "" || id == "") {
 			LOG(logger_, error, "Lacking required attribute on model element.");
-			exit(1);
+			BOOST_THROW_EXCEPTION(ConfigurationException());
 		}
 		if(!ids.insert(id).second) {
 			LOG(logger_, error, "Double specification for model " << id);
-			exit(1);
+			BOOST_THROW_EXCEPTION(ConfigurationException());
 		}
 		boost::shared_ptr<FeatureFunction> ff_impl = ffFactory.create(type, Parameters(logger_, mnode));
 		FeatureFunctionInstantiation *ff = new FeatureFunctionInstantiation(id, scoreIndex, ff_impl);
@@ -176,7 +176,7 @@ void DecoderConfiguration::setupWeights(Arabica::DOM::Node<std::string> n) {
 		std::string id = wnode.getAttribute("model");
 		if(id == "") {
 			LOG(logger_, error, "Lacking required attribute 'model' on weight element.");
-			exit(1);
+			BOOST_THROW_EXCEPTION(ConfigurationException());
 		}
 		FeatureFunctionList::const_iterator ffit;
 		uint scoreIndex = 0;
@@ -193,7 +193,7 @@ void DecoderConfiguration::setupWeights(Arabica::DOM::Node<std::string> n) {
 		if(s_order == "") {
 			if(ffit->getNumberOfScores() > 1) {
 				LOG(logger_, error, "Lacking attribute 'score' on weight for model " << id);
-				exit(1);
+				BOOST_THROW_EXCEPTION(ConfigurationException());
 			} else
 				s_order = "0";
 		}
@@ -201,11 +201,11 @@ void DecoderConfiguration::setupWeights(Arabica::DOM::Node<std::string> n) {
 		if(order >= ffit->getNumberOfScores()) {
 			LOG(logger_, error, "Found inexistent weight " << order << " for model " << id <<
 				", which only requires " << ffit->getNumberOfScores() << " weights.");
-			exit(1);
+			BOOST_THROW_EXCEPTION(ConfigurationException());
 		}
 		if(coveredWeights.test(scoreIndex + order)) {
 			LOG(logger_, error, "Weight " << order << " for model " << id << " already specified.");
-			exit(1);
+			BOOST_THROW_EXCEPTION(ConfigurationException());
 		}
 		coveredWeights.set(scoreIndex + order);
 		Arabica::DOM::Node<std::string> w;
@@ -217,12 +217,12 @@ void DecoderConfiguration::setupWeights(Arabica::DOM::Node<std::string> n) {
 		}
 		if(w == 0) {
 			LOG(logger_, error, "Weight " << order << " for model " << id << " not found.");
-			exit(1);
+			BOOST_THROW_EXCEPTION(ConfigurationException());
 		}
 	}
 	if(coveredWeights.count() != coveredWeights.size()) {
 		LOG(logger_, error, "Insufficient number of weights: " << coveredWeights);
-		exit(1);
+		BOOST_THROW_EXCEPTION(ConfigurationException());
 	}
 }
 

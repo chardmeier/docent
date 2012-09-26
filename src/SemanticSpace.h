@@ -94,7 +94,7 @@ SemanticSpaceImplementation<WV> *SemanticSpaceImplementation<WV>::load(const std
 	else {
 		Logger logger("SemanticSpace");
 		LOG(logger, error, file << ": Unknown sspace file format.");
-		exit(1);
+		BOOST_THROW_EXCEPTION(FileFormatException());
 	}
 
 	is.close();

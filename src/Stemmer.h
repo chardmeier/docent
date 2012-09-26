@@ -43,7 +43,7 @@ public:
 			Logger log("Stemmer");
 			LOG(log, error, "Unable to create " << algorithm <<
 				" stemmer for encoding " << encoding);
-			exit(1);
+			BOOST_THROW_EXCEPTION(ConfigurationException());
 		}
 	}
 

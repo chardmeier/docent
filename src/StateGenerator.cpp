@@ -535,7 +535,7 @@ StateGenerator::StateGenerator(const std::string &initMethod, const Parameters &
 		initialiser_ = new BeamSearchStateInitialiser(params);
 	else {
 		LOG(logger_, error, "Unknown initialisation method: " << initMethod);
-		exit(1);
+		BOOST_THROW_EXCEPTION(ConfigurationException());
 	}
 }
 
@@ -558,7 +558,7 @@ void StateGenerator::addOperation(Float weight, const std::string &type, const P
 		operations_.push_back(new ResegmentOperation(params));
 	else {
 		LOG(logger_, error, "Unknown operation: " << type);
-		exit(1);
+		BOOST_THROW_EXCEPTION(ConfigurationException());
 	}
 	
 	if(!cumulativeOperationDistribution_.empty())

@@ -76,7 +76,7 @@ void MMAXDocument::load(const boost::filesystem::path &mmax) {
 	Arabica::DOM::Document<std::string> doc = domParser.getDocument();
 	if(doc == 0) {
 		LOG(logger_, error, "Error parsing common_paths.xml");
-		exit(1);
+		BOOST_THROW_EXCEPTION(FileFormatException());
 	}
 
 	boost::filesystem::path basedataPath, markablePath;
@@ -176,7 +176,7 @@ void MMAXDocument::loadBasedata(const boost::filesystem::path &mmax, const boost
 	Arabica::DOM::Document<std::string> doc = domParser.getDocument();
 	if(doc == 0) {
 		LOG(logger_, error, "Error parsing " << mmax);
-		exit(1);
+		BOOST_THROW_EXCEPTION(FileFormatException());
 	}
 
 	boost::filesystem::path file;
@@ -207,7 +207,7 @@ void MMAXDocument::loadBasedata(const boost::filesystem::path &mmax, const boost
 	doc = domParser.getDocument();
 	if(doc == 0) {
 		LOG(logger_, error, "Error parsing " << file);
-		exit(1);
+		BOOST_THROW_EXCEPTION(FileFormatException());
 	}
 
 	uint widx = 1;
@@ -228,7 +228,7 @@ void MMAXDocument::loadBasedata(const boost::filesystem::path &mmax, const boost
 			if(id != os.str()) {
 				LOG(logger_, error, file << ": Expected word " <<
 					os.str() << ", found " << id);
-				exit(1);
+				BOOST_THROW_EXCEPTION(FileFormatException());
 			}
 
 			widx++;
@@ -330,7 +330,7 @@ const MarkableLevel &MMAXDocument::getMarkableLevel(const std::string &name) con
 
 	if(it == levels_.end()) {
 		LOG(logger_, error, "Unknown markable level (not in common_paths.xml): " << name);
-		exit(1);
+		BOOST_THROW_EXCEPTION(FileFormatException());
 	}
 
 	if(it->second.second == NULL)
@@ -351,7 +351,7 @@ MarkableLevel::MarkableLevel(const MMAXDocument &mmax, const std::string &name, 
 	Arabica::DOM::Document<std::string> doc = domParser.getDocument();
 	if(doc == 0) {
 		LOG(logger_, error, "Error parsing " << file);
-		exit(1);
+		BOOST_THROW_EXCEPTION(FileFormatException());
 	}
 
 	boost::regex spx1("word_([0-9]+)");
