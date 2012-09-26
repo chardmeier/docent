@@ -55,8 +55,8 @@ if(MPI_FOUND)
 		set(MPI_FOUND FALSE)
 	endif()
 else()
-	message("You don't seem to have MPI installed, so mpi-docent won't be built.
-		 The other binaries won't be affected.")
+	message("You don't seem to have MPI installed, so mpi-docent won't be built. "
+		"The other binaries won't be affected.")
 endif()
 
 find_package(Boost 1.44 COMPONENTS thread random serialization regex system filesystem REQUIRED)
