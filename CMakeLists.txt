@@ -88,7 +88,7 @@ set(Arabica_INSTALL_DIR ${CMAKE_BINARY_DIR}/external/Install/arabica_external)
 
 ExternalProject_add(arabica_external
 	SOURCE_DIR ${Arabica_ROOT}
-	CONFIGURE_COMMAND ${Arabica_ROOT}/autogen.sh --with-boost=${BOOST_ROOT}/include --prefix=${Arabica_INSTALL_DIR}
+	CONFIGURE_COMMAND ./autogen.sh --with-boost=${BOOST_ROOT}/include --prefix=${Arabica_INSTALL_DIR}
 	BUILD_COMMAND ${MAKE}
 	INSTALL_COMMAND make install && sh -c ". ${Arabica_INSTALL_DIR}/lib/libarabica.la && echo $dependency_libs >${Arabica_INSTALL_DIR}/lib/libarabica.deps"
 	INSTALL_DIR ${Arabica_INSTALL_DIR}
