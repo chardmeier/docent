@@ -1,7 +1,7 @@
 DOCENT -- DOCUMENT-LEVEL LOCAL SEARCH DECODER FOR PHRASE-BASED SMT
 ==================================================================
 Christian Hardmeier
-13 August 2012
+26 September 2012
 
 Docent is a decoder for phrase-based Statistical Machine Translation (SMT).
 Unlike most existing SMT decoders, it treats complete documents, rather than
@@ -74,7 +74,20 @@ dependencies and the fact that it links against Moses and shares some of its
 dependencies with it. Compared to the first public version, the build process
 has been much simplified, but it may still need some tweaking for your system.
 
-1. Installing prerequisite components
+1. Initialising Git submodules
+
+The software packages Arabica (XML parser) and Moses (SMT decoder) are
+referenced by Docent as Git submodules. When you check out Docent for the first
+time, you need to initialise and update the submodules. From Docent's top-level
+directory, run:
+
+- git submodule init
+- git submodule update
+
+The build process of Arabica and Moses is driven automatically by Docent's cmake
+script.
+
+2. Installing prerequisite components
 
 Download the following software components and build and install them into
 directories of your choice according to the build instructions provided with
@@ -85,6 +98,17 @@ each package:
 	Source: http://www.cmake.org/
 
 Make sure you have cmake in your PATH.
+
+- Autotools
+	Versions tested:
+	- autoconf 2.68, 2.69
+	- automake 1.9.6, 1.12.4
+	- libtool 2.2.10, 2.4.2
+	Source: ftp://ftp.gnu.org/gnu and mirrors
+
+Arabica requires you to have recent versions of autoconf, automake and libtool
+installed on your system. If you have outdated versions of them or experience
+problems building Arabica, consider installing the latest versions.
 
 - Boost (C++ library)
 	Versions tested: 1.48.0, 1.50.0
@@ -104,7 +128,7 @@ option:
 	./b2 --prefix=$PREFIX --libdir=$PREFIX/lib64 link=static,shared threading=multi install
 Then pass -DBOOST_ROOT=$PREFIX to cmake (see below).
 
-2. Building Docent
+3. Building Docent
 
 Docent can be built in a debuggable DEBUG and an optimised RELEASE
 configuration. You will probably need both of them, so it's easiest to build
