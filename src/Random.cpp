@@ -55,6 +55,6 @@ RandomImplementation::RandomImplementation() :
 	
 void RandomImplementation::seed(uint seed) {
 	generator_.seed(seed);
-	LOG(logger_, normal) << "Random number generator seed: " << seed;
+	LOG(logger_, normal, "Random number generator seed: " << seed);
 }
 

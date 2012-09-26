@@ -61,8 +61,16 @@ public:
 };
 
 // beware of double evaluation in the following macro
-#define LOG(logger, level) \
+#define LOG(logger, level, message) \
 	for(bool flagInLoggerMacro = (logger).loggable(level); flagInLoggerMacro; flagInLoggerMacro = false) \
-		(logger).getLogStream()
+		(logger).getLogStream() << message << '\n'
+
+// LOG_DEBUGBUILD can be used (sparingly) in places where even the loggability
+// check hurts performance noticeably.
+#ifdef NDEBUG
+#define LOG_DEBUGBUILD(logger, level, message)
+#else
+#define LOG_DEBUGBUILD(logger, level, message) LOG(logger, level, message)
+#endif
 
 #endif

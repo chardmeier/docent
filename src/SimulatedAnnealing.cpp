@@ -60,7 +60,7 @@ SearchState *SimulatedAnnealing::createState(boost::shared_ptr<DocumentState> do
 void SimulatedAnnealing::search(SearchState *sstate, NbestStorage &nbest, uint maxSteps, uint maxAccepted) const {
 	SimulatedAnnealingSearchState &state = dynamic_cast<SimulatedAnnealingSearchState &>(*sstate);
 
-	LOG(logger_, debug) << *state.document;
+	LOG(logger_, debug, *state.document);
 
 	nbest.offer(state.document);
 
@@ -73,20 +73,20 @@ void SimulatedAnnealing::search(SearchState *sstate, NbestStorage &nbest, uint m
 		state.document->registerAttemptedMove(step);
 		if(step->isProvisionallyAcceptable(accept)) {
 			if(accept(step->getScore())) {
-				LOG(logger_, debug) << "Accepting.";
+				LOG(logger_, debug, "Accepting.");
 				state.schedule->step(step->getScore(), true);
 				state.document->applyModifications(step);
-				LOG(logger_, debug) << *state.document;
+				LOG(logger_, debug, *state.document);
 				nbest.offer(state.document);
 				accepted++;
 			} else {
-				LOG(logger_, debug) << "Discarding.";
+				LOG(logger_, debug, "Discarding.");
 				state.schedule->step(step->getScore(), false);
 				delete step;
 			}
 		} else {
 			state.schedule->step(step->getScoreEstimate(), false);
-			LOG(logger_, debug) << "Discarding.";
+			LOG(logger_, debug, "Discarding.");
 			delete step;
 		}
 		i++;
@@ -94,24 +94,24 @@ void SimulatedAnnealing::search(SearchState *sstate, NbestStorage &nbest, uint m
 	}
 	
 	if(state.schedule->isDone())
-		LOG(logger_, normal) << "End of cooling schedule reached.";
+		LOG(logger_, normal, "End of cooling schedule reached.");
 
 	if(accepted >= maxAccepted)
-		LOG(logger_, normal) << "Maximum number of accepted steps (" << maxAccepted << ") reached.";
+		LOG(logger_, normal, "Maximum number of accepted steps (" << maxAccepted << ") reached.");
 
 	if(i >= maxSteps)
-		LOG(logger_, normal) << "Interrupting search.";
+		LOG(logger_, normal, "Interrupting search.");
 
 	if(state.nsteps >= totalMaxSteps_)
-		LOG(logger_, normal) << "Maximum number of steps (" << totalMaxSteps_ << ") reached.";
+		LOG(logger_, normal, "Maximum number of steps (" << totalMaxSteps_ << ") reached.");
 	
 	if(nbest.getBestScore() > targetScore_)
-		LOG(logger_, normal) << "Found solution with better than target score.";
+		LOG(logger_, normal, "Found solution with better than target score.");
 
 	DocumentState::MoveCounts::const_iterator it = state.document->getMoveCounts().begin();
 	while(it != state.document->getMoveCounts().end()) {
-		LOG(logger_, normal) << it->second.first << '\t' << it->second.second << '\t'
-			<< it->first->getDescription();
+		LOG(logger_, normal, it->second.first << '\t' << it->second.second << '\t'
+			<< it->first->getDescription());
 		++it;
 	}
 }

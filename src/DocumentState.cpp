@@ -200,13 +200,13 @@ void DocumentState::debugSentenceCoverage(const PhraseSegmentation &seg) const {
 	CoverageBitmap bm(seg.front().first.size());
 	BOOST_FOREACH(const AnchoredPhrasePair &app, seg) {
 		if((bm & app.first).any()) {
-			LOG(logger_, error) << "OVERLAP\n" << (bm & app.first) << '\n' << *this;
+			LOG(logger_, error, "OVERLAP\n" << (bm & app.first) << '\n' << *this);
 			abort();
 		}
 		bm |= app.first;
 	}
 	if(bm.count() != bm.size()) {
-		LOG(logger_, error) << "INCOMPLETE COVERAGE\n" << bm << '\n' << *this;
+		LOG(logger_, error, "INCOMPLETE COVERAGE\n" << bm << '\n' << *this);
 		abort();
 	}
 }

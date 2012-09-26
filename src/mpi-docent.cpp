@@ -121,7 +121,7 @@ void DocumentDecoder::manageTranslators(boost::mpi::communicator comm, NistXmlTe
 	NistXmlTestset::const_iterator it = testset.begin();
 	uint docno = 0;
 	for(int i = 0; i < comm.size() && it != testset.end(); ++i, ++docno, ++it) {
-		LOG(logger_, debug) << "S: Sending document " << docno << " to translator " << i;
+		LOG(logger_, debug, "S: Sending document " << docno << " to translator " << i);
 		comm.send(i, TAG_TRANSLATE, std::make_pair(docno, *(*it)->asMMAXDocument()));
 	}
 
@@ -129,26 +129,26 @@ void DocumentDecoder::manageTranslators(boost::mpi::communicator comm, NistXmlTe
 		std::pair<mpi::status, mpi::request *> wstat = mpi::wait_any(reqs, reqs + 2);
 		if(wstat.first.tag() == TAG_STOP_COLLECTING) {
 			stopped++;
-			LOG(logger_, debug) << "C: Received STOP_COLLECTING from translator "
-				<< wstat.first.source() << ", now " << stopped << " stopped translators.";
+			LOG(logger_, debug, "C: Received STOP_COLLECTING from translator "
+				<< wstat.first.source() << ", now " << stopped << " stopped translators.");
 			if(stopped == comm.size()) {
 				reqs[0].cancel();
 				return;
 			}
 			*wstat.second = comm.irecv(mpi::any_source, TAG_STOP_COLLECTING);
 		} else {
-			LOG(logger_, debug) << "C: Received translation of document " <<
-				translation.first << " from translator " << wstat.first.source();
+			LOG(logger_, debug, "C: Received translation of document " <<
+				translation.first << " from translator " << wstat.first.source());
 			reqs[0] = comm.irecv(mpi::any_source, TAG_COLLECT, translation);
 			if(it != testset.end()) {
-				LOG(logger_, debug) << "S: Sending document " << docno <<
-					" to translator " << wstat.first.source();
+				LOG(logger_, debug, "S: Sending document " << docno <<
+					" to translator " << wstat.first.source());
 				comm.send(wstat.first.source(), TAG_TRANSLATE,
 					std::make_pair(docno, *(*it)->asMMAXDocument()));
 				++docno; ++it;
 			} else {
-				LOG(logger_, debug) <<
-					"S: Sending STOP_TRANSLATING to translator " << wstat.first.source();
+				LOG(logger_, debug,
+					"S: Sending STOP_TRANSLATING to translator " << wstat.first.source());
 				comm.send(wstat.first.source(), TAG_STOP_TRANSLATING);
 			}
 			testset[translation.first]->setTranslation(translation.second);
@@ -166,16 +166,16 @@ void DocumentDecoder::translate() {
 		reqs[0] = communicator_.irecv(0, TAG_TRANSLATE, input);
 		std::pair<mpi::status, mpi::request *> wstat = mpi::wait_any(reqs, reqs + 2);
 		if(wstat.first.tag() == TAG_STOP_TRANSLATING) {
-			LOG(logger_, debug) << "T: Received STOP_TRANSLATING.";
+			LOG(logger_, debug, "T: Received STOP_TRANSLATING.");
 			reqs[0].cancel();
 			communicator_.send(0, TAG_STOP_COLLECTING);
 			return;
 		} else {
 			NumberedOutputDocument output;
-			LOG(logger_, debug) << "T: Received document " << input.first << " for translation.";
+			LOG(logger_, debug, "T: Received document " << input.first << " for translation.");
 			output.first = input.first;
 			output.second = runDecoder(input.second);
-			LOG(logger_, debug) << "T: Sending translation of document " << input.first << " to collector.";
+			LOG(logger_, debug, "T: Sending translation of document " << input.first << " to collector.");
 			communicator_.send(0, TAG_COLLECT, output);
 		}
 	}

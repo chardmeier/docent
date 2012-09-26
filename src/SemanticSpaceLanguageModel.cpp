@@ -226,12 +226,12 @@ SemanticSpaceLanguageModel::SemanticSpaceLanguageModel(const Parameters &params)
 
 	std::string ftype = params.get<std::string>("filter-type", "moving-avg");
 	if(ftype != "moving-avg") {
-		LOG(logger_, error) << "Unimplemented filter type: " << ftype;
+		LOG(logger_, error, "Unimplemented filter type: " << ftype);
 		BOOST_THROW_EXCEPTION(ConfigurationException());
 	}
 	uint order = params.get<uint>("moving-avg:order");
 	if(order == 0) {
-		LOG(logger_, error) << "Moving average order must be positive.";
+		LOG(logger_, error, "Moving average order must be positive.");
 		BOOST_THROW_EXCEPTION(ConfigurationException());
 	}
 	filter_.insert(filter_.end(), order, Float(1) / Float(order));
@@ -246,7 +246,7 @@ SemanticSpaceLanguageModel::SemanticSpaceLanguageModel(const Parameters &params)
 		std::string histfile = params.get<std::string>("coshisto:histogram-file");
 		jumpDistribution_ = new CosineProbabilityHistogram(histfile);
 	} else {
-		LOG(logger_, error) << "Unknown scorer type: " << scorertype;
+		LOG(logger_, error, "Unknown scorer type: " << scorertype);
 		BOOST_THROW_EXCEPTION(ConfigurationException());
 	}
 
@@ -291,11 +291,11 @@ SemanticSpaceLanguageModel::SemanticSpaceLanguageModel(const Parameters &params)
 	bilingualLookup_ = params.get<bool>("bilingual-lookup", false);
 	if(bilingualLookup_) {
 		if(useBiLMFormat_) {
-			LOG(logger_, error) << "bilm-format and bilingual-lookup are mutually exclusive.";
+			LOG(logger_, error, "bilm-format and bilingual-lookup are mutually exclusive.");
 			BOOST_THROW_EXCEPTION(ConfigurationException());
 		}
 		if(stemmer_) {
-			LOG(logger_, error) << "Stemming not currently implemented for bilingual-lookup.";
+			LOG(logger_, error, "Stemming not currently implemented for bilingual-lookup.");
 			BOOST_THROW_EXCEPTION(ConfigurationException());
 		}
 		sourcePrefix_ = params.get<std::string>("source-prefix");
@@ -325,7 +325,7 @@ FeatureFunction::State *SemanticSpaceLanguageModel::initDocument(const DocumentS
 	for(uint i = 0; i < segs.size(); i++) {
 		uint ntgtwords = countTargetWords(segs[i].begin(), segs[i].end());
 		total_tgtwords += ntgtwords;
-		LOG(logger_, debug) << "Sentence " << i << ": " << ntgtwords << " target words.";
+		LOG(logger_, debug, "Sentence " << i << ": " << ntgtwords << " target words.");
 		state->wordcache[i].reserve(ntgtwords);
 		BOOST_FOREACH(const AnchoredPhrasePair &app, segs[i]) {
 			for(uint w = 0; w < app.second.get().getTargetPhrase().get().size(); w++) {
@@ -380,7 +380,7 @@ FeatureFunction::StateModifications *SemanticSpaceLanguageModel::estimateScoreUp
 FeatureFunction::StateModifications *SemanticSpaceLanguageModel::updateScore(const DocumentState &doc,
 		const SearchStep &step, const FeatureFunction::State *ffstate,
 		StateModifications *estmods, Scores::const_iterator psbegin, Scores::iterator sbegin) const {
-	LOG(logger_, debug) << "SemanticSpaceLanguageModel::updateScore";
+	LOG(logger_, debug, "SemanticSpaceLanguageModel::updateScore");
 	const SSLMDocumentState &state = dynamic_cast<const SSLMDocumentState &>(*ffstate);
 	Float &s = *sbegin;
 	s = *psbegin;
@@ -395,7 +395,7 @@ FeatureFunction::StateModifications *SemanticSpaceLanguageModel::updateScore(con
 	SSLMDocumentModifications *modif = new SSLMDocumentModifications();
 	modif->semlistMods.resize(mods.size());
 
-	LOG(logger_, debug) << "Chain creation pass";
+	LOG(logger_, debug, "Chain creation pass");
 	for(uint i = 0; i < mods.size(); i++) {
 		uint sentno = mods[i].sentno;
 		PhraseSegmentation::const_iterator from_it = mods[i].from_it;
@@ -480,7 +480,7 @@ FeatureFunction::StateModifications *SemanticSpaceLanguageModel::updateScore(con
 		modificationStates[i].oldsem_end = oldsem_end;
 	}
 
-	LOG(logger_, debug) << "Subtraction pass";
+	LOG(logger_, debug, "Subtraction pass");
 	modif->vectorCount = state.vectorCount;
 	for(uint i = 0; i < mods.size(); i++) {
 		SSLMModificationState modstate;
@@ -489,11 +489,11 @@ FeatureFunction::StateModifications *SemanticSpaceLanguageModel::updateScore(con
 		PhraseSegmentation::const_iterator from_it = mods[i].from_it;
 		PhraseSegmentation::const_iterator to_it = mods[i].to_it;
 
-		LOG(logger_, debug) << "next modification, starting at target word " <<
-			countTargetWords(doc.getPhraseSegmentation(sentno).begin(), from_it);
+		LOG(logger_, debug, "next modification, starting at target word " <<
+			countTargetWords(doc.getPhraseSegmentation(sentno).begin(), from_it));
 
 		for(uint j = modificationStates[i].old_from_word; j < modificationStates[i].old_to_word; j++) {
-			LOG(logger_, debug) << "(a) minus " << state.wordcache[sentno][j].score;
+			LOG(logger_, debug, "(a) minus " << state.wordcache[sentno][j].score);
 			s -= state.wordcache[sentno][j].score;
 			total_tgtwords--;
 			if(state.wordcache[sentno][j].semlink != noSemLink_)
@@ -501,7 +501,7 @@ FeatureFunction::StateModifications *SemanticSpaceLanguageModel::updateScore(con
 		}
 	}
 
-	LOG(logger_, debug) << "Addition pass";
+	LOG(logger_, debug, "Addition pass");
 	std::vector<SemListModification>::iterator semmodit = modif->semlistMods.begin();
 	std::vector<SSLMModificationState>::iterator modstateit = modificationStates.begin();
 	std::vector<SearchStep::Modification>::const_iterator it1 = mods.begin();
@@ -526,10 +526,10 @@ FeatureFunction::StateModifications *SemanticSpaceLanguageModel::updateScore(con
 
 	while(it1 != mods.end()) {
 		uint sentno = it1->sentno;
-		LOG(logger_, debug) << "Starting in sentence " << sentno <<
+		LOG(logger_, debug, "Starting in sentence " << sentno <<
 			", which has " <<
 			countTargetWords(doc.getPhraseSegmentation(sentno)) <<
-			" target words.";
+			" target words.");
 		std::vector<SearchStep::Modification>::const_iterator it2 = it1;
 		while(++it2 != mods.end())
 			if(it2->sentno != sentno)
@@ -557,8 +557,8 @@ FeatureFunction::StateModifications *SemanticSpaceLanguageModel::updateScore(con
 			PhraseSegmentation::const_iterator from_it = modit->from_it;
 			PhraseSegmentation::const_iterator to_it = modit->to_it;
 
-			LOG(logger_, debug) << "next modification, starting at target word " <<
-				countTargetWords(doc.getPhraseSegmentation(sentno).begin(), from_it);
+			LOG(logger_, debug, "next modification, starting at target word " <<
+				countTargetWords(doc.getPhraseSegmentation(sentno).begin(), from_it));
 
 			uint next_sentence;
 			PhraseSegmentation::const_iterator local_next_from_it;
@@ -583,18 +583,18 @@ FeatureFunction::StateModifications *SemanticSpaceLanguageModel::updateScore(con
 				if(ws.semlink == noSemLink_) {
 					if(vectorCountModel_ != NULL) {
 						sntstate->push_back(ws);
-						LOG(logger_, debug) << "(a1) plus " << ws.score;
+						LOG(logger_, debug, "(a1) plus " << ws.score);
 						s += ws.score;
 					} else {
 						sntstate->push_back(WordState_(Float(0), noSemLink_));
-						LOG(logger_, debug) << "(a1) skipping stop word";
+						LOG(logger_, debug, "(a1) skipping stop word");
 					}
 				} else {
 					PieceIt modsemlist_current(pieces.begin(), curpiece, pieces.end(), ws.semlink);
 					Float lscore = scoreWord(modsemlist_current, modsemlist_begin);
 					sntstate->push_back(ws);
 					sntstate->back().score = lscore;
-					LOG(logger_, debug) << "(a2) plus " << lscore;
+					LOG(logger_, debug, "(a2) plus " << lscore);
 					s += lscore;
 					modif->vectorCount++;
 				}
@@ -616,10 +616,10 @@ FeatureFunction::StateModifications *SemanticSpaceLanguageModel::updateScore(con
 					if(sentno == state.wordcache.size())
 						break;
 
-					LOG(logger_, debug) << "now in sentence " << sentno <<
+					LOG(logger_, debug, "now in sentence " << sentno <<
 						", which has " <<
 						countTargetWords(doc.getPhraseSegmentation(sentno)) <<
-						" target words.";
+						" target words.");
 					modif->wordcacheMods.push_back(std::make_pair(sentno, SentenceState_()));
 					sntstate = &modif->wordcacheMods.back().second;
 					oldstate1 = state.wordcache[sentno].begin();
@@ -631,7 +631,7 @@ FeatureFunction::StateModifications *SemanticSpaceLanguageModel::updateScore(con
 				}
 
 				if(oldstate1->semlink == noSemLink_) {
-					LOG(logger_, debug) << "copying non-content element";
+					LOG(logger_, debug, "copying non-content element");
 					sntstate->push_back(*oldstate1);
 				} else {
 					PieceIt modsemlist_current(pieces.begin(), curpiece, pieces.end(),
@@ -641,8 +641,8 @@ FeatureFunction::StateModifications *SemanticSpaceLanguageModel::updateScore(con
 						Float lscore = scoreWord(modsemlist_current, modsemlist_begin);
 						ws.score = lscore;
 						sntstate->push_back(ws);
-						LOG(logger_, debug) << "(b) minus " << oldstate1->score;
-						LOG(logger_, debug) << "(b) plus " << lscore;
+						LOG(logger_, debug, "(b) minus " << oldstate1->score);
+						LOG(logger_, debug, "(b) plus " << lscore);
 						s += lscore - oldstate1->score;
 					}
 					++i;
@@ -709,7 +709,7 @@ SemanticSpaceLanguageModel::ScoreVectorPair_ SemanticSpaceLanguageModel::lookupW
 	Float lprob;
 	if(it != stoplist_.end()) {
 		lprob = stopWordLogprob_ + it->second;
-		LOG(logger_, debug) << "Stop word: " << word << " (lp = " << lprob << ")";
+		LOG(logger_, debug, "Stop word: " << word << " (lp = " << lprob << ")");
 	} else if(bilingualLookup_) {
 		vec = boost::make_shared<SemanticSpace::DenseVector>(sspace_->getDimensionality());
 		vec->clear();
@@ -742,7 +742,7 @@ SemanticSpaceLanguageModel::ScoreVectorPair_ SemanticSpaceLanguageModel::lookupW
 			lprob = std::numeric_limits<Float>::quiet_NaN();
 		else {
 			lprob = unknownWordLogprob_;
-			LOG(logger_, debug) << "No vectors found for " << word << " (lp = " << lprob << ")";
+			LOG(logger_, debug, "No vectors found for " << word << " (lp = " << lprob << ")");
 		}
 	} else {
 		if(stemmer_)
@@ -767,12 +767,12 @@ SemanticSpaceLanguageModel::ScoreVectorPair_ SemanticSpaceLanguageModel::lookupW
 			word = os.str();
 		}
 
-		LOG(logger_, debug) << "Looking up " << word;
+		LOG(logger_, debug, "Looking up " << word);
 		const SemanticSpace::WordVector *ssvec = NULL;
 		ssvec = sspace_->lookup(word);
 		if(ssvec == NULL) {
 			lprob = unknownWordLogprob_;
-			LOG(logger_, debug) << "Unknown word: " << word << " (lp = " << lprob << ")";
+			LOG(logger_, debug, "Unknown word: " << word << " (lp = " << lprob << ")");
 		} else {
 			lprob = std::numeric_limits<Float>::quiet_NaN();
 			vec = boost::make_shared<SemanticSpace::DenseVector>(*ssvec);

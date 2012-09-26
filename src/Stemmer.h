@@ -41,8 +41,8 @@ public:
 		stemmer_ = sb_stemmer_new(algorithm.c_str(), encoding.c_str());
 		if(stemmer_ == NULL) {
 			Logger log("Stemmer");
-			LOG(log, error) << "Unable to create " << algorithm <<
-				" stemmer for encoding " << encoding;
+			LOG(log, error, "Unable to create " << algorithm <<
+				" stemmer for encoding " << encoding);
 			exit(1);
 		}
 	}

@@ -93,7 +93,7 @@ SemanticSpaceImplementation<WV> *SemanticSpaceImplementation<WV>::load(const std
 		space = SemanticSpaceImplementation<WV>::loadDenseText(is);
 	else {
 		Logger logger("SemanticSpace");
-		LOG(logger, error) << file << ": Unknown sspace file format.";
+		LOG(logger, error, file << ": Unknown sspace file format.");
 		exit(1);
 	}
 

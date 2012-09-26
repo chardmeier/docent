@@ -78,7 +78,7 @@ PhraseSegmentation BeamSearchAdapter::search(boost::shared_ptr<const PhrasePairC
 	std::sort(ppvec.begin(), ppvec.end(), comparePhrasePairs);
 	PhraseSegmentation seg;
 	if(hypo == NULL)
-		LOG(logger_, error) << "No answer from moses.";
+		LOG(logger_, error, "No answer from moses.");
 	while(hypo && hypo->GetPrevHypo() != NULL) {
 		CoverageBitmap cov(sentence.size());
 		const Moses::WordsRange &mrange = hypo->GetCurrSourceWordsRange();

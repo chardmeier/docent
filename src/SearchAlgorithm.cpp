@@ -36,7 +36,7 @@ SearchAlgorithm *SearchAlgorithm::createSearchAlgorithm(const std::string &algo,
 	//	return new MetropolisHastingsSampler(config, params);
 	else {
 		Logger logger("DecoderConfiguration");
-		LOG(logger, error) << "Unknown search algorithm: " << algo;
+		LOG(logger, error, "Unknown search algorithm: " << algo);
 		exit(1);
 	}
 }

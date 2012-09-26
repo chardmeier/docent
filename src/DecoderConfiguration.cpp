@@ -47,11 +47,11 @@ DecoderConfiguration::DecoderConfiguration(const std::string &file) :
 	domParser.setErrorHandler(errh);
 	domParser.parse(is);
 	if(errh.errorsReported())
-		LOG(logger_, error) << errh.errors();
+		LOG(logger_, error, errh.errors());
 
 	Arabica::DOM::Document<std::string> doc = domParser.getDocument();
 	if(doc == 0) {
-		LOG(logger_, error) << "Error parsing configuration file: " << file;
+		LOG(logger_, error, "Error parsing configuration file: " << file);
 		exit(1);
 	}
 	
@@ -71,7 +71,7 @@ DecoderConfiguration::DecoderConfiguration(const std::string &file) :
 		else if(n.getNodeName() == "weights")
 			setupWeights(n);
 		else
-			LOG(logger_, error) << "Unknown configuration section: " << n.getNodeName();
+			LOG(logger_, error, "Unknown configuration section: " << n.getNodeName());
 	}
 }
 
@@ -99,14 +99,14 @@ void DecoderConfiguration::setupStateGenerator(Arabica::DOM::Node<std::string> n
 		c = c.getNextSibling();
 
 	if(c == 0) {
-		LOG(logger_, error) << "Element 'initial-state' not found.";
+		LOG(logger_, error, "Element 'initial-state' not found.");
 		exit(1);
 	}
 
 	Arabica::DOM::Element<std::string> istateNode = static_cast<Arabica::DOM::Element<std::string> >(c);
 	std::string type = istateNode.getAttribute("type");
 	if(type == "") {
-		LOG(logger_, error) << "Lacking required attribute 'type' on initial-state element.";
+		LOG(logger_, error, "Lacking required attribute 'type' on initial-state element.");
 		exit(1);
 	}
 
@@ -119,7 +119,7 @@ void DecoderConfiguration::setupStateGenerator(Arabica::DOM::Node<std::string> n
 		type = onode.getAttribute("type");
 		std::string weight = onode.getAttribute("weight");
 		if(type == "" || weight == "") {
-			LOG(logger_, error) << "Lacking required attribute on operation element.";
+			LOG(logger_, error, "Lacking required attribute on operation element.");
 			exit(1);
 		}
 		
@@ -145,11 +145,11 @@ void DecoderConfiguration::setupModels(Arabica::DOM::Node<std::string> n) {
 		std::string type = mnode.getAttribute("type");
 		std::string id = mnode.getAttribute("id");
 		if(type == "" || id == "") {
-			LOG(logger_, error) << "Lacking required attribute on model element.";
+			LOG(logger_, error, "Lacking required attribute on model element.");
 			exit(1);
 		}
 		if(!ids.insert(id).second) {
-			LOG(logger_, error) << "Double specification for model " << id;
+			LOG(logger_, error, "Double specification for model " << id);
 			exit(1);
 		}
 		boost::shared_ptr<FeatureFunction> ff_impl = ffFactory.create(type, Parameters(logger_, mnode));
@@ -175,7 +175,7 @@ void DecoderConfiguration::setupWeights(Arabica::DOM::Node<std::string> n) {
 		Arabica::DOM::Element<std::string> wnode = static_cast<Arabica::DOM::Element<std::string> >(c);
 		std::string id = wnode.getAttribute("model");
 		if(id == "") {
-			LOG(logger_, error) << "Lacking required attribute 'model' on weight element.";
+			LOG(logger_, error, "Lacking required attribute 'model' on weight element.");
 			exit(1);
 		}
 		FeatureFunctionList::const_iterator ffit;
@@ -186,25 +186,25 @@ void DecoderConfiguration::setupWeights(Arabica::DOM::Node<std::string> n) {
 			scoreIndex += ffit->getNumberOfScores();
 		}
 		if(ffit == featureFunctions_.end()) {
-			LOG(logger_, error) << "Ignoring weight for non-existent model " << id;
+			LOG(logger_, error, "Ignoring weight for non-existent model " << id);
 			continue;
 		}
 		std::string s_order = wnode.getAttribute("score");
 		if(s_order == "") {
 			if(ffit->getNumberOfScores() > 1) {
-				LOG(logger_, error) << "Lacking attribute 'score' on weight for model " << id;
+				LOG(logger_, error, "Lacking attribute 'score' on weight for model " << id);
 				exit(1);
 			} else
 				s_order = "0";
 		}
 		uint order = boost::lexical_cast<uint>(s_order);
 		if(order >= ffit->getNumberOfScores()) {
-			LOG(logger_, error) << "Found inexistent weight " << order << " for model " << id <<
-				", which only requires " << ffit->getNumberOfScores() << " weights.";
+			LOG(logger_, error, "Found inexistent weight " << order << " for model " << id <<
+				", which only requires " << ffit->getNumberOfScores() << " weights.");
 			exit(1);
 		}
 		if(coveredWeights.test(scoreIndex + order)) {
-			LOG(logger_, error) << "Weight " << order << " for model " << id << " already specified.";
+			LOG(logger_, error, "Weight " << order << " for model " << id << " already specified.");
 			exit(1);
 		}
 		coveredWeights.set(scoreIndex + order);
@@ -216,12 +216,12 @@ void DecoderConfiguration::setupWeights(Arabica::DOM::Node<std::string> n) {
 			}
 		}
 		if(w == 0) {
-			LOG(logger_, error) << "Weight " << order << " for model " << id << " not found.";
+			LOG(logger_, error, "Weight " << order << " for model " << id << " not found.");
 			exit(1);
 		}
 	}
 	if(coveredWeights.count() != coveredWeights.size()) {
-		LOG(logger_, error) << "Insufficient number of weights: " << coveredWeights;
+		LOG(logger_, error, "Insufficient number of weights: " << coveredWeights);
 		exit(1);
 	}
 }

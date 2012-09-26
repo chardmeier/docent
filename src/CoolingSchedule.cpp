@@ -73,15 +73,15 @@ bool AartsLaarhovenSchedule::isDone() const {
 	if(!muBuffer_.full())
 		return false;
 
-	LOG(logger_, debug) << "isDone: T = " << temperature_ <<
-		"; mu1 = " << mu1_ << "; Tlast = " << lastTemperature_;
+	LOG(logger_, debug, "isDone: T = " << temperature_ <<
+		"; mu1 = " << mu1_ << "; Tlast = " << lastTemperature_);
 
 	if(logger_.loggable(debug))
 		std::copy(muBuffer_.begin(), muBuffer_.end(),
 			std::ostream_iterator<Float>(logger_.getLogStream(), " "));
 
 	Float q = temperature_ / mu1_ * ((muBuffer_.front() - muBuffer_.back()) / (muBuffer_.size() - 1)) / (lastTemperature_ - temperature_);
-	LOG(logger_, debug) << "q = " << q;
+	LOG(logger_, debug, "q = " << q);
 	return q < epsilon_;
 }
 
@@ -94,7 +94,7 @@ void AartsLaarhovenSchedule::step(Float score, bool accept) {
 		if(++stepsInChain_ == chainLength_)
 			startNextChain();
 	}
-	LOG(logger_, debug) << "T:  " << temperature_;
+	LOG(logger_, debug, "T:  " << temperature_);
 }
 
 void AartsLaarhovenSchedule::adaptInitialTemperature(Float score) {
@@ -115,18 +115,18 @@ void AartsLaarhovenSchedule::adaptInitialTemperature(Float score) {
 		temperature_ = (scoreDecrease_ / m2_) / log(m2_ / logdenom);
 		initSteps_--;
 	} else {
-		LOG(logger_, debug) << "Hardwiring temperature to 100 (m1 = " << m1_ <<
-			", m2 = " << m2_ << ")";
+		LOG(logger_, debug, "Hardwiring temperature to 100 (m1 = " << m1_ <<
+			", m2 = " << m2_ << ")");
 		temperature_ = 100;
 	}
 	
-	LOG(logger_, debug) << "adaptInitialTemperature: m1: " << m1_ <<
-		"; m2: " << m2_;
+	LOG(logger_, debug, "adaptInitialTemperature: m1: " << m1_ <<
+		"; m2: " << m2_);
 }
 
 void AartsLaarhovenSchedule::startNextChain() {
 	using namespace boost::lambda;
-	LOG(logger_, debug) << "chainScores:";
+	LOG(logger_, debug, "chainScores:");
 	if(logger_.loggable(debug))
 		std::copy(chainCosts_.begin(), chainCosts_.end(),
 			std::ostream_iterator<Float>(logger_.getLogStream(), " "));

@@ -112,8 +112,7 @@ private:
 			Arabica::DOM::Element<std::string> pnode = static_cast<Arabica::DOM::Element<std::string> >(c);
 			std::string pname = pnode.getAttribute("name");
 			if(pname == "") {
-				LOG(logger_, error) <<
-					"Lacking required attribute 'name' on p element.";
+				LOG(logger_, error, "Lacking required attribute 'name' on p element.");
 				exit(1);
 			}
 			if(pname == name) {
@@ -122,8 +121,7 @@ private:
 						outstr = v.getNodeValue();
 						return true;
 					}
-				LOG(logger_, error) <<
-					"No value for parameter " << name << ".";
+				LOG(logger_, error, "No value for parameter " << name << ".");
 			}
 		}
 

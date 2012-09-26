@@ -61,14 +61,14 @@ public:
 	}
 
 	bool operator()(Float newScore) const {
-		LOG(logger_, debug) << "new:                  " << newScore;
-		LOG(logger_, debug) << "old:                  " << oldScore_;
-		LOG(logger_, debug) << "threshold:            " << threshold_;
-		LOG(logger_, debug) << "T:                    " << T_;
-		LOG(logger_, debug) << "d:                    " << d_;
-		LOG(logger_, debug) << "exp((new - old) / T): " << exp(-(oldScore_ - newScore) / T_);
-		LOG(logger_, debug) << "should accept:        " << (exp(-(oldScore_ - newScore) / T_) >= d_);
-		LOG(logger_, debug) << "will accept:          " << (newScore > threshold_);
+		LOG(logger_, debug, "new:                  " << newScore);
+		LOG(logger_, debug, "old:                  " << oldScore_);
+		LOG(logger_, debug, "threshold:            " << threshold_);
+		LOG(logger_, debug, "T:                    " << T_);
+		LOG(logger_, debug, "d:                    " << d_);
+		LOG(logger_, debug, "exp((new - old) / T): " << exp(-(oldScore_ - newScore) / T_));
+		LOG(logger_, debug, "should accept:        " << (exp(-(oldScore_ - newScore) / T_) >= d_));
+		LOG(logger_, debug, "will accept:          " << (newScore > threshold_));
 		return newScore > threshold_;
 	}
 };

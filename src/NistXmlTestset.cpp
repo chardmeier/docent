@@ -44,11 +44,11 @@ NistXmlTestset::NistXmlTestset(const std::string &file)
 	domParser.setErrorHandler(errh);
 	domParser.parse(is);
 	if(errh.errorsReported())
-		LOG(logger_, error) << errh.errors();
+		LOG(logger_, error, errh.errors());
 
 	Arabica::DOM::Document<std::string> doc = domParser.getDocument();
 	if(doc == 0) {
-		LOG(logger_, error) << "Error parsing input file: " << file;
+		LOG(logger_, error, "Error parsing input file: " << file);
 		exit(1);
 	}
 

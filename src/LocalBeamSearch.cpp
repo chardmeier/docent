@@ -76,21 +76,21 @@ void LocalBeamSearch::search(SearchState *sstate, NbestStorage &nbest, uint maxS
 		doc->registerAttemptedMove(step);
 		if(step->isProvisionallyAcceptable(accept)) {
 			if(accept(step->getScore())) {
-				LOG(logger_, debug) << "Accepting.";
+				LOG(logger_, debug, "Accepting.");
 				boost::shared_ptr<DocumentState> clone =
 					boost::make_shared<DocumentState>(*doc);
 				doc->applyModifications(step);
-				LOG(logger_, debug) << *doc;
+				LOG(logger_, debug, *doc);
 				state.beam.offer(doc);
 				nbest.offer(doc);
 				accepted++;
 			} else {
-				LOG(logger_, debug) << "Discarding.";
+				LOG(logger_, debug, "Discarding.");
 				state.rejected++;
 				delete step;
 			}
 		} else {
-			LOG(logger_, debug) << "Discarding.";
+			LOG(logger_, debug, "Discarding.");
 			state.rejected++;
 			delete step;
 		}
@@ -99,27 +99,27 @@ void LocalBeamSearch::search(SearchState *sstate, NbestStorage &nbest, uint maxS
 	}
 	
 	if(state.rejected >= maxRejected_)
-		LOG(logger_, normal) << "Maximum number of rejections ("
-			<< maxRejected_ << ") reached.";
+		LOG(logger_, normal, "Maximum number of rejections ("
+			<< maxRejected_ << ") reached.");
 	
 	if(i > maxSteps)
-		LOG(logger_, normal) << "Search interrupted.";
+		LOG(logger_, normal, "Search interrupted.");
 
 	if(accepted >= maxAccepted)
-		LOG(logger_, normal) << "Maximum number of accepted steps (" << maxAccepted << ") reached.";
+		LOG(logger_, normal, "Maximum number of accepted steps (" << maxAccepted << ") reached.");
 
 	if(state.nsteps > totalMaxSteps_)
-		LOG(logger_, normal) << "Maximum number of steps (" << totalMaxSteps_ << ") reached.";
+		LOG(logger_, normal, "Maximum number of steps (" << totalMaxSteps_ << ") reached.");
 	
 	if(nbest.getBestScore() > targetScore_)
-		LOG(logger_, normal) << "Found solution with better than target score.";
+		LOG(logger_, normal, "Found solution with better than target score.");
 
 	for(NbestStorage::const_iterator beamit = state.beam.begin(); beamit != state.beam.end(); ++beamit) {
 		const boost::shared_ptr<DocumentState> &doc = *beamit;
 		DocumentState::MoveCounts::const_iterator it = doc->getMoveCounts().begin();
 		while(it != doc->getMoveCounts().end()) {
-			LOG(logger_, normal) << it->second.first << '\t' << it->second.second << '\t'
-				<< it->first->getDescription();
+			LOG(logger_, normal, it->second.first << '\t' << it->second.second << '\t'
+				<< it->first->getDescription());
 			++it;
 		}
 	}
