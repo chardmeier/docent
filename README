@@ -72,7 +72,8 @@ BUILD INSTRUCTIONS
 Building docent can be a fairly complicated process because of its library
 dependencies and the fact that it links against Moses and shares some of its
 dependencies with it. Compared to the first public version, the build process
-has been much simplified, but it may still need some tweaking for your system.
+has been much simplified (thanks to Tomas Hudik for helping me find problems!),
+but it may still need some tweaking for your system.
 
 1. Initialising Git submodules
 
@@ -108,7 +109,8 @@ Make sure you have cmake in your PATH.
 
 Arabica requires you to have recent versions of autoconf, automake and libtool
 installed on your system. If you have outdated versions of them or experience
-problems building Arabica, consider installing the latest versions.
+problems building Arabica, consider installing the latest versions. Make sure
+you have these tools in your PATH.
 
 - Boost (C++ library)
 	Versions tested: 1.48.0, 1.50.0
