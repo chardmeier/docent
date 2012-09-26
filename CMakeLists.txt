@@ -54,6 +54,9 @@ if(MPI_FOUND)
 		message(WARNING "Found MPI but not boost::mpi. Building without MPI support.")
 		set(MPI_FOUND FALSE)
 	endif()
+else()
+	message("You don't seem to have MPI installed, so mpi-docent won't be built.
+		 The other binaries won't be affected.")
 endif()
 
 find_package(Boost 1.44 COMPONENTS thread random serialization regex system filesystem REQUIRED)
