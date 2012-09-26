@@ -71,7 +71,8 @@ BUILD INSTRUCTIONS
 ==================
 Building docent can be a fairly complicated process because of its library
 dependencies and the fact that it links against Moses and shares some of its
-dependencies with it.
+dependencies with it. Compared to the first public version, the build process
+has been much simplified, but it may still need some tweaking for your system.
 
 1. Installing prerequisite components
 
@@ -80,76 +81,50 @@ directories of your choice according to the build instructions provided with
 each package:
 
 - cmake (build system)
-	Version tested: 2.8.4
+	Versions tested: 2.8.4, 2.8.9
 	Source: http://www.cmake.org/
 
-	Make sure you have cmake in your PATH.
-
-- Arabica (XML parser)
-	Version tested: 2010-November
-	Source: http://www.jezuk.co.uk/cgi-bin/view/arabica/code
-
-	Arabica relies on the presence of a low-level XML parser such as expat.
+Make sure you have cmake in your PATH.
 
 - Boost (C++ library)
-	Version tested: 1.48.0
+	Versions tested: 1.48.0, 1.50.0
 	Source: http://www.boost.org/
 
-	Watch out, many Linux boxes have old versions of boost lying around in
-	system-wide directories. Make sure that the build process picks up headers
-	and libraries from the same, reasonably recent version, and that Moses
-	gets built with the same Boost version as docent.
+Watch out, many Linux boxes have old versions of boost lying around in
+system-wide directories. Boost is a major source of build problems, especially
+since Docent links against Moses, which also uses Boost and requires a
+non-standard naming scheme (--layout=tagged). Unless your distribution has a
+very recent Boost version preinstalled, I recommend installing Boost in a prefix
+directory of its own and set the BOOST_ROOT variable as explained below.
 
-- Moses (DP beam search decoder)
-	Version tested: eb4bd5c85d8c71e47f5d1473ae31196a51ee9f35
-	Source: https://github.com/moses-smt/mosesdecoder.git
+If you install Boost yourself, follow the instructions in
+	external/mosesdecoder/BUILD-INSTRUCTIONS.txt
+to make Moses happy. When you're done, rerun b2 without the --layout=tagged
+option:
+	./b2 --prefix=$PREFIX --libdir=$PREFIX/lib64 link=static,shared threading=multi install
+Then pass -DBOOST_ROOT=$PREFIX to cmake (see below).
 
-	All the libraries you link into Moses will have to be linked into docent
-	as well, so you should link as few libraries as possible. In particular,
-	it's best to build Moses without srilm and irstlm. Docent will use the
-	copy of kenlm built into Moses for it's own n-gram language model.
-
-2. Installing Boost.Log
-
-The required library Boost.Log isn't currently an official part of Boost.
-Install it as follows:
-
-- Get Boost.Log from its SVN repository:
-    svn co https://boost-log.svn.sourceforge.net/svnroot/boost-log/trunk boost-log
-- Make symbolic links from the boost-log directory to the boost directory:
-    from $BOOST_LOG/boost-log/boost/log to $BOOST/boost/log
-    from $BOOST_LOG/boost-log/libs/log  to $BOOST/libs/log
-- In the regular boost directory, run
-    ./bootstrap.sh
-    ./bjam
-
-3. Building libstemmer
-
-Libstemmer must be built separately, which is very simple:
-
-- cd external/libstemmer_c
-- make
-
-4. Building docent
+2. Building Docent
 
 Docent can be built in a debuggable DEBUG and an optimised RELEASE
-configuration. You will probably need both of them.
-Start by editing the top-level configure script by adjusting the paths to boost,
-moses and Arabica to your setup.
+configuration. You will probably need both of them, so it's easiest to build
+them in two separate directories.
 
-Then run (from the top directory):
+Start by setting the BOOST_ROOT environment variable to Boost's prefix
+directory:
+
+- BOOST_ROOT=<your Boost prefix directory>
+- export BOOST_ROOT
+
+Then run the following commands from Docent's top directory:
 
 - mkdir DEBUG RELEASE
 - cd DEBUG
-- ../configure -DCMAKE_BUILD_TYPE=DEBUG ..
+- cmake -DCMAKE_BUILD_TYPE=DEBUG ..
 - make
 - cd ../RELEASE
-- ../configure -DCMAKE_BUILD_TYPE=RELEASE ..
+- cmake -DCMAKE_BUILD_TYPE=RELEASE ..
 - make
-
-If you're lucky, this will leave you with a number of executables in the DEBUG
-and RELEASE directories. If it fails, check whether all the required libraries
-are found. This is the most likely cause of error.
 
 USAGE
 =====
@@ -177,6 +152,9 @@ The only phrase table format currently supported is the binary phrase table
 format of moses (generated with processPhraseTable). Language models should be
 in KenLM's probing hash format (other formats supported by KenLM can potentially
 be used as well).
+
+There is some more documentation about the configuration file format on Docent's
+Wiki page: https://github.com/chardmeier/docent/wiki/Docent-Configuration
 
 3. Invoking the decoder
 
