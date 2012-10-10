@@ -174,10 +174,17 @@ When it is empty (<random/>), a random seed value is generated and logged at the
 beginning of the decoder run. In order to rerun a specific sequence of
 operations (for debugging), a seed value can be provided as shown in one of the
 example configuration files.
+
 The only phrase table format currently supported is the binary phrase table
-format of moses (generated with processPhraseTable). Language models should be
-in KenLM's probing hash format (other formats supported by KenLM can potentially
-be used as well).
+format of moses (generated with processPhraseTable). Note that Docent, unlike
+moses, doesn't have a parameter to enforce a limit on the number of translations
+for a given phrase that are loaded from the phrase table. We recommend that you
+filter your phrase tables with the filter-pt tool from the Moses distribution
+and a setting like "-n 30" before using them with Docent. Otherwise you may
+experience very poor performance.
+
+Language models should be in KenLM's probing hash format (other formats
+supported by KenLM can potentially be used as well).
 
 There is some more documentation about the configuration file format on Docent's
 Wiki page: https://github.com/chardmeier/docent/wiki/Docent-Configuration
