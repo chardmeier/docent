@@ -34,7 +34,7 @@ class StateGenerator;
 
 class LocalBeamSearch : public SearchAlgorithm {
 private:
-	mutable Logger logger_;
+	Logger logger_;
 	Random random_;
 	const StateGenerator &generator_;
 	uint totalMaxSteps_;

@@ -95,7 +95,7 @@ public:
 
 class AartsLaarhovenSchedule : public CoolingSchedule {
 private:
-	mutable Logger logger_;
+	Logger logger_;
 
 	Float delta_;
 	Float epsilon_;

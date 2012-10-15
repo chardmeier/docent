@@ -39,7 +39,7 @@ class PhrasePairCollection;
 
 class PhraseTable : public FeatureFunction, boost::noncopyable {
 private:
-	mutable Logger logger_;
+	Logger logger_;
 	Random random_;
 	std::string filename_;
 	uint nscores_;

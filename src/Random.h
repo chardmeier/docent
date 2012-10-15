@@ -48,7 +48,7 @@ public:
 	typedef boost::variate_generator<RandomGenerator_ &,boost::uniform_int<uint> > UintGenerator;
 	
 private:
-	mutable Logger logger_;
+	Logger logger_;
 
 	// We don't consider the state change induced by drawing a random number a modification,
 	// so the random generator is declared mutable.

@@ -62,7 +62,7 @@ public:
 	typedef std::vector<value_type>::const_iterator const_iterator;
 
 private:
-	mutable Logger logger_;
+	Logger logger_;
 
 	std::vector<value_type> documents_;
 	Arabica::DOM::Document<std::string> outdoc_;

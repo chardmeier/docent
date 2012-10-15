@@ -61,7 +61,7 @@ struct StateInitialiser {
 
 class StateGenerator {
 private:
-	mutable Logger logger_;
+	Logger logger_;
 	Random random_;
 	boost::ptr_vector<StateOperation> operations_;
 	std::vector<Float> cumulativeOperationDistribution_;

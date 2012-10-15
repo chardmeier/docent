@@ -34,7 +34,7 @@ class PhrasePairCollection {
 	friend class PhraseTable;
 
 private:
-	mutable Logger logger_;
+	Logger logger_;
 
 	const PhraseTable &phraseTable_;
 	Random random_;

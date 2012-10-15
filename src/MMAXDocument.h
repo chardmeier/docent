@@ -109,7 +109,7 @@ private:
 	typedef std::vector<Markable> MarkableVector_;
 	typedef boost::unordered_map<std::string,uint> MarkableIDMap_;
 
-	mutable Logger logger_;
+	Logger logger_;
 
 	std::string name_;
 	MarkableVector_ markables_;
@@ -156,7 +156,7 @@ class MMAXDocument {
 	friend class MarkableLevel;
 
 private:
-	mutable Logger logger_;
+	Logger logger_;
 
 	typedef std::map<std::string,std::pair<std::string,const MarkableLevel *> > LevelMap_;
 	typedef std::vector<uint> SentenceVector_;
@@ -297,7 +297,7 @@ class MMAXTestset {
 private:
 	typedef std::vector<boost::filesystem::path> MMAXFileVector_;
 
-	mutable Logger logger_;
+	Logger logger_;
 
 	NistXmlTestset nistxml_;
 	MMAXFileVector_ mmaxFiles_;

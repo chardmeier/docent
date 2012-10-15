@@ -34,7 +34,7 @@ class PhrasePairCollection;
 
 class BeamSearchAdapter {
 private:
-	mutable Logger logger_;
+	Logger logger_;
 
 public:
 	BeamSearchAdapter(const std::string &moses_ini);

@@ -37,7 +37,7 @@ class PiecewiseIterator : public boost::iterator_adaptor<PiecewiseIterator<Piece
 private:
 	typedef typename std::iterator_traits<PieceIterator>::value_type BaseIterator;
 
-	mutable Logger logger_;
+	Logger logger_;
 
 	PieceIterator piecesBegin_;
 	PieceIterator piecesEnd_;

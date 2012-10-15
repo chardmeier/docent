@@ -57,7 +57,7 @@ public:
 	typedef std::map<const StateOperation *,std::pair<DocumentGeneration,DocumentGeneration> > MoveCounts;
 
 private:
-	mutable Logger logger_;
+	Logger logger_;
 	const DecoderConfiguration *configuration_;
 
 	boost::shared_ptr<const MMAXDocument> inputdoc_;

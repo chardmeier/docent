@@ -38,7 +38,7 @@ class Parameters;
 
 class AcceptanceDecision : public std::unary_function<Float,bool> {
 private:
-	mutable Logger logger_;
+	Logger logger_;
 
 	Float threshold_;
 

@@ -52,7 +52,7 @@ public:
 	};
 	
 private:
-	mutable Logger logger_;
+	Logger logger_;
 	const DocumentState &document_;
 	DocumentGeneration generation_;
 	const std::vector<FeatureFunction::State *> &featureStates_;

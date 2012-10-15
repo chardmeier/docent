@@ -48,7 +48,7 @@ public:
 	typedef boost::ptr_vector<FeatureFunctionInstantiation> FeatureFunctionList;
 
 private:
-	mutable Logger logger_;
+	Logger logger_;
 	Random random_;
 	
 	boost::shared_ptr<const PhraseTable> phraseTable_;
@@ -101,7 +101,7 @@ public:
 
 class Parameters {
 private:
-	mutable Logger logger_;
+	Logger logger_;
 
 	const Arabica::DOM::Node<std::string> parentNode_;
 
