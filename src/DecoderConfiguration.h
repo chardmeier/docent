@@ -35,6 +35,7 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include <DOM/Document.hpp>
 #include <DOM/Element.hpp>
 
 class BeamSearchAdapter;
@@ -42,6 +43,21 @@ class FeatureFunctionInstantiation;
 class PhraseTable;
 class SearchAlgorithm;
 class StateGenerator;
+
+class ConfigurationFile {
+private:
+	Logger logger_;
+
+	Arabica::DOM::Document<std::string> doc_;
+
+public:
+	ConfigurationFile(const std::string &file);
+
+	void modifyNodes(const std::string &xpath, const std::string &value);
+	void removeNodes(const std::string &xpath);
+
+	Arabica::DOM::Document<std::string> getXMLDocument() const;
+};
 
 class DecoderConfiguration {
 public:
@@ -67,7 +83,7 @@ private:
 	void setupWeights(Arabica::DOM::Node<std::string> n);
 
 public:
-	DecoderConfiguration(const std::string &filename);
+	DecoderConfiguration(const ConfigurationFile &config);
 	~DecoderConfiguration();
 
 	Random getRandom() const {

@@ -38,9 +38,10 @@
 
 #include <DOM/SAX2DOM/SAX2DOM.hpp>
 #include <SAX/helpers/CatchErrorHandler.hpp>
+#include <XPath/XPath.hpp>
 
-DecoderConfiguration::DecoderConfiguration(const std::string &file) :
-		logger_("DecoderConfiguration"), random_(Random::create()) {
+ConfigurationFile::ConfigurationFile(const std::string &file) :
+		logger_("DecoderConfiguration") {
 	Arabica::SAX2DOM::Parser<std::string> domParser;
 	Arabica::SAX::InputSource<std::string> is(file);
 	Arabica::SAX::CatchErrorHandler<std::string> errh;
@@ -49,30 +50,91 @@ DecoderConfiguration::DecoderConfiguration(const std::string &file) :
 	if(errh.errorsReported())
 		LOG(logger_, error, errh.errors());
 
-	Arabica::DOM::Document<std::string> doc = domParser.getDocument();
-	if(doc == 0) {
+	doc_ = domParser.getDocument();
+	if(doc_ == 0) {
 		LOG(logger_, error, "Error parsing configuration file: " << file);
 		BOOST_THROW_EXCEPTION(ConfigurationException());
 	}
 	
-	doc.getDocumentElement().normalize();
-	for(Arabica::DOM::Node<std::string> n = doc.getDocumentElement().getFirstChild(); n != 0; n = n.getNextSibling()) {
+	doc_.getDocumentElement().normalize();
+}
+
+void ConfigurationFile::modifyNodes(const std::string &xpath, const std::string &value) {
+	Arabica::XPath::XPath<std::string> xp;
+	Arabica::XPath::NodeSet<std::string> nodes =
+		xp.compile(xpath).evaluateAsNodeSet(doc_.getDocumentElement());
+
+	if(nodes.empty())
+		LOG(logger_, error, "XPath expression " << xpath << " returns empty node set.");
+
+	BOOST_FOREACH(Arabica::DOM::Node<std::string> &n, nodes) {
+		if(n.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE) {
+			LOG(logger_, error, "XPath expression " << xpath <<
+				" returns non-element nodes.");
+			BOOST_THROW_EXCEPTION(ConfigurationException());
+		}
+
+		Arabica::DOM::Node<std::string> n2 = n.cloneNode(false);
+		n2.appendChild(doc_.createTextNode(value));
+		n.getParentNode().insertBefore(n2, n);
+		n.getParentNode().removeChild(n);
+	}
+
+	doc_.getDocumentElement().normalize();
+}
+
+void ConfigurationFile::removeNodes(const std::string &xpath) {
+	Arabica::XPath::XPath<std::string> xp;
+	Arabica::XPath::NodeSet<std::string> nodes =
+		xp.compile(xpath).evaluateAsNodeSet(doc_.getDocumentElement());
+
+	BOOST_FOREACH(Arabica::DOM::Node<std::string> &n, nodes)
+		n.getParentNode().removeChild(n);
+
+	doc_.getDocumentElement().normalize();
+}
+
+Arabica::DOM::Document<std::string> ConfigurationFile::getXMLDocument() const {
+	return doc_;
+}
+
+DecoderConfiguration::DecoderConfiguration(const ConfigurationFile &file) :
+		logger_("DecoderConfiguration"), random_(Random::create()) {
+	uint step = 0;
+	for(Arabica::DOM::Node<std::string> n = file.getXMLDocument().getDocumentElement().getFirstChild();
+			n != 0; n = n.getNextSibling()) {
 		if(n.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE)
 			continue;
 
-		if(n.getNodeName() == "random")
+		if(n.getNodeName() == "random") {
+			if(step++ != 0)
+				goto error;
 			setupRandomGenerator(n);
-		else if(n.getNodeName() == "state-generator")
+		} else if(n.getNodeName() == "state-generator") {
+			if(step++ != 1)
+				goto error;
 			setupStateGenerator(n);
-		else if(n.getNodeName() == "search")
+		} else if(n.getNodeName() == "search") {
+			if(step++ != 2)
+				goto error;
 			setupSearch(n);
-		else if(n.getNodeName() == "models")
+		} else if(n.getNodeName() == "models") {
+			if(step++ != 3)
+				goto error;
 			setupModels(n);
-		else if(n.getNodeName() == "weights")
+		} else if(n.getNodeName() == "weights") {
+			if(step++ != 4)
+				goto error;
 			setupWeights(n);
-		else
+		} else
 			LOG(logger_, error, "Unknown configuration section: " << n.getNodeName());
 	}
+
+	return;
+
+error:
+	LOG(logger_, error, "Missing section or bad section order in configuration file.");
+	BOOST_THROW_EXCEPTION(ConfigurationException());
 }
 
 DecoderConfiguration::~DecoderConfiguration() {
@@ -164,6 +226,11 @@ void DecoderConfiguration::setupModels(Arabica::DOM::Node<std::string> n) {
 		}
 	}
 	nscores_ = scoreIndex;
+
+	if(nscores_ == 0) {
+		LOG(logger_, error, "No models found.");
+		BOOST_THROW_EXCEPTION(ConfigurationException());
+	}
 }
 
 void DecoderConfiguration::setupWeights(Arabica::DOM::Node<std::string> n) {

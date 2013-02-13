@@ -47,10 +47,13 @@
 void usage();
 
 template<class Testset>
-void processTestset(const std::string &configFile, Testset &testset, const std::string &outstem, bool dumpStates);
+void processTestset(const ConfigurationFile &configFile, Testset &testset, const std::string &outstem, bool dumpStates);
 
 int main(int argc, char **argv) {
 	std::vector<std::string> args;
+	typedef std::pair<std::string,std::string> ModificationPair;
+	std::vector<ModificationPair> xpset;
+	std::vector<std::string> xpremove;
 	std::string mmax, nistxml;
 	bool dumpstates = false;
 
@@ -64,6 +67,15 @@ int main(int argc, char **argv) {
 			if(i >= argc - 1)
 				usage();
 			nistxml = argv[++i];
+		} else if(strcmp(argv[i], "-s") == 0) {
+			if(i >= argc - 2)
+				usage();
+			xpset.push_back(std::make_pair(argv[i+1], argv[i+2]));
+			i += 2;
+		} else if(strcmp(argv[i], "-r") == 0) {
+			if(i >= argc - 1)
+				usage();
+			xpremove.push_back(argv[++i]);
 		} else if(strcmp(argv[i], "-d") == 0) {
 			Logger::setLogLevel(argv[++i], debug);
 		} else if(strcmp(argv[i], "--dumpstates") == 0)
@@ -75,8 +87,15 @@ int main(int argc, char **argv) {
 	if(nistxml.empty() || args.size() != 2)
 		usage();
 
-	const std::string &config = args[0];
+	const std::string &configFile = args[0];
 	const std::string &outstem = args[1];
+
+	ConfigurationFile config(configFile);
+
+	BOOST_FOREACH(const ModificationPair &m, xpset)
+		config.modifyNodes(m.first, m.second);
+	BOOST_FOREACH(const std::string &m, xpremove)
+		config.removeNodes(m);
 
 	if(!mmax.empty()) {
 		MMAXTestset testset(mmax, nistxml);
@@ -96,7 +115,7 @@ void usage() {
 }
 
 template<class Testset>
-void processTestset(const std::string &configFile, Testset &testset, const std::string &outstem, bool dumpStates) {
+void processTestset(const ConfigurationFile &configFile, Testset &testset, const std::string &outstem, bool dumpStates) {
 	try {
 		//Random::initGenerator(3525497962);
 		//Random::initGenerator(3812725332);

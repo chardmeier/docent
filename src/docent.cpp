@@ -72,7 +72,8 @@ int main(int argc, char **argv) {
 		inputXML = args[2];
 	}
 
-	DecoderConfiguration config(configFile);
+	ConfigurationFile cf(configFile);
+	DecoderConfiguration config(cf);
 
 	if(inputMMAX.empty() && inputXML.empty()) {
 		boost::char_separator<char> sep(" ");

@@ -65,7 +65,7 @@ private:
 
 public:
 	DocumentDecoder(boost::mpi::communicator comm, const std::string &config) :
-		communicator_(comm), configuration_(config) {}
+		communicator_(comm), configuration_(ConfigurationFile(config)) {}
 
 	void runMaster(const std::string &infile);
 	void translate();
