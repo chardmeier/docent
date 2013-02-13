@@ -203,7 +203,7 @@ void NistXmlDocument::annotateSentence(uint sentno, const std::string &annot) {
 					filter, true);
 
 	for(uint i = 0; i < sentno; i++)
-		assert(it.nextNode() != 0);
+		it.nextNode();
 
 	Traversal::NodeT n = it.nextNode(); // the filter finds the next node inside the <seg> element
 	assert(n != 0);
