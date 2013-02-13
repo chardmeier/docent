@@ -109,7 +109,8 @@ int main(int argc, char **argv) {
 }
 
 void usage() {
-	std::cerr << "Usage: lcurve-docent [--dumpstates] {-n input.xml | -m input.mmaxdir input.xml} "
+	std::cerr << "Usage: lcurve-docent [-s xpath value] [-r xpath] "
+			"[--dumpstates] {-n input.xml | -m input.mmaxdir input.xml} "
 			"config.xml outstem" << std::endl;
 	exit(1);
 }
