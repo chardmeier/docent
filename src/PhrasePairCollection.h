@@ -68,6 +68,7 @@ public:
 	PhraseSegmentation proposeSegmentation() const;
 	PhraseSegmentation proposeSegmentation(const CoverageBitmap &range) const;
 	const AnchoredPhrasePair &proposeAlternativeTranslation(const AnchoredPhrasePair &old) const;
+	bool phrasesExist(const PhraseSegmentation& phraseSegmentation) const;
 };
 
 #endif

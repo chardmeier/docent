@@ -42,16 +42,16 @@
 #include <boost/lambda/construct.hpp>
 #include <boost/lambda/if.hpp>
 
-DocumentState::DocumentState(const DecoderConfiguration &config, const boost::shared_ptr<const MMAXDocument> &inputdoc) :
+DocumentState::DocumentState(const DecoderConfiguration &config, const boost::shared_ptr<const MMAXDocument> &inputdoc, int docNumber) :
 		logger_("DocumentState"),
-		configuration_(&config), inputdoc_(inputdoc),
+		configuration_(&config), docNumber_(docNumber), inputdoc_(inputdoc),
 		scores_(configuration_->getTotalNumberOfScores()), generation_(0) {
 	init();
 }
 
-DocumentState::DocumentState(const DecoderConfiguration &config, const boost::shared_ptr<const NistXmlDocument> &inputdoc) :
+DocumentState::DocumentState(const DecoderConfiguration &config, const boost::shared_ptr<const NistXmlDocument> &inputdoc, int docNumber) :
 		logger_("DocumentState"),
-		configuration_(&config), inputdoc_(inputdoc->asMMAXDocument()),
+		configuration_(&config), docNumber_(docNumber), inputdoc_(inputdoc->asMMAXDocument()),
 		scores_(configuration_->getTotalNumberOfScores()), generation_(0) {
 	init();
 }
@@ -67,7 +67,7 @@ void DocumentState::init() {
 	for(uint i = 0; i < inputdoc_->getNumberOfSentences(); i++) {
 		std::vector<Word> snt(inputdoc_->sentence_begin(i), inputdoc_->sentence_end(i));
 		phraseTranslations_.push_back(ttable.getPhrasesForSentence(snt));
-		PhraseSegmentation ps = generator.initSegmentation(phraseTranslations_[i], snt);
+		PhraseSegmentation ps = generator.initSegmentation(phraseTranslations_[i], snt, docNumber_, i);
 		sentences_.push_back(ps);
 		cumlength += snt.size();
 		sntlen->push_back(cumlength);
@@ -83,7 +83,7 @@ void DocumentState::init() {
 
 DocumentState::DocumentState(const DocumentState &o)
 	: logger_("DocumentState"),
-	  configuration_(o.configuration_), inputdoc_(o.inputdoc_),
+	  configuration_(o.configuration_), docNumber_(o.docNumber_), inputdoc_(o.inputdoc_),
 	  sentences_(o.sentences_), phraseTranslations_(o.phraseTranslations_),
 	  cumulativeSentenceLength_(o.cumulativeSentenceLength_), scores_(o.scores_),
 	  generation_(o.generation_) {
@@ -102,6 +102,7 @@ DocumentState &DocumentState::operator=(const DocumentState &o) {
 	configuration_ = o.configuration_;
 	inputdoc_ = o.inputdoc_;
 	sentences_ = o.sentences_;
+	docNumber_ = o.docNumber_;
 	phraseTranslations_ = o.phraseTranslations_;
 	cumulativeSentenceLength_ = o.cumulativeSentenceLength_;
 	scores_ = o.scores_;

@@ -78,12 +78,13 @@ int main(int argc, char **argv) {
 	if(inputMMAX.empty() && inputXML.empty()) {
 		boost::char_separator<char> sep(" ");
 		std::string line;
+		uint docNum = 0;
 		while(getline(std::cin, line)) {
 			boost::shared_ptr<MMAXDocument> mmax = boost::make_shared<MMAXDocument>();
 			boost::tokenizer<boost::char_separator<char> > tok(line, sep);
 			mmax->addSentence(tok.begin(), tok.end());
 
-			boost::shared_ptr<DocumentState> doc = boost::make_shared<DocumentState>(config, mmax);
+			boost::shared_ptr<DocumentState> doc = boost::make_shared<DocumentState>(config, mmax, docNum);
 			NbestStorage nbest(5);
 			
 			std::cout << "Initial state:" << std::endl;
@@ -98,6 +99,7 @@ int main(int argc, char **argv) {
 			std::cout << "N-best list size: " << nbestList.size() << std::endl;
 			std::transform(nbestList.begin(), nbestList.end(),
 				std::ostream_iterator<DocumentState>(std::cout, "\n\n"), *boost::lambda::_1);
+			docNum++;
 		}
 	} else if(inputMMAX.empty()) {
 		NistXmlTestset testset(inputXML);
@@ -112,13 +114,15 @@ int main(int argc, char **argv) {
 
 template<class Testset>
 void processTestset(const DecoderConfiguration &config, Testset &testset) {
+	uint docNum = 0;
 	BOOST_FOREACH(typename Testset::value_type inputdoc, testset) {
-		boost::shared_ptr<DocumentState> doc = boost::make_shared<DocumentState>(config, inputdoc);
+		boost::shared_ptr<DocumentState> doc = boost::make_shared<DocumentState>(config, inputdoc, docNum);
 		NbestStorage nbest(1);
 		std::cerr << "Initial score: " << doc->getScore() << std::endl;
 		config.getSearchAlgorithm().search(doc, nbest);
 		std::cerr << "Final score: " << doc->getScore() << std::endl;
 		inputdoc->setTranslation(doc->asPlainTextDocument());
+		docNum++;
 	}
 	testset.outputTranslation(std::cout);
 }

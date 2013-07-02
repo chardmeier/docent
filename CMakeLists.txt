@@ -222,6 +222,16 @@ target_link_libraries(
 )
 
 add_executable(
+	detailed-docent
+	src/detailed-docent.cpp
+)
+
+target_link_libraries(
+	detailed-docent
+	${DECODER_LIBRARIES}
+)
+
+add_executable(
 	lcurve-docent
 	src/lcurve-docent.cpp
 )

@@ -35,6 +35,9 @@
 #include <boost/functional/hash.hpp>
 #include <boost/serialization/split_free.hpp>
 #include <boost/serialization/vector.hpp>
+#include <boost/serialization/list.hpp>
+#include <boost/serialization/utility.hpp>
+#include <boost/serialization/shared_ptr.hpp>
 #include <boost/throw_exception.hpp>
 #include <boost/version.hpp>
 
@@ -63,7 +66,8 @@ namespace serialization {
 		boost::to_block_range(bm, blocks.begin());
 
 		ar << size;
-		ar << blocks;
+		ar << const_cast<const std::vector<CoverageBitmap::block_type>& >(blocks);
+		//ar << blocks;
 	}
 
 	template<class Archive>
@@ -78,7 +82,30 @@ namespace serialization {
 		boost::from_block_range(blocks.begin(), blocks.end(), bm);
 	}
 
-} }
+	template<class Archive, class T>
+	void save(Archive & ar,
+			  const boost::flyweights::flyweight<T> & t,
+			  const unsigned int file_version){
+		ar & t.get(); // save the flyweight content
+	}
+
+	template<class Archive, class T>
+	void load(Archive & ar,
+					 boost::flyweights::flyweight<T> & t,
+					 const unsigned int file_version){
+		T p;
+		ar & p; // get the flyweight content
+		t = p;
+	}
+
+	template<class Archive, class T>
+	void serialize(Archive & ar,
+						  boost::flyweights::flyweight<T> &t,
+						  const unsigned int file_version){
+		boost::serialization::split_free(ar, t, file_version);
+	}	
+
+}} //end namespace boost serialization
 
 const Float IMPOSSIBLE_SCORE = -1e30f;
 
