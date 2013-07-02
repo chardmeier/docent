@@ -167,7 +167,7 @@ boost::shared_ptr<const PhrasePairCollection> PhraseTable::getPhrasesForSentence
 				Scores s;
 				std::transform(it->second.begin(), it->second.end(), std::back_inserter(s), bind(log, _1));
 				WordAlignment wa(srcphrase.size(), tgtphrase.size(), *ait);
-				PhrasePair pp(PhrasePairData(*this, srcphrase, tgtphrase, annotationPhrases, wa, s));
+				PhrasePair pp(PhrasePairData(srcphrase, tgtphrase, annotationPhrases, wa, s));
 				ptc->addPhrasePair(cov, pp);
 			}
 		}
@@ -177,7 +177,7 @@ boost::shared_ptr<const PhrasePairCollection> PhraseTable::getPhrasesForSentence
 	for(CoverageBitmap::size_type i = uncovered.find_first(); i != CoverageBitmap::npos; i = uncovered.find_next(i)) {
 		cov.reset();
 		cov.set(i);
-		ptc->addPhrasePair(cov, PhrasePair(*this, sentence[i], Scores(nscores_, 0)));
+		ptc->addPhrasePair(cov, PhrasePair(sentence[i], Scores(nscores_, 0)));
 	}
 
 	return ptc;
