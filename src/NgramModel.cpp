@@ -62,7 +62,7 @@ private:
 
 	Model *model_;
 
-	NgramModel(const std::string &file);
+	NgramModel(const std::string &file, const uint level);
 
 	Float scoreNgram(const StateType_ &old_state, lm::WordIndex word, WordState_ &out_state) const;
 
@@ -70,6 +70,8 @@ private:
 	Float scorePhraseSegmentation(const StateType_ *last_state, PhrasePairIterator from_it,
 		PhrasePairIterator to_it, PhrasePairIterator eos,
 		StateIterator state_it, bool atEos = false) const;
+
+	uint annotation_level;
 
 public:
 	virtual ~NgramModel();
@@ -93,6 +95,8 @@ public:
 FeatureFunction *NgramModelFactory::createNgramModel(const Parameters &params) {
 	std::string file = params.get<std::string>("lm-file");
 	lm::ngram::ModelType mtype;
+
+	uint annotation_level = params.get<uint>("annotation-level");
 
 	std::string smtype = params.get<std::string>("model-type", "");
 
@@ -119,12 +123,14 @@ FeatureFunction *NgramModelFactory::createNgramModel(const Parameters &params) {
 			LOG(logger, error, "Incorrect LM type in configuration "
 				"for file " << file);
 
-		return new NgramModel<lm::ngram::ProbingModel>(file);
+		return new NgramModel<lm::ngram::ProbingModel>(file,annotation_level);
+
 	case lm::ngram::TRIE_SORTED:
 		if(!smtype.empty() && smtype != "trie-sorted")
 			LOG(logger, error, "Incorrect LM type in configuration "
 				"for file " << file);
-		return new NgramModel<lm::ngram::TrieModel>(file);
+		return new NgramModel<lm::ngram::TrieModel>(file,annotation_level);
+
 /*
 	case lm::ngram::QUANT_TRIE_SORTED:
 		if(!smtype.empty() && smtype != "quant-trie-sorted")
@@ -160,9 +166,10 @@ struct NgramDocumentModifications : public FeatureFunction::StateModifications {
 };
 
 template<class Model>
-NgramModel<Model>::NgramModel(const std::string &file) :
+NgramModel<Model>::NgramModel(const std::string &file, const uint annotation_level) :
 		logger_("NgramModel") {
 	model_ = new Model(file.c_str());
+	this->annotation_level = annotation_level;
 }
 
 template<class M>
@@ -172,6 +179,8 @@ NgramModel<M>::~NgramModel() {
 
 template<class M>
 FeatureFunction::State *NgramModel<M>::initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
+
+	printf("%u \n",annotation_level);
 	NgramDocumentState_ *state = new NgramDocumentState_();
 	const std::vector<PhraseSegmentation> &segs = doc.getPhraseSegmentations();
 	state->lmCache.resize(segs.size());
