@@ -31,6 +31,10 @@
 #include "SemanticSpaceLanguageModel.h"
 #include "SentenceParityModel.h"
 //#include "WordSpaceCohesionModel.h"
+#include "ConsistencyQModelPhrase.h"
+#include "ConsistencyQModelWord.h"
+#include "OvixModel.h"
+#include "TypeTokenRateModel.h"
 
 #include <algorithm>
 #include <limits>
@@ -126,6 +130,32 @@ struct OOVPenaltyCounter : public std::unary_function<const AnchoredPhrasePair &
 		return ppair.second.get().isOOV() ? Float(-1) : Float(0);
 	}
 };
+
+struct LongWordCounter : public std::unary_function<const AnchoredPhrasePair &,Float> {
+
+	LongWordCounter(const Parameters &params) {
+		try {
+			longLimit_ = params.get<uint>("long-word-length-limit");
+		}
+		catch(ParameterNotFoundException()) {
+			longLimit_ = 7; //default value (from LIX)
+		}
+	}
+
+	Float operator()(const AnchoredPhrasePair &ppair) const {
+		int numLong = 0;
+		BOOST_FOREACH(const Word &w, ppair.second.get().getTargetPhrase().get()) {
+			if (w.size() >= longLimit_) {
+				numLong++;
+			}
+		}
+		return Float(-numLong);
+	}
+
+private:
+	uint longLimit_;
+};
+
 
 template<class F>
 CountingFeatureFunction<F> *createCountingFeatureFunction(F countingFunction) {
@@ -350,6 +380,8 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 		ff = createCountingFeatureFunction(WordPenaltyCounter());
 	else if(type == "oov-penalty")
 		ff = createCountingFeatureFunction(OOVPenaltyCounter());
+	else if(type == "long-word-penalty")
+		ff = createCountingFeatureFunction(LongWordCounter(params));
 	//else if(type == "word-space-cohesion-model")
 	//	ff = WordSpaceCohesionModelFactory::createWordSpaceCohesionModel(params);
 	//else if(type == "lexical-chain-cohesion-model")
@@ -360,6 +392,14 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 	//	ff = PronominalAnaphoraModelFactory::createPronominalAnaphoraModel(params);
 	else if(type == "sentence-parity-model")
 		ff = new SentenceParityModel(params);
+	else if(type == "ovix")
+	  ff = new OvixModel(params);
+	else if(type == "type-token")
+	  ff = new TypeTokenRateModel(params);
+	else if(type == "consistency-q-model-phrase")
+	  ff = new ConsistencyQModelPhrase(params);
+	else if(type == "consistency-q-model-word")
+	  ff = new ConsistencyQModelWord(params);
 	else 
 		BOOST_THROW_EXCEPTION(ConfigurationException());
 
