@@ -33,6 +33,8 @@
 #include <algorithm>
 #include <vector>
 
+#include<iostream>
+
 // from kenlm
 #include "lm/binary_format.hh"
 #include "lm/model.hh"
@@ -96,7 +98,7 @@ FeatureFunction *NgramModelFactory::createNgramModel(const Parameters &params) {
 	std::string file = params.get<std::string>("lm-file");
 	lm::ngram::ModelType mtype;
 
-	uint annotation_level = params.get<uint>("annotation-level");
+	uint annotation_level = params.get<uint>("annotation-level", 0);
 
 	std::string smtype = params.get<std::string>("model-type", "");
 
@@ -373,6 +375,23 @@ Float NgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, Phras
 
 	PhrasePairIterator ng_it = from_it;
 
+	while(ng_it != to_it) {
+		for(PhraseData::const_iterator wi = ng_it->second.get().getTargetAnnotations(annotation_level).get().begin();
+				wi != ng_it->second.get().getTargetAnnotations(annotation_level).get().end(); ++wi) {
+			std::cout << *wi << " ";
+		}
+		++ng_it;
+	}
+	std::cout << std::endl;
+
+	ng_it = from_it;
+
+	//Phrase test_phrase = ng_it->second.get().getTargetAnnotations(annotation_level);
+	//Phrase test_phrase = ng_it->second.get().getTargetPhrase();
+	//std::vector<std::string> test_vector = test_phrase.get();
+	//std::string test_string = test_vector[0];
+	//std::cout << test_string << std::endl;
+
 	uint last_statelen = last_state->Length();
 
 	LOG(logger_, debug, 4);
@@ -387,9 +406,11 @@ Float NgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, Phras
 			++state_it;
 			s += lscore;
 			LOG(logger_, debug, "(a) plus " << lscore << "\t" << *wi);
+			//std::cout << *wi << " ";
 		}
-		++ng_it;
+		//++ng_it;
 	}
+	std::cout << std::endl;
 	
 	LOG(logger_, debug, 5);
 	uint future = 1;
