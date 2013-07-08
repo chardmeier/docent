@@ -201,6 +201,13 @@ public:
 		else
 			return targetAnnotations_[level];
 	}
+
+	Phrase getTargetPhraseOrAnnotations(int level) const {
+		if(level==-1)
+			return getTargetPhrase();
+		else
+			return getTargetAnnotations(level);
+	}
 	
 	const WordAlignment &getWordAlignment() const {
 		return alignment_;
