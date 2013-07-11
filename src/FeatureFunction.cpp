@@ -121,7 +121,7 @@ public:
 
 struct WordPenaltyCounter : public std::unary_function<const AnchoredPhrasePair &,Float> {
 	Float operator()(const AnchoredPhrasePair &ppair) const {
-		return Float(-ppair.second.get().getTargetPhrase().get().size());
+		return -Float(ppair.second.get().getTargetPhrase().get().size());
 	};
 };
 
