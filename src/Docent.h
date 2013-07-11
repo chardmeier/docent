@@ -83,26 +83,26 @@ namespace serialization {
 		boost::from_block_range(blocks.begin(), blocks.end(), bm);
 	}
 
-	template<class Archive, class T>
+	template<class Archive, class T, class A1, class A2, class A3, class A4, class A5>
 	void save(Archive & ar,
-			  const boost::flyweights::flyweight<T> & t,
-			  const unsigned int file_version){
+			const boost::flyweights::flyweight<T,A1,A2,A3,A4,A5> &t,
+			const unsigned int file_version){
 		ar & t.get(); // save the flyweight content
 	}
 
-	template<class Archive, class T>
+	template<class Archive, class T, class A1, class A2, class A3, class A4, class A5>
 	void load(Archive & ar,
-					 boost::flyweights::flyweight<T> & t,
-					 const unsigned int file_version){
+			boost::flyweights::flyweight<T,A1,A2,A3,A4,A5> &t,
+			const unsigned int file_version){
 		T p;
 		ar & p; // get the flyweight content
 		t = p;
 	}
 
-	template<class Archive, class T>
+	template<class Archive, class T, class A1, class A2, class A3, class A4, class A5>
 	void serialize(Archive & ar,
-						  boost::flyweights::flyweight<T> &t,
-						  const unsigned int file_version){
+			boost::flyweights::flyweight<T,A1,A2,A3,A4,A5> &t,
+			const unsigned int file_version){
 		boost::serialization::split_free(ar, t, file_version);
 	}	
 
