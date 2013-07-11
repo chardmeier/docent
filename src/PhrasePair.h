@@ -28,6 +28,7 @@
 #include <vector>
 
 #include <boost/flyweight.hpp>
+#include <boost/flyweight/no_tracking.hpp>
 #include <boost/iterator_adaptors.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
@@ -199,7 +200,7 @@ public:
 
 std::size_t hash_value(const PhrasePairData &p);
 
-typedef boost::flyweight<PhrasePairData> PhrasePair;
+typedef boost::flyweight<PhrasePairData,boost::flyweights::no_tracking> PhrasePair;
 typedef std::pair<CoverageBitmap,PhrasePair> AnchoredPhrasePair;
 typedef std::list<AnchoredPhrasePair> PhraseSegmentation;
 

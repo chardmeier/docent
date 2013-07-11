@@ -32,6 +32,7 @@
 #include <boost/dynamic_bitset.hpp>
 #include <boost/exception/all.hpp>
 #include <boost/flyweight.hpp>
+#include <boost/flyweight/no_tracking.hpp>
 #include <boost/functional/hash.hpp>
 #include <boost/serialization/split_free.hpp>
 #include <boost/serialization/vector.hpp>
@@ -47,7 +48,7 @@ typedef float Float;
 
 typedef std::string Word;
 typedef std::vector<Word> PhraseData;
-typedef boost::flyweight<PhraseData> Phrase;
+typedef boost::flyweight<PhraseData,boost::flyweights::no_tracking> Phrase;
 
 typedef std::vector<Float> Scores;
 
