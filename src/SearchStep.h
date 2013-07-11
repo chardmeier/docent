@@ -27,6 +27,7 @@
 #include "DocumentState.h"
 #include "FeatureFunction.h"
 #include "PhrasePair.h"
+#include "StateGenerator.h"
 
 #include <vector>
 
@@ -79,6 +80,10 @@ public:
 
 	const StateOperation *getOperation() const {
 		return operation_;
+	}
+	
+	const std::string getDescription() const {
+	  return operation_->getDescription();
 	}
 	
 	const std::vector<Modification> &getModifications() const {

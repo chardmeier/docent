@@ -179,6 +179,8 @@ add_library(
 	decoder STATIC
 
 	src/BeamSearchAdapter.cpp
+	src/ConsistencyQModelPhrase.cpp
+    src/ConsistencyQModelWord.cpp
 	src/CoolingSchedule.cpp
 	src/DecoderConfiguration.cpp
 	src/DocumentState.cpp
@@ -189,6 +191,7 @@ add_library(
 	src/NbestStorage.cpp
 	src/NgramModel.cpp
 	src/NistXmlTestset.cpp
+	src/OvixModel.cpp	
 	src/PhrasePair.cpp
 	src/PhrasePairCollection.cpp
 	src/PhraseTable.cpp
@@ -199,6 +202,7 @@ add_library(
 	src/SentenceParityModel.cpp
 	src/SimulatedAnnealing.cpp
 	src/StateGenerator.cpp
+	src/TypeTokenRateModel.cpp
 )
 
 add_dependencies(decoder
@@ -218,6 +222,16 @@ add_executable(
 
 target_link_libraries(
 	docent
+	${DECODER_LIBRARIES}
+)
+
+add_executable(
+	detailed-docent
+	src/detailed-docent.cpp
+)
+
+target_link_libraries(
+	detailed-docent
 	${DECODER_LIBRARIES}
 )
 

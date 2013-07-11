@@ -29,6 +29,8 @@
 #include "SimulatedAnnealing.h"
 #include "StateGenerator.h"
 
+#include <boost/make_shared.hpp>
+
 #include <limits>
 
 struct SimulatedAnnealingSearchState : public SearchState {
@@ -43,6 +45,10 @@ struct SimulatedAnnealingSearchState : public SearchState {
 
 	~SimulatedAnnealingSearchState() {
 		delete schedule;
+	}
+	
+	const boost::shared_ptr<DocumentState>& getLastDocumentState() {
+		return document;
 	}
 };
 

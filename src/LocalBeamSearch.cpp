@@ -45,6 +45,10 @@ struct LocalBeamSearchState : public SearchState {
 			: beam(beamSize), rejected(0), nsteps(0) {
 		beam.offer(doc);
 	}
+
+	const boost::shared_ptr<DocumentState>& getLastDocumentState() {
+		return beam.getBestDocumentState();
+	}
 };
 
 LocalBeamSearch::LocalBeamSearch(const DecoderConfiguration &config, const Parameters &params)

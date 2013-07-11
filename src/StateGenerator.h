@@ -32,6 +32,7 @@
 
 #include <boost/shared_ptr.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/flyweight.hpp>
 
 class PhrasePairCollection;
 class SearchStep;
@@ -56,7 +57,7 @@ struct StateInitialiser {
 	virtual ~StateInitialiser() {}
 	virtual PhraseSegmentation initSegmentation(
 		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
-		const std::vector<Word> &sentence) const = 0;
+		const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const = 0;
 };
 
 class StateGenerator {
@@ -74,8 +75,8 @@ public:
 	
 	PhraseSegmentation initSegmentation(
 			boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
-			const std::vector<Word> &sentence) const {
-		return initialiser_->initSegmentation(phraseTranslations, sentence);
+			const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const {
+		return initialiser_->initSegmentation(phraseTranslations, sentence, documentNumber, sentenceNumber);
 	}
 	
 	SearchStep *createSearchStep(const DocumentState &doc) const;

@@ -32,6 +32,7 @@
 #include <boost/iterator_adaptors.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
+#include <boost/serialization/split_member.hpp>
 
 class PhraseTable;
 
@@ -43,6 +44,14 @@ private:
 	uint ntgt_;
 	MatrixType_ matrix_;
 
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive & ar, const unsigned int version) {
+		ar & nsrc_;
+		ar & ntgt_;
+		ar & matrix_;
+	}
+	
 public:
 	class const_iterator : public boost::iterator_facade<const_iterator,const uint,
 				boost::bidirectional_traversal_tag,const uint> {
@@ -126,7 +135,6 @@ public:
 
 class PhrasePairData {
 private:
-	const PhraseTable *phraseTable_;
 	std::vector<uint> coverage_;
 	Phrase sourcePhrase_;
 	Phrase targetPhrase_;
@@ -136,29 +144,43 @@ private:
 	bool oovFlag_;
 
 public:
-	PhrasePairData(const PhraseTable &phraseTable, const std::vector<Word> &sourcePhrase,
+
+	friend class boost::serialization::access;
+	template<class Archive>
+	void serialize(Archive & ar, const unsigned int version) {
+		ar & coverage_;
+		ar & sourcePhrase_;
+		ar & targetPhrase_;
+		ar & targetAnnotations_;
+		ar & alignment_;
+		ar & scores_;
+		ar & oovFlag_;
+	}
+	
+	PhrasePairData(const std::vector<Word> &sourcePhrase,
 			const std::vector<Word> &targetPhrase,
 			const std::vector<Phrase> &targetAnnotations,
 			const WordAlignment &alignment, const Scores &scores) :
-		phraseTable_(&phraseTable), coverage_(1, sourcePhrase.size()), sourcePhrase_(sourcePhrase),
+		coverage_(1, sourcePhrase.size()), sourcePhrase_(sourcePhrase),
 		targetPhrase_(targetPhrase), targetAnnotations_(targetAnnotations), alignment_(alignment),
 		scores_(scores), oovFlag_(false) {}
 
-	PhrasePairData(const PhraseTable &phraseTable, const std::vector<uint> &coverage,
+	PhrasePairData(const std::vector<uint> &coverage,
 			const std::vector<Word> &sourcePhrase, const std::vector<Word> &targetPhrase,
 			const std::vector<Phrase> &targetAnnotations,
 			const WordAlignment &alignment, const Scores &scores) :
-		phraseTable_(&phraseTable), coverage_(coverage), sourcePhrase_(sourcePhrase), targetPhrase_(targetPhrase),
+		coverage_(coverage), sourcePhrase_(sourcePhrase), targetPhrase_(targetPhrase),
 		targetAnnotations_(targetAnnotations), alignment_(alignment), scores_(scores), oovFlag_(false) {}
 
-	PhrasePairData(const PhraseTable &phraseTable, const Word &oov, const Scores &scores) :
-			phraseTable_(&phraseTable), coverage_(1, 1), sourcePhrase_(1, oov), targetPhrase_(1, oov),
+	PhrasePairData(const Word &oov, const Scores &scores) :
+			coverage_(1, 1), sourcePhrase_(1, oov), targetPhrase_(1, oov),
 			alignment_(1, 1), scores_(scores), oovFlag_(true) {
 		alignment_.setLink(0, 0);
 	}
-	
-	const PhraseTable &getPhraseTable() const {
-		return *phraseTable_;
+
+	//Needed for serialization
+	PhrasePairData() :alignment_(1, 1) {
+	  alignment_.setLink(0, 0);
 	}
 
 	const std::vector<uint> &getCoverage() const {
@@ -196,6 +218,7 @@ public:
 	bool operator==(const PhrasePairData &o) const;
 
 	friend std::size_t hash_value(const PhrasePairData &p);
+
 };
 
 std::size_t hash_value(const PhrasePairData &p);
