@@ -172,6 +172,7 @@ NgramModel<Model>::NgramModel(const std::string &file, const int annotation_leve
 		logger_("NgramModel") {
 	model_ = new Model(file.c_str());
 	this->annotation_level = annotation_level;
+	LOG(logger_, debug, "Annotation level of N-gram model set to " << annotation_level);
 }
 
 template<class M>
@@ -182,7 +183,6 @@ NgramModel<M>::~NgramModel() {
 template<class M>
 FeatureFunction::State *NgramModel<M>::initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
 
-	printf("%s%i\n","Annotation level of N-gram model : ",annotation_level);
 	NgramDocumentState_ *state = new NgramDocumentState_();
 	const std::vector<PhraseSegmentation> &segs = doc.getPhraseSegmentations();
 	state->lmCache.resize(segs.size());
@@ -373,34 +373,6 @@ Float NgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, Phras
 		PhrasePairIterator to_it, PhrasePairIterator eos, StateIterator state_it, bool atEos) const {
 	const VocabularyType_ &vocab = model_->GetVocabulary();
 
-	//PhrasePairIterator dy_it = from_it;
-
-	//while(dy_it != to_it) {
-	//	for(PhraseData::const_iterator wi = dy_it->second.get().getTargetPhrase().get().begin();
-	//			wi != dy_it->second.get().getTargetPhrase().get().end(); ++wi) {
-	//		std::cout << *wi << " ";
-	//	}
-	//	++dy_it;
-	//}
-	//std::cout << std::endl;
-
-	//dy_it = from_it;
-
-	//while(dy_it != to_it) {
-	//	for(PhraseData::const_iterator wi = dy_it->second.get().getTargetPhraseOrAnnotations(annotation_level).get().begin();
-	//			wi != dy_it->second.get().getTargetPhraseOrAnnotations(annotation_level).get().end(); ++wi) {
-	//		std::cout << *wi << " ";
-	//	}
-	//	++dy_it;
-	//}
-	//std::cout << std::endl;
-
-	//Phrase test_phrase = dy_it->second.get().getTargetAnnotations(0);
-	//Phrase test_phrase = ng_it->second.get().getTargetPhrase();
-	//std::vector<std::string> test_vector = test_phrase.get();
-	//std::string test_string = test_vector[0];
-	//std::cout << test_string << std::endl;
-
 	PhrasePairIterator ng_it = from_it;	
 
 	uint last_statelen = last_state->Length();
@@ -417,11 +389,9 @@ Float NgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, Phras
 			++state_it;
 			s += lscore;
 			LOG(logger_, debug, "(a) plus " << lscore << "\t" << *wi);
-			std::cout << *wi << " ";
 		}
 		++ng_it;
 	}
-	std::cout << std::endl;
 	
 	LOG(logger_, debug, 5);
 	uint future = 1;

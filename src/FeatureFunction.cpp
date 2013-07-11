@@ -340,8 +340,6 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 	
 	if(type == "phrase-table")
 		ff = new PhraseTable(params, random_);
-	else if(type == "aaron-test")
-		printf("%s \n","Hello");
 	else if(type == "ngram-model")
 		ff = NgramModelFactory::createNgramModel(params);
 	else if(type == "geometric-distortion-model")
