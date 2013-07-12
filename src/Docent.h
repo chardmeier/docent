@@ -32,9 +32,13 @@
 #include <boost/dynamic_bitset.hpp>
 #include <boost/exception/all.hpp>
 #include <boost/flyweight.hpp>
+#include <boost/flyweight/no_tracking.hpp>
 #include <boost/functional/hash.hpp>
 #include <boost/serialization/split_free.hpp>
 #include <boost/serialization/vector.hpp>
+#include <boost/serialization/list.hpp>
+#include <boost/serialization/utility.hpp>
+#include <boost/serialization/shared_ptr.hpp>
 #include <boost/throw_exception.hpp>
 #include <boost/version.hpp>
 
@@ -47,7 +51,7 @@ typedef float Float;
 
 typedef std::string Word;
 typedef std::vector<Word> PhraseData;
-typedef boost::flyweight<PhraseData> Phrase;
+typedef boost::flyweight<PhraseData,boost::flyweights::no_tracking> Phrase;
 
 typedef std::vector<Float> Scores;
 
@@ -63,7 +67,8 @@ namespace serialization {
 		boost::to_block_range(bm, blocks.begin());
 
 		ar << size;
-		ar << blocks;
+		ar << const_cast<const std::vector<CoverageBitmap::block_type>& >(blocks);
+		//ar << blocks;
 	}
 
 	template<class Archive>
@@ -78,7 +83,30 @@ namespace serialization {
 		boost::from_block_range(blocks.begin(), blocks.end(), bm);
 	}
 
-} }
+	template<class Archive, class T, class A1, class A2, class A3, class A4, class A5>
+	void save(Archive & ar,
+			const boost::flyweights::flyweight<T,A1,A2,A3,A4,A5> &t,
+			const unsigned int file_version){
+		ar & t.get(); // save the flyweight content
+	}
+
+	template<class Archive, class T, class A1, class A2, class A3, class A4, class A5>
+	void load(Archive & ar,
+			boost::flyweights::flyweight<T,A1,A2,A3,A4,A5> &t,
+			const unsigned int file_version){
+		T p;
+		ar & p; // get the flyweight content
+		t = p;
+	}
+
+	template<class Archive, class T, class A1, class A2, class A3, class A4, class A5>
+	void serialize(Archive & ar,
+			boost::flyweights::flyweight<T,A1,A2,A3,A4,A5> &t,
+			const unsigned int file_version){
+		boost::serialization::split_free(ar, t, file_version);
+	}	
+
+}} //end namespace boost serialization
 
 const Float IMPOSSIBLE_SCORE = -1e30f;
 

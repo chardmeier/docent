@@ -34,9 +34,14 @@
 
 #include <algorithm>
 #include <sstream>
+#include <fstream>
 
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>
+#include <boost/archive/tmpdir.hpp>
+#include <boost/archive/xml_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
 
 struct ChangePhraseTranslationOperation : public StateOperation {
 private:
@@ -409,7 +414,7 @@ SearchStep *MovePhrasesOperation::createSearchStep(const DocumentState &doc) con
 			dest = sentsize;
 		else {
 			uint range = sentsize - start - block;
-			uint dist = rnd.drawFromGeometricDistribution(rightDistanceDecay_, range) + 1;
+			uint dist = rnd.drawFromGeometricDistribution(rightDistanceDecay_, range - 1) + 1;
 			dest = start + block + dist;
 		}
 	} else {
@@ -497,7 +502,7 @@ SearchStep *ResegmentOperation::createSearchStep(const DocumentState &doc) const
 
 struct MonotonicStateInitialiser : public StateInitialiser {
 	MonotonicStateInitialiser(const Parameters &params) {}
-	virtual PhraseSegmentation initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence) const;
+	virtual PhraseSegmentation initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const;
 };
 
 class BeamSearchStateInitialiser : public StateInitialiser {
@@ -507,10 +512,20 @@ private:
 public:
 	BeamSearchStateInitialiser(const Parameters &params);
 	virtual ~BeamSearchStateInitialiser();
-	virtual PhraseSegmentation initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence) const;
+	virtual PhraseSegmentation initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const;
 };
 
-PhraseSegmentation MonotonicStateInitialiser::initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence) const {
+class FileReadStateInitialiser : public StateInitialiser {
+private:
+	Logger logger_;
+	std::vector<std::vector<PhraseSegmentation> > segmentations_;
+public:
+  FileReadStateInitialiser(const Parameters &params);
+  virtual PhraseSegmentation initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const;
+};
+
+
+PhraseSegmentation MonotonicStateInitialiser::initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const {
 	return phraseTranslations->proposeSegmentation();
 }
 
@@ -523,9 +538,41 @@ BeamSearchStateInitialiser::~BeamSearchStateInitialiser() {
 	delete beamSearchAdapter_;
 }
 
-PhraseSegmentation BeamSearchStateInitialiser::initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence) const {
+PhraseSegmentation BeamSearchStateInitialiser::initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const {
 	return beamSearchAdapter_->search(phraseTranslations, sentence);
 }
+
+
+
+FileReadStateInitialiser::FileReadStateInitialiser(const Parameters &params) : logger_("StateInitialiser") {
+  // get file name from params 
+	std::string filename = params.get<std::string>("file");
+
+	// open the archive
+	std::ifstream ifs(filename.c_str());
+	if (!ifs.good()) {
+		LOG(logger_, error, "problem reading file "<<filename);
+		BOOST_THROW_EXCEPTION(FileFormatException());
+	}
+	boost::archive::text_iarchive ia(ifs);
+	
+	// restore the schedule from the archive
+	ia >> segmentations_;
+}
+
+PhraseSegmentation FileReadStateInitialiser::initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const {
+  PhraseSegmentation phraseSegmentation = segmentations_[documentNumber][sentenceNumber]; 
+  //Check that all phrases in the phraseSegmentation exist in phraseTranslations
+  if (!phraseTranslations->phrasesExist(phraseSegmentation)) {
+	  //!checkPhrases(phraseTranslations, phraseSegmentation)) {
+	  LOG(logger_, error, "ERROR: A phrase from the saved state does not exist in phrase table, make sure that the same phrase table is used as when saving the state");
+	  BOOST_THROW_EXCEPTION(ConfigurationException());
+  }
+  
+  return phraseSegmentation;
+}
+
+
 
 StateGenerator::StateGenerator(const std::string &initMethod, const Parameters &params, Random(random)) :
 		logger_("StateGenerator"), random_(random) {
@@ -533,6 +580,8 @@ StateGenerator::StateGenerator(const std::string &initMethod, const Parameters &
 		initialiser_ = new MonotonicStateInitialiser(params);
 	else if(initMethod == "beam-search")
 		initialiser_ = new BeamSearchStateInitialiser(params);
+	else if(initMethod == "saved-state")
+		initialiser_ = new FileReadStateInitialiser(params);
 	else {
 		LOG(logger_, error, "Unknown initialisation method: " << initMethod);
 		BOOST_THROW_EXCEPTION(ConfigurationException());

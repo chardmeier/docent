@@ -30,15 +30,13 @@
 #include <sstream>
 
 bool PhrasePairData::operator==(const PhrasePairData &o) const {
-	return	phraseTable_ == o.phraseTable_ &&
-			coverage_ == o.coverage_ &&
+	return	coverage_ == o.coverage_ &&
 			sourcePhrase_ == o.sourcePhrase_ &&
 			targetPhrase_ == o.targetPhrase_;
 }
 
 std::size_t hash_value(const PhrasePairData &p) {
 	std::size_t seed = 0;
-	boost::hash_combine(seed, p.phraseTable_);
 	boost::hash_combine(seed, p.coverage_);
 	boost::hash_combine(seed, p.sourcePhrase_.get());
 	boost::hash_combine(seed, p.targetPhrase_.get());

@@ -74,6 +74,16 @@ public:
 		return nbest_[n];
 	}
 
+	const boost::shared_ptr<DocumentState>& getBestDocumentState() const {
+		uint best_index = 0;
+		for(uint i=1; i<nbest_.size(); ++i) {
+			if (nbest_[i]->getScore() > nbest_[best_index]->getScore()) {
+				best_index = i;
+			}
+		}
+		return nbest_[best_index];
+	}
+	
 	typedef std::vector<boost::shared_ptr<DocumentState> >::const_iterator const_iterator;
 
 	const_iterator begin() const {

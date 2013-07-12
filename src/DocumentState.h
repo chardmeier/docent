@@ -60,6 +60,8 @@ private:
 	Logger logger_;
 	const DecoderConfiguration *configuration_;
 
+	uint docNumber_;
+	
 	boost::shared_ptr<const MMAXDocument> inputdoc_;
 	std::vector<PhraseSegmentation> sentences_;
 	std::vector<boost::shared_ptr<const PhrasePairCollection> > phraseTranslations_;
@@ -74,8 +76,8 @@ private:
 	void debugSentenceCoverage(const PhraseSegmentation &seg) const;
 
 public:
-	DocumentState(const DecoderConfiguration &config, const boost::shared_ptr<const MMAXDocument> &text);
-	DocumentState(const DecoderConfiguration &config, const boost::shared_ptr<const NistXmlDocument> &text);
+	DocumentState(const DecoderConfiguration &config, const boost::shared_ptr<const MMAXDocument> &text, int docNumber);
+	DocumentState(const DecoderConfiguration &config, const boost::shared_ptr<const NistXmlDocument> &text, int docNumber);
 	DocumentState(const DocumentState &o);
 	~DocumentState();
 	DocumentState &operator=(const DocumentState &o);

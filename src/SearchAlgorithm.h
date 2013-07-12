@@ -75,6 +75,7 @@ public:
 
 struct SearchState {
 	virtual ~SearchState() {}
+	virtual const boost::shared_ptr<DocumentState>& getLastDocumentState() = 0;
 };
 
 struct SearchAlgorithm {

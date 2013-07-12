@@ -201,3 +201,19 @@ const AnchoredPhrasePair &PhrasePairCollection::proposeAlternativeTranslation(co
 	return *sublist[phidx];
 }
 
+
+bool PhrasePairCollection::phrasesExist(const PhraseSegmentation& phraseSegmentation) const {
+	for(PhraseSegmentation::const_iterator pit1 = phraseSegmentation.begin(); pit1 != phraseSegmentation.end(); ++pit1) {
+		bool found = false;
+		for (PhrasePairList_::const_iterator pit2 = phrasePairList_.begin(); pit2 != phrasePairList_.end(); ++pit2) {
+			if (*pit1  == *pit2) {
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			return false;
+		}
+	}
+	return true;
+}
