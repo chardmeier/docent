@@ -98,26 +98,12 @@ set(STEMMER_INCLUDE_DIRS ${STEMMER_ROOT}/include)
 ### Build Arabica
 
 set(Arabica_ROOT ${CMAKE_SOURCE_DIR}/external/arabica)
-set(Arabica_INSTALL_DIR ${CMAKE_BINARY_DIR}/external/Install/arabica_external)
 
-ExternalProject_add(arabica_external
-	SOURCE_DIR ${Arabica_ROOT}
-	CONFIGURE_COMMAND ./autogen.sh ${Arabica_WITH_BOOST} --prefix=${Arabica_INSTALL_DIR}
-	BUILD_COMMAND ${MAKE}
-	INSTALL_COMMAND make install && sh -c ". ${Arabica_INSTALL_DIR}/lib/libarabica.la && echo $dependency_libs >${Arabica_INSTALL_DIR}/lib/libarabica.deps"
-	INSTALL_DIR ${Arabica_INSTALL_DIR}
-	BUILD_IN_SOURCE 1)
+option(BUILD_ARABICA_EXAMPLES OFF)
+add_subdirectory(${Arabica_ROOT})
 
-add_library(arabica STATIC IMPORTED)
-add_dependencies(arabica arabica_external)
-set_target_properties(arabica PROPERTIES
-	IMPORTED_LOCATION "${Arabica_INSTALL_DIR}/lib/libarabica.a")
-
-set(Arabica_INCLUDE_DIRS ${Arabica_INSTALL_DIR}/include/arabica)
-set(Arabica_LIBRARY_DIRS ${Arabica_INSTALL_DIR}/lib)
-set(Arabica_LIBRARIES
-	arabica
-	-Wl,@${Arabica_INSTALL_DIR}/lib/libarabica.deps)
+set(Arabica_INCLUDE_DIRS ${Arabica_ROOT}/include)
+set(Arabica_LIBRARIES arabica)
 
 ### Build Moses
 
