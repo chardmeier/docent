@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.1)
 cmake_policy(SET CMP0015 NEW)
 project(docent)
 
+include(CheckLibraryExists)
 include(ExternalProject)
 set_directory_properties(PROPERTY EP_BASE external)
 
@@ -137,6 +138,13 @@ add_dependencies(moses moses_external)
 add_definitions(-DKENLM_MAX_ORDER=${KENLM_MAX_ORDER})
 
 find_package(ZLIB REQUIRED)
+check_library_exists(-lrt clock_gettime "" HAVE_LIBRT)
+if(HAVE_LIBRT)
+	set(LIBRT_LIBRARIES -lrt)
+else()
+	set(LIBRT_LIBRARIES "")
+endif()
+
 set(MOSES_INCLUDE_DIRS
 	${MOSES_INSTALL_DIR}/include
 	${ZLIB_INCLUDE_DIRS})
@@ -156,6 +164,7 @@ set(MOSES_LIBRARIES
 	${MOSES_INSTALL_DIR}/lib/libRuleTable.a
 	${MOSES_INSTALL_DIR}/lib/libScope3Parser.a
 	${LD_END_GROUP}
+	${LIBRT_LIBRARIES}
 	${ZLIB_LIBRARIES})
 
 ### Build Docent
