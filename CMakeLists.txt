@@ -33,9 +33,6 @@ if(APPLE)
 	# Darwin ld doesn't support, and doesn't seem to need, start-/end-group
 	set(LD_START_GROUP "")
 	set(LD_END_GROUP "")
-
-	# This is to enable -Wl,@ processing on platforms that don't use GNU ld
-	set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ${CMAKE_SOURCE_DIR}/at-wrapper.sh)
 else()
 	set(LD_START_GROUP -Wl,--start-group)
 	set(LD_END_GROUP -Wl,--end-group)
