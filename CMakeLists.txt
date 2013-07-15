@@ -99,7 +99,7 @@ set(STEMMER_INCLUDE_DIRS ${STEMMER_ROOT}/include)
 
 set(Arabica_ROOT ${CMAKE_SOURCE_DIR}/external/arabica)
 
-option(BUILD_ARABICA_EXAMPLES OFF)
+set(BUILD_ARABICA_EXAMPLES OFF)
 add_subdirectory(${Arabica_ROOT})
 
 set(Arabica_INCLUDE_DIRS ${Arabica_ROOT}/include)
