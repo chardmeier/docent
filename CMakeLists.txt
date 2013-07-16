@@ -99,7 +99,7 @@ set(Arabica_ROOT ${CMAKE_SOURCE_DIR}/external/arabica)
 set(BUILD_ARABICA_EXAMPLES OFF)
 add_subdirectory(${Arabica_ROOT})
 
-set(Arabica_INCLUDE_DIRS ${Arabica_ROOT}/include)
+get_property(Arabica_INCLUDE_DIRS DIRECTORY external/arabica PROPERTY INCLUDE_DIRECTORIES)
 set(Arabica_LIBRARIES arabica)
 
 ### Build Moses
