@@ -62,7 +62,11 @@ NistXmlTestset::NistXmlTestset(const std::string &file)
 	BOOST_FOREACH(Arabica::DOM::Node<std::string> n, docnodes)
 		documents_.push_back(boost::make_shared<NistXmlDocument>(n));
 
-	outdoc_ = static_cast<Arabica::DOM::Document<std::string> >(doc.cloneNode(true));
+	//outdoc_ = static_cast<Arabica::DOM::Document<std::string> >(doc.cloneNode(true));
+	Arabica::SAX::InputSource<std::string> is2(file);
+	domParser.parse(is2);
+	outdoc_ = domParser.getDocument();
+	
 	Arabica::DOM::Element<std::string> srcset =
 		static_cast<Arabica::DOM::Element<std::string> >(
 			xp.compile("/mteval/srcset").evaluateAsNodeSet(outdoc_.getDocumentElement())[0]);
