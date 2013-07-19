@@ -203,6 +203,13 @@ public:
 			return targetAnnotations_[level];
 	}
 	
+	Phrase getTargetPhraseOrAnnotations(int annotationLevel, bool tokenFlag) const {
+		if(annotationLevel==-1||(oovFlag_&& tokenFlag))
+			return getTargetPhrase();
+		else
+			return getTargetAnnotations(annotationLevel);
+	}
+	
 	const WordAlignment &getWordAlignment() const {
 		return alignment_;
 	}
