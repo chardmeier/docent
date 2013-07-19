@@ -71,8 +71,8 @@ private:
 		PhrasePairIterator to_it, PhrasePairIterator eos,
 		StateIterator state_it, bool atEos = false) const;
 		
-	int AnnotationLevel_;
-	bool TokenFlag_;
+	int annotationLevel_;
+	bool tokenFlag_;
 
 public:
 	virtual ~NgramModel();
@@ -170,10 +170,10 @@ template<class Model>
 NgramModel<Model>::NgramModel(const std::string &file, const int annotationLevel, const bool tokenFlag) :
 		logger_("NgramModel") {
 	model_ = new Model(file.c_str());
-	AnnotationLevel_ = annotationLevel;
-	TokenFlag_ = tokenFlag;
-	LOG(logger_, debug, "Annotation level of N-gram model set to " << AnnotationLevel_);
-	LOG(logger_, debug, "Token flag set to " << TokenFlag_);
+	annotationLevel_ = annotationLevel;
+	tokenFlag_ = tokenFlag;
+	LOG(logger_, debug, "Annotation level of N-gram model set to " << annotationLevel_);
+	LOG(logger_, debug, "Token flag set to " << tokenFlag_);
 }
 
 template<class M>
@@ -381,8 +381,8 @@ Float NgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, Phras
 	Float s = .0;
 	while(ng_it != to_it) {
 		LOG(logger_, debug, "running (a) loop");
-		for(PhraseData::const_iterator wi = ng_it->second.get().getTargetPhraseOrAnnotations(AnnotationLevel_,TokenFlag_).get().begin();
-				wi != ng_it->second.get().getTargetPhraseOrAnnotations(AnnotationLevel_,TokenFlag_).get().end(); ++wi) {
+		for(PhraseData::const_iterator wi = ng_it->second.get().getTargetPhraseOrAnnotations(annotationLevel_,tokenFlag_).get().begin();
+				wi != ng_it->second.get().getTargetPhraseOrAnnotations(annotationLevel_,tokenFlag_).get().end(); ++wi) {
 			Float lscore = scoreNgram(*last_state, vocab.Index(*wi), *state_it);
 			// old score has already been subtracted
 			last_state = &state_it->first;
@@ -398,8 +398,8 @@ Float NgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, Phras
 	bool independent = false;
 	while(!ScoreCompleteSentence && ng_it != eos && !independent) {
 		LOG(logger_, debug, "running (b) loop");
-		for(PhraseData::const_iterator wi = ng_it->second.get().getTargetPhraseOrAnnotations(AnnotationLevel_,TokenFlag_).get().begin();
-				wi != ng_it->second.get().getTargetPhraseOrAnnotations(AnnotationLevel_,TokenFlag_).get().end(); ++wi) {
+		for(PhraseData::const_iterator wi = ng_it->second.get().getTargetPhraseOrAnnotations(annotationLevel_,tokenFlag_).get().begin();
+				wi != ng_it->second.get().getTargetPhraseOrAnnotations(annotationLevel_,tokenFlag_).get().end(); ++wi) {
 			if(future > last_state->Length() && future > last_statelen) {
 				LOG(logger_, debug, "breaking, future = " << future
 					<< ", last state size is " << uint(last_state->Length())
