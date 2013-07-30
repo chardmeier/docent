@@ -200,6 +200,7 @@ add_library(
 	src/SearchStep.cpp
 	src/SemanticSpaceLanguageModel.cpp
 	src/SentenceParityModel.cpp
+	src/SentenceInitialCharModel.cpp
 	src/SimulatedAnnealing.cpp
 	src/StateGenerator.cpp
 	src/TypeTokenRateModel.cpp
