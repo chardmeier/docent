@@ -31,6 +31,7 @@
 #include "SemanticSpaceLanguageModel.h"
 #include "SentenceParityModel.h"
 #include "SentenceInitialCharModel.h"
+#include "InitialCharModel.h"
 //#include "WordSpaceCohesionModel.h"
 #include "ConsistencyQModelPhrase.h"
 #include "ConsistencyQModelWord.h"
@@ -395,6 +396,8 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 		ff = new SentenceParityModel(params);
 	else if(type == "sentence-initial-char-model")
 		ff = new SentenceInitialCharModel(params);
+	else if(type == "initial-char-model")
+		ff = new InitialCharModel(params);
 	else if(type == "ovix")
 	  ff = new OvixModel(params);
 	else if(type == "type-token")

@@ -1,5 +1,5 @@
 /*
- *  SentenceInitialCharModel.cpp
+ *  InitialCharModel.h
  *
  *  Copyright 2013 by Joerg Tiedemann. All rights reserved.
  *
@@ -20,12 +20,12 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef docent_SentenceInitialCharModel_h
-#define docent_SentenceInitialCharModel_h
+#ifndef docent_InitialCharModel_h
+#define docent_InitialCharModel_h
 
-class SentenceInitialCharModel : public FeatureFunction {
+class InitialCharModel : public FeatureFunction {
 public:
-	SentenceInitialCharModel(const Parameters &params) {}
+	InitialCharModel(const Parameters &params) {}
 
 	virtual State *initDocument(const DocumentState &doc, Scores::iterator sbegin) const;
 	virtual StateModifications *estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,

@@ -235,6 +235,14 @@ inline uint countTargetWords(PhrasePairIterator from_it, PhrasePairIterator to_i
 	return wordCount;
 }
 
+template<class PhrasePairIterator>
+inline uint countSourceWords(PhrasePairIterator from_it, PhrasePairIterator to_it) {
+	uint wordCount = 0;
+	for(PhrasePairIterator it = from_it; it != to_it; ++it)
+		wordCount += it->second.get().getSourcePhrase().get().size();
+	return wordCount;
+}
+
 template<class PhrasePairContainer>
 inline uint countTargetWords(PhrasePairContainer cont) {
 	return countTargetWords(cont.begin(), cont.end());

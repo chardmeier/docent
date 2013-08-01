@@ -46,14 +46,20 @@ struct SentenceInitialCharModelState : public FeatureFunction::State, public Fea
 
     uint mostFreq = 0;
     char mostFreqChar;
+    // float entropy;
+
     boost::unordered_map<char,uint>::const_iterator it;
     for (CharFreq_::const_iterator it = charFreq.begin(); it != charFreq.end(); ++it ) {
+      // float prob = float(it->second) / float(docSize);
+      // entropy += prob * log(prob) / log(2);
       if (it->second > mostFreq){
 	mostFreqChar = it->first;
 	mostFreq = it->second;
       }
     }
     // cerr << "most freq = " << mostFreqChar << " freq = " << mostFreq << " score = " << docSize - mostFreq << endl;
+
+    // return entropy;
     return -Float(docSize - mostFreq);
   }
 

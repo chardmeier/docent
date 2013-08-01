@@ -10,6 +10,7 @@ my $sents=0;
 
 while(<>){
     if (/\<\/doc\>/){
+	$doc++;
 	my ($high) = sort { $b <=> $a } values %initial;
 	my ($char) = sort { $initial{$b} <=> $initial{$a} } keys %initial;
 	print "document $doc: highest freq of initial char = $high ($char)\n";

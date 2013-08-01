@@ -185,6 +185,7 @@ add_library(
 	src/DecoderConfiguration.cpp
 	src/DocumentState.cpp
 	src/FeatureFunction.cpp
+	src/InitialCharModel.cpp
 	src/LocalBeamSearch.cpp
 	src/Logger.cpp
 	src/MMAXDocument.cpp
