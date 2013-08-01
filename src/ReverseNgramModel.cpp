@@ -1,5 +1,5 @@
 /*
- *  NgramModel.cpp
+ *  ReverseNgramModel.cpp
  *
  *  Copyright 2012 by Christian Hardmeier. All rights reserved.
  *
@@ -24,8 +24,8 @@
 
 #include "DocumentState.h"
 #include "FeatureFunction.h"
-#include "NgramModel.h"
-//#include "NgramModelIrstlm.h"
+#include "ReverseNgramModel.h"
+//#include "ReverseNgramModelIrstlm.h"
 #include "PhrasePair.h"
 #include "PiecewiseIterator.h"
 #include "SearchStep.h"
@@ -39,13 +39,13 @@
 
 #include <boost/foreach.hpp>
 
-FeatureFunction *NgramModelFactory::createNgramModel(const Parameters &params) {
+FeatureFunction *ReverseNgramModelFactory::createNgramModel(const Parameters &params) {
 	std::string file = params.get<std::string>("lm-file");
 	lm::ngram::ModelType mtype;
 
 	std::string smtype = params.get<std::string>("model-type", "");
 
-	Logger logger("NgramModel");
+	Logger logger("ReverseNgramModel");
 
 	if(!lm::ngram::RecognizeBinary(file.c_str(), mtype)) {
 		if(smtype.empty() || smtype == "hash-probing")
@@ -53,7 +53,7 @@ FeatureFunction *NgramModelFactory::createNgramModel(const Parameters &params) {
 		else if(smtype == "trie-sorted")
 			mtype = lm::ngram::TRIE_SORTED;
 		//else if(smtype == "irstlm")
-			//return new NgramModelIrstlm(params);
+			//return new ReverseNgramModelIrstlm(params);
 		//else if(smtype == "quant-trie-sorted")
 			//mtype = lm::ngram::QUANT_TRIE_SORTED;
 		else {
@@ -67,19 +67,19 @@ FeatureFunction *NgramModelFactory::createNgramModel(const Parameters &params) {
 		if(!smtype.empty() && smtype != "hash-probing")
 			LOG(logger, error, "Incorrect LM type in configuration "
 				"for file " << file);
-		return new NgramModel<lm::ngram::ProbingModel>(file);
+		return new ReverseNgramModel<lm::ngram::ProbingModel>(file);
 	case lm::ngram::TRIE_SORTED:
 		if(!smtype.empty() && smtype != "trie-sorted")
 			LOG(logger, error, "Incorrect LM type in configuration "
 				"for file " << file);
-		return new NgramModel<lm::ngram::TrieModel>(file);
+		return new ReverseNgramModel<lm::ngram::TrieModel>(file);
 /*
 	case lm::ngram::QUANT_TRIE_SORTED:
 		if(!smtype.empty() && smtype != "quant-trie-sorted")
 			LOG(logger, error, "Incorrect LM type in configuration "
 				"for file " << file);
 
-		return new NgramModel<lm::ngram::QuantTrieModel>(file);
+		return new ReverseNgramModel<lm::ngram::QuantTrieModel>(file);
 */
 	default:
 		LOG(logger, error, "Unsupported LM type for file " << file);
@@ -109,14 +109,14 @@ struct NgramDocumentModifications : public FeatureFunction::StateModifications {
 
 
 template<class Model>
-NgramModel<Model>::NgramModel(const std::string &file) :
-		logger_("NgramModel") {
+ReverseNgramModel<Model>::ReverseNgramModel(const std::string &file) :
+		logger_("ReverseNgramModel") {
   model_ = new Model(file.c_str());
 }
 
 
 template<class M>
-FeatureFunction::State *NgramModel<M>::initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
+FeatureFunction::State *ReverseNgramModel<M>::initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
 	NgramDocumentState_ *state = new NgramDocumentState_();
 	const std::vector<PhraseSegmentation> &segs = doc.getPhraseSegmentations();
 	state->lmCache.resize(segs.size());
@@ -124,21 +124,21 @@ FeatureFunction::State *NgramModel<M>::initDocument(const DocumentState &doc, Sc
 	for(uint i = 0; i < segs.size(); i++) {
 		state->lmCache[i].resize(countTargetWords(segs[i].begin(), segs[i].end()) + 1); // one for </s>
 		s += scorePhraseSegmentation<true>(&model_->BeginSentenceState(), segs[i].begin(),
-			segs[i].end(), segs[i].end(), state->lmCache[i].begin(), true);
+			segs[i].end(), segs[i].begin(), state->lmCache[i].begin(), true);
 	}
 	return state;
 }
 
 template<class M>
-void NgramModel<M>::computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const {
+void ReverseNgramModel<M>::computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const {
 	const PhraseSegmentation &snt = doc.getPhraseSegmentation(sentno);
 	SentenceState_ state(countTargetWords(snt.begin(), snt.end()) + 1);
-	*sbegin = scorePhraseSegmentation<true>(&model_->BeginSentenceState(), snt.begin(), snt.end(), snt.end(),
+	*sbegin = scorePhraseSegmentation<true>(&model_->BeginSentenceState(), snt.begin(), snt.end(), snt.begin(),
 		state.begin(), true);
 }
 
 template<class M>
-FeatureFunction::StateModifications *NgramModel<M>::estimateScoreUpdate(const DocumentState &doc,
+FeatureFunction::StateModifications *ReverseNgramModel<M>::estimateScoreUpdate(const DocumentState &doc,
 		const SearchStep &step, const FeatureFunction::State *ffstate,
 		Scores::const_iterator psbegin, Scores::iterator sbegin) const {
 	const NgramDocumentState_ &state = dynamic_cast<const NgramDocumentState_ &>(*ffstate);
@@ -147,7 +147,7 @@ FeatureFunction::StateModifications *NgramModel<M>::estimateScoreUpdate(const Do
 	Float s = *psbegin;
 	const std::vector<SearchStep::Modification> &mods = step.getModifications();
 	std::vector<SearchStep::Modification>::const_iterator it = mods.begin();
-	LOG(logger_, debug, "NgramModel::estimateScoreUpdate");
+	LOG(logger_, debug, "ReverseNgramModel::estimateScoreUpdate");
 	while(it != mods.end()) {
 		LOG(logger_, debug, "next modification");
 		uint sentno = it->sentno;
@@ -181,10 +181,10 @@ FeatureFunction::StateModifications *NgramModel<M>::estimateScoreUpdate(const Do
 }
 
 template<class M>
-FeatureFunction::StateModifications *NgramModel<M>::updateScore(const DocumentState &doc,
+FeatureFunction::StateModifications *ReverseNgramModel<M>::updateScore(const DocumentState &doc,
 		const SearchStep &step, const FeatureFunction::State *ffstate,
 		StateModifications *estmods, Scores::const_iterator psbegin, Scores::iterator sbegin) const {
-	LOG(logger_, debug, "NgramModel::updateScore");
+	LOG(logger_, debug, "ReverseNgramModel::updateScore");
 	const NgramDocumentState_ &state = dynamic_cast<const NgramDocumentState_ &>(*ffstate);
 	Float &s = *sbegin;
 	Float estimated = s;
@@ -232,6 +232,7 @@ FeatureFunction::StateModifications *NgramModel<M>::updateScore(const DocumentSt
 			PhraseSegmentation::const_iterator to_it = modit->to_it;
 			const PhraseSegmentation &proposal = modit->proposal;
 
+			// TODO: is this still correct for reverse LM's? (Joerg)
 			bool last_mod_in_sentence;
 			if(modit + 1 != it2) {
 				last_mod_in_sentence = false;
@@ -267,7 +268,9 @@ FeatureFunction::StateModifications *NgramModel<M>::updateScore(const DocumentSt
 			PieceIt from_piece(pieces.begin(), pieces.begin() + pieceIndex - 2, pieces.end(), from_it);
 			PieceIt to_piece(pieces.begin(), pieces.begin() + pieceIndex + 2, pieces.end(), to_it);
 			PieceIt end_piece(pieces.begin(), pieces.end() - 2, pieces.end(), next_from_it);
-			s += scorePhraseSegmentation<false>(&last_state, from_piece, to_piece, end_piece,
+			s += scorePhraseSegmentation<false>(&last_state, from_piece, to_piece, 
+							    // TODO: is it correct to use from_piece here? (Joerg)
+							    from_piece,
 				sntstate.begin() + state_pos, last_mod_in_sentence);
 			
 			if(!sntstate.empty())
@@ -282,7 +285,7 @@ FeatureFunction::StateModifications *NgramModel<M>::updateScore(const DocumentSt
 }
 
 template<class M>
-FeatureFunction::State *NgramModel<M>::applyStateModifications(FeatureFunction::State *oldState,
+FeatureFunction::State *ReverseNgramModel<M>::applyStateModifications(FeatureFunction::State *oldState,
 		FeatureFunction::StateModifications *modif) const {
 	NgramDocumentState_ &state = dynamic_cast<NgramDocumentState_ &>(*oldState);
 	NgramDocumentModifications_ *mod = dynamic_cast<NgramDocumentModifications_ *>(modif);
@@ -293,7 +296,7 @@ FeatureFunction::State *NgramModel<M>::applyStateModifications(FeatureFunction::
 }
 
 template<class M>
-inline Float NgramModel<M>::scoreNgram(const StateType_ &state,
+inline Float ReverseNgramModel<M>::scoreNgram(const StateType_ &state,
 		lm::WordIndex word, WordState_ &out_state) const {
 	Float s = model_->Score(state, word, out_state.first);
 	s *= Float(2.30258509299405); // log10 -> ln
@@ -301,9 +304,111 @@ inline Float NgramModel<M>::scoreNgram(const StateType_ &state,
 	return s;
 }
 
+
+
 template<class M>
 template<bool ScoreCompleteSentence,class PhrasePairIterator,class StateIterator>
-Float NgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, PhrasePairIterator from_it,
+Float ReverseNgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, 
+						    PhrasePairIterator from_it,
+						    PhrasePairIterator to_it, 
+						    PhrasePairIterator bos, 
+						    StateIterator state_it, 
+						    bool atStart) const {
+
+	const VocabularyType_ &vocab = model_->GetVocabulary();
+	PhrasePairIterator ng_it = to_it;
+	uint last_statelen = last_state->Length();
+
+	LOG(logger_, debug, 4);
+	Float s = .0;
+
+	do {
+	  --ng_it;
+	  PhraseData::const_iterator wi = ng_it->second.get().getTargetPhrase().get().end();
+	  LOG(logger_, debug, "reverse running (a) loop");
+	  do {
+	    --wi;
+	    Float lscore = scoreNgram(*last_state, vocab.Index(*wi), *state_it);
+	    // old score has already been subtracted
+	    last_state = &state_it->first;
+	    ++state_it;
+	    s += lscore;
+	    LOG(logger_, debug, "(a) plus " << lscore << "\t" << *wi);
+	  }
+	  while (wi!=ng_it->second.get().getTargetPhrase().get().begin());
+	}
+	while(ng_it != from_it);
+
+	
+	LOG(logger_, debug, 5);
+	uint future = 1;
+	bool independent = false;
+	bool atBos = false;
+	if (ng_it == bos){
+	  atBos = true;
+	}
+	else{
+	  --ng_it;
+	}
+
+	while(!ScoreCompleteSentence && !atBos && !independent) {
+		LOG(logger_, debug, "reverse running (b) loop");
+		PhraseData::const_iterator wi = ng_it->second.get().getTargetPhrase().get().end();
+		do{
+		  --wi;
+			if(future > last_state->Length() && future > last_statelen) {
+				LOG(logger_, debug, "breaking, future = " << future
+					<< ", last state size is " << uint(last_state->Length())
+					<< ", old state size was " << uint(state_it->first.Length())
+					<< ", last_statelen is " << last_statelen);
+				independent = true;
+				break;
+			}
+			++future;
+
+			last_statelen = state_it->first.Length();
+			s -= state_it->second;
+			LOG(logger_, debug, "(b) minus " << state_it->second);
+			Float lscore = scoreNgram(*last_state, vocab.Index(*wi), *state_it);
+			last_state = &state_it->first;
+			++state_it;
+			s += lscore;
+			LOG(logger_, debug, "(b) plus " << lscore << "\t" << *wi);
+
+		}
+		while (wi != ng_it->second.get().getTargetPhrase().get().begin());
+		if (ng_it == bos){
+		  atBos = true;
+		}
+		else{
+		  --ng_it;
+		}
+	}
+
+	if(future > last_state->Length() && future > last_statelen)
+		independent = true;
+
+	LOG(logger_, debug, 6);
+	if((ScoreCompleteSentence || atStart) && !independent) {
+		if(!ScoreCompleteSentence) {
+			s -= state_it->second;
+			LOG(logger_, debug, "(c) minus " << state_it->second);
+		}
+		Float lscore = scoreNgram(*last_state, vocab.EndSentence(), *state_it);
+		s += lscore;
+		LOG(logger_, debug, "(c) plus " << lscore << "\t</s>");
+	}
+
+
+	return s;
+}
+
+
+/*
+
+template<class M>
+template<bool ScoreCompleteSentence,class PhrasePairIterator,class StateIterator>
+Float ReverseNgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, PhrasePairIterator from_it,
 		PhrasePairIterator to_it, PhrasePairIterator eos, StateIterator state_it, bool atEos) const {
 	const VocabularyType_ &vocab = model_->GetVocabulary();
 
@@ -372,3 +477,4 @@ Float NgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, Phras
 
 	return s;
 }
+*/

@@ -1,5 +1,5 @@
 /*
- *  NgramModel.h
+ *  ReverseNgramModel.h
  *
  *  Copyright 2012 by Christian Hardmeier. All rights reserved.
  *
@@ -20,8 +20,8 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef docent_NgramModel_h
-#define docent_NgramModel_h
+#ifndef docent_ReverseNgramModel_h
+#define docent_ReverseNgramModel_h
 
 #include "FeatureFunction.h"
 
@@ -29,7 +29,7 @@
 #include "lm/binary_format.hh"
 #include "lm/model.hh"
 
-struct NgramModelFactory {
+struct ReverseNgramModelFactory {
 	static FeatureFunction *createNgramModel(const Parameters &);
 };
 
@@ -37,17 +37,17 @@ template<class M> struct NgramDocumentState;
 template<class M> struct NgramDocumentModifications;
 
 template<class Model>
-class NgramModel : public FeatureFunction {
-	friend class NgramModelFactory;
-	friend struct NgramDocumentState<NgramModel<Model> >;
-	friend struct NgramDocumentModifications<NgramModel<Model> >;
+class ReverseNgramModel : public FeatureFunction {
+	friend class ReverseNgramModelFactory;
+	friend struct NgramDocumentState<ReverseNgramModel<Model> >;
+	friend struct NgramDocumentModifications<ReverseNgramModel<Model> >;
 
 private:
 	typedef typename Model::Vocabulary VocabularyType_;
 	typedef typename Model::State StateType_;
 
-	typedef NgramDocumentState<NgramModel<Model> > NgramDocumentState_;
-	typedef NgramDocumentModifications<NgramModel<Model> > NgramDocumentModifications_;
+	typedef NgramDocumentState<ReverseNgramModel<Model> > NgramDocumentState_;
+	typedef NgramDocumentModifications<ReverseNgramModel<Model> > NgramDocumentModifications_;
 
 	typedef std::pair<StateType_,Float> WordState_;
 	typedef std::vector<WordState_> SentenceState_;
@@ -64,13 +64,13 @@ private:
 	Model *model_;
 	Model getModel() { return model_; };
 	Model getLogger() { return logger_; };
-	NgramModel(const std::string &file);
+	ReverseNgramModel(const std::string &file);
 
-	// TODO: I don't know why I had to add an empty constructor to make ReverseNgramModel compile (Joerg)
-	NgramModel() {};
+	// TODO: I don't know why I had to add an empty constructor to make ReverseReverseNgramModel compile (Joerg)
+	ReverseNgramModel() {};
 
  public:
-	virtual ~NgramModel() { delete model_; };
+	virtual ~ReverseNgramModel() { delete model_; };
 
 	virtual FeatureFunction::State *initDocument(const DocumentState &doc, Scores::iterator sbegin) const;
 

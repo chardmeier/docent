@@ -197,6 +197,7 @@ add_library(
 	src/PhrasePairCollection.cpp
 	src/PhraseTable.cpp
 	src/Random.cpp
+	src/ReverseNgramModel.cpp
 	src/SearchAlgorithm.cpp
 	src/SearchStep.cpp
 	src/SemanticSpaceLanguageModel.cpp

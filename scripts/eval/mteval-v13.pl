@@ -481,6 +481,7 @@ sub check_MT_data
 	@tst_sys = sort keys %tst_data;
 	@ref_sys = sort keys %ref_data;
 
+#	print STDERR "$src_id ... $src_id ... $ref_id\n";
 	die "Not the same 'setid' attribute values across files" unless ( ( $src_id eq $tst_id ) && ( $src_id eq $ref_id ) );
 
 #every evaluation document must be represented for every system and every reference

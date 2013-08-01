@@ -27,6 +27,7 @@
 #include "NgramModel.h"
 #include "PhraseTable.h"
 //#include "PronominalAnaphoraModel.h"
+#include "ReverseNgramModel.h"
 #include "SearchStep.h"
 #include "SemanticSpaceLanguageModel.h"
 #include "SentenceParityModel.h"
@@ -374,6 +375,8 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 		ff = new PhraseTable(params, random_);
 	else if(type == "ngram-model")
 		ff = NgramModelFactory::createNgramModel(params);
+	else if(type == "reverse-ngram-model")
+		ff = ReverseNgramModelFactory::createNgramModel(params);
 	else if(type == "geometric-distortion-model")
 		ff = new GeometricDistortionModel(params);
 	else if(type == "sentence-length-model")
