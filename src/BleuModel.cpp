@@ -13,7 +13,7 @@ struct BleuModelState : public FeatureFunction::State {
 	
 	// clipped counts for each sentence for each value of n (1<=n<=4). inner vector is over sentences; outer is over n.	
 	std::vector<std::vector<uint> > clipped_counts;
-	// length of each sentence is the candidate translation.	
+	// length of each sentence in the candidate translation.	
 	std::vector<uint> candidate_lengths;
 
 	virtual BleuModelState *clone() const {
@@ -58,11 +58,10 @@ BleuModel::BleuModel(const Parameters &params) : logger_("BleuModel"){
 		referenceLengths_.push_back(sentence_length);
 
 		//LOG(logger_, debug, "Finished reading sentence: " << sentence);
+		//LOG(logger_, debug, "Size of tokens vector = " << tokens.size());
 
 		// TokenHash_ to store the n-gram counts for the current sentence
 		TokenHash_ sentence_counts;		
-
-		//LOG(logger_, debug, "Size of tokens vector = " << tokens.size());
 
 		// loop over values of n from 1 to 4 (these are the n-grams used in calculating the BLEU score)
 		for(uint n=0; n<4; n++){
@@ -126,6 +125,7 @@ FeatureFunction::State *BleuModel::initDocument(const DocumentState &doc, Scores
 	const std::vector<PhraseSegmentation> &segs = doc.getPhraseSegmentations();
 	uint no_sents = segs.size();
 
+	// initialise state variables to the correct size	
 	state->clipped_counts.resize(4);
 	for(uint n=0;n<4;n++){
 		state->clipped_counts[n].resize(no_sents);
@@ -170,7 +170,7 @@ FeatureFunction::State *BleuModel::initDocument(const DocumentState &doc, Scores
 
 }
 
-// the BLEU score cannot be calculated on a sentence-by-sentence basis (not without some modifications)
+// the BLEU score cannot be calculated on a sentence-by-sentence basis (at least not without some modifications)
 void BleuModel::computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const {
 	*sbegin = Float(0);
 }
@@ -190,6 +190,7 @@ FeatureFunction::StateModifications *BleuModel::estimateScoreUpdate(const Docume
 	while(mod_it!=doc_mods.end()){
 
 		uint sent_no = mod_it->sentno;		
+		
 		std::vector<std::vector<SearchStep::Modification>::const_iterator> mod_iterators;		
 		mod_iterators.push_back(mod_it);	
 
@@ -199,9 +200,6 @@ FeatureFunction::StateModifications *BleuModel::estimateScoreUpdate(const Docume
 		std::vector<SearchStep::Modification>::const_iterator it1 = mod_it;
 		while(++it1 != doc_mods.end()){
 			if(it1->sentno == sent_no){
-				//if(it1->from < mod_it->from){
-					//LOG(logger_, debug, "Second modification before first");
-				//}
 				mod_iterators.push_back(it1);
 				no_mods_this_sentence++;
 			}
@@ -212,10 +210,6 @@ FeatureFunction::StateModifications *BleuModel::estimateScoreUpdate(const Docume
 
 		LOG(logger_, debug, "Modifying sentence " << sent_no+1);
 		LOG(logger_, debug, "Number of modifications this sentence: " << no_mods_this_sentence);
-		
-		//for(uint token_no=0;token_no<sents[sent_no].size();token_no++){
-		//	LOG(logger_, debug, sents[sent_no][token_no]);
-		//}
 		
 		std::vector<PhraseSegmentation> proposals(no_mods_this_sentence);
 		std::vector<PhraseSegmentation::const_iterator> prop_ng_its(no_mods_this_sentence);		
@@ -236,60 +230,65 @@ FeatureFunction::StateModifications *BleuModel::estimateScoreUpdate(const Docume
 		
 		// construct a vector of the proposed tokens in the modified sentence		
 		for(uint mod_id=0;mod_id<no_mods_this_sentence;mod_id++){
+			
+			// add tokens from section of sentence before the modification
 			while(phrase_no<mod_iterators[mod_id]->from){			
 			//for(phrase_no=0; phrase_no<mod_it->from; phrase_no++){
-				LOG(logger_, debug, "Loop 1: Phrase " << phrase_no);		
+				//LOG(logger_, debug, "Loop 1: Phrase " << phrase_no);		
 				for(PhraseData::const_iterator wi = ng_it->second.get().getTargetPhrase().get().begin();
 					wi != ng_it->second.get().getTargetPhrase().get().end(); ++wi) {
 					modified_tokens.push_back(*wi);		
-					LOG(logger_, debug, *wi);
+					//LOG(logger_, debug, *wi);
 				}
 				phrase_no++;				
 				++ng_it;
 			}
 		
-
+			// add the modified tokens
 			for(phrase_no=mod_iterators[mod_id]->from; phrase_no<mod_iterators[mod_id]->to; phrase_no++){
-				LOG(logger_, debug, "Loop 2: Phrase " << phrase_no);
+				//LOG(logger_, debug, "Loop 2: Phrase " << phrase_no);
 				for(PhraseData::const_iterator wi = prop_ng_its[mod_id]->second.get().getTargetPhrase().get().begin();
 					wi != prop_ng_its[mod_id]->second.get().getTargetPhrase().get().end(); ++wi) {
 					modified_tokens.push_back(*wi);		
-					LOG(logger_, debug, *wi);
+					//LOG(logger_, debug, *wi);
 				}
 				++prop_ng_its[mod_id];
-				//++ng_it;
 			}
 
+			// the number of phrases in the segment that has been modified might have changed (if there was a resegment operation)
 			for(PhraseSegmentation::const_iterator tmp_it = mod_iterators[mod_id]->from_it; tmp_it!=mod_iterators[mod_id]->to_it; ++tmp_it){
 				++ng_it;
 			}	
 
 		}
-
+		
+		// add the tokens between the end of the final modification and the end of the sentence
 		while(ng_it != to_it){
-			LOG(logger_, debug, "Loop 3: Phrase " << phrase_no);
+			//LOG(logger_, debug, "Loop 3: Phrase " << phrase_no);
 			for(PhraseData::const_iterator wi = ng_it->second.get().getTargetPhrase().get().begin();
 				wi != ng_it->second.get().getTargetPhrase().get().end(); ++wi) {
 				modified_tokens.push_back(*wi);		
-				LOG(logger_, debug, *wi);
+				//LOG(logger_, debug, *wi);
 			}
 			phrase_no++;
 			++ng_it;
 		}	
 
-		for(Tokens_::iterator it = modified_tokens.begin(); it!= modified_tokens.end(); ++it){
-			LOG(logger_, debug, *it);
-		}
+		//for(Tokens_::iterator it = modified_tokens.begin(); it!= modified_tokens.end(); ++it){
+		//	LOG(logger_, debug, *it);
+		//}
 
 		
 		for(uint mod_id=0;mod_id<no_mods_this_sentence;mod_id++){
 			++mod_it;
 		}
 
+		// add the modifications to the modifications structure		
 		bleu_mods->state_mods.push_back(std::make_pair(sent_no,modified_tokens));	
 
 	}
 
+	// create the proposed new state in order to calculate the BLEU score	
 	BleuModelState new_state = state;
 	updateState(new_state,*bleu_mods);
 
@@ -374,15 +373,11 @@ void BleuModel::updateState(BleuModelState &state, const BleuModelModifications 
 
 	uint no_modifications = bleu_mods.state_mods.size();	
 
-//for(std::vector<std::pair<uint,std::vector<std::string> > >::iterator it = bleu_state_mods.modifications.begin(); it!=bleu_state_mods.modifications.end(); ++it){
+	// loop over modifications and adjust the state variables for the modified sentences
 	for(uint current_mod = 0; current_mod<no_modifications; current_mod++){
 
 		uint sent_no = bleu_mods.state_mods[current_mod].first;
-		BleuModel::Tokens_ tokens = bleu_mods.state_mods[current_mod].second;
-
-		//uint sent_no = it->first;
-		//BleuModel::Tokens_ tokens = it->second;
-		//LOG(logger_, debug, "state size: " << state.candidate_lengths.size());		
+		BleuModel::Tokens_ tokens = bleu_mods.state_mods[current_mod].second;		
 		state.candidate_lengths[sent_no] = tokens.size();
 		std::vector<uint> clipped_counts = calculateClippedCounts(tokens, sent_no);
 		for(uint n=0;n<4;n++){
@@ -394,7 +389,7 @@ void BleuModel::updateState(BleuModelState &state, const BleuModelModifications 
 
 void BleuModel::calculateBLEU(BleuModelState &state, Float &s) const {
 	
-	LOG(logger_, debug, "BleuModel::calculateBLEU");
+	//LOG(logger_, debug, "BleuModel::calculateBLEU");
 	
 	double precision_product = 1;
 	for(uint n=0; n<4; n++){
@@ -406,7 +401,7 @@ void BleuModel::calculateBLEU(BleuModelState &state, Float &s) const {
 		}
 		uint sum_of_clipped_counts = std::accumulate(state.clipped_counts[n].begin(),state.clipped_counts[n].end(),0);	
 		double precision = (double)sum_of_clipped_counts/no_candidate_ngrams;
-		LOG(logger_, debug, "Precision for n = " << n+1 << ": " << precision*100);
+		//LOG(logger_, debug, "Precision for n = " << n+1 << ": " << precision*100);
 		precision_product *= precision;	
 	}
 
@@ -423,10 +418,9 @@ void BleuModel::calculateBLEU(BleuModelState &state, Float &s) const {
 
 	s = BP*pow(precision_product,0.25);
 
-	LOG(logger_, debug, "Candiate length = " << total_candidate_length);
-	LOG(logger_, debug, "Reference length = " << referenceLength_);
-	LOG(logger_, debug, "BP = " << BP);
-	LOG(logger_, debug, "BLEU score = " << s);
-
+	//LOG(logger_, debug, "Candiate length = " << total_candidate_length);
+	//LOG(logger_, debug, "Reference length = " << referenceLength_);
+	//LOG(logger_, debug, "BP = " << BP);
+	//LOG(logger_, debug, "BLEU score = " << s);
 
 }

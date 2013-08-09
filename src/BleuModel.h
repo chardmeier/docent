@@ -20,7 +20,6 @@ private:
 public:
 	BleuModel(const Parameters &params);
 
-	// each of these virtual functions must be defined if this class inherits from FeatureFunction, otherwise we get errors. if functions are not declared errors occur at compile-time, if functions are declared but not defined errors appear at linking time
 	virtual ~BleuModel();
 
 	virtual FeatureFunction::State *initDocument(const DocumentState &doc, Scores::iterator sbegin) const;
@@ -39,7 +38,6 @@ public:
 
 	std::vector<uint> calculateClippedCounts(const Tokens_ candidate_tokens, const uint sent_no) const;
 	void updateState(struct BleuModelState &current_state, const struct BleuModelModifications &bleu_state_mods) const;
-	//void findBLEU(const Sents_ &sents, Float &s) const;
 	void calculateBLEU(struct BleuModelState &state, Float &s) const;
 
 };
