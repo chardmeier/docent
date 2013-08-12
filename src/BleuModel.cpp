@@ -226,51 +226,39 @@ FeatureFunction::StateModifications *BleuModel::estimateScoreUpdate(const Docume
 		
 		Tokens_ modified_tokens;
 
-		uint phrase_no=0;
+		//uint phrase_no=0;
 		
 		// construct a vector of the proposed tokens in the modified sentence		
 		for(uint mod_id=0;mod_id<no_mods_this_sentence;mod_id++){
 			
-			// add tokens from section of sentence before the modification
-			while(phrase_no<mod_iterators[mod_id]->from){			
-			//for(phrase_no=0; phrase_no<mod_it->from; phrase_no++){
-				//LOG(logger_, debug, "Loop 1: Phrase " << phrase_no);		
-				for(PhraseData::const_iterator wi = ng_it->second.get().getTargetPhrase().get().begin();
-					wi != ng_it->second.get().getTargetPhrase().get().end(); ++wi) {
-					modified_tokens.push_back(*wi);		
-					//LOG(logger_, debug, *wi);
-				}
-				phrase_no++;				
+			// add the tokens between the beginning of the sentence and the first modification
+			while(ng_it!=mod_iterators[mod_id]->from_it){
+
+				modified_tokens.insert(modified_tokens.end(),ng_it->second.get().getTargetPhrase().get().begin(),
+					ng_it->second.get().getTargetPhrase().get().end());
+
 				++ng_it;
 			}
 		
 			// add the modified tokens
-			for(phrase_no=mod_iterators[mod_id]->from; phrase_no<mod_iterators[mod_id]->to; phrase_no++){
-				//LOG(logger_, debug, "Loop 2: Phrase " << phrase_no);
-				for(PhraseData::const_iterator wi = prop_ng_its[mod_id]->second.get().getTargetPhrase().get().begin();
-					wi != prop_ng_its[mod_id]->second.get().getTargetPhrase().get().end(); ++wi) {
-					modified_tokens.push_back(*wi);		
-					//LOG(logger_, debug, *wi);
-				}
+			for(uint phrase_no=mod_iterators[mod_id]->from; phrase_no<mod_iterators[mod_id]->to; phrase_no++){
+				
+				modified_tokens.insert(modified_tokens.end(),prop_ng_its[mod_id]->second.get().getTargetPhrase().get().begin(),
+					prop_ng_its[mod_id]->second.get().getTargetPhrase().get().end());
+
 				++prop_ng_its[mod_id];
 			}
 
-			// the number of phrases in the segment that has been modified might have changed (if there was a resegment operation)
-			for(PhraseSegmentation::const_iterator tmp_it = mod_iterators[mod_id]->from_it; tmp_it!=mod_iterators[mod_id]->to_it; ++tmp_it){
-				++ng_it;
-			}	
+			ng_it = mod_iterators[mod_id]->to_it;	
 
 		}
 		
 		// add the tokens between the end of the final modification and the end of the sentence
 		while(ng_it != to_it){
-			//LOG(logger_, debug, "Loop 3: Phrase " << phrase_no);
-			for(PhraseData::const_iterator wi = ng_it->second.get().getTargetPhrase().get().begin();
-				wi != ng_it->second.get().getTargetPhrase().get().end(); ++wi) {
-				modified_tokens.push_back(*wi);		
-				//LOG(logger_, debug, *wi);
-			}
-			phrase_no++;
+			
+			modified_tokens.insert(modified_tokens.end(),ng_it->second.get().getTargetPhrase().get().begin(),
+				ng_it->second.get().getTargetPhrase().get().end());
+
 			++ng_it;
 		}	
 
@@ -401,7 +389,7 @@ void BleuModel::calculateBLEU(BleuModelState &state, Float &s) const {
 		}
 		uint sum_of_clipped_counts = std::accumulate(state.clipped_counts[n].begin(),state.clipped_counts[n].end(),0);	
 		double precision = (double)sum_of_clipped_counts/no_candidate_ngrams;
-		//LOG(logger_, debug, "Precision for n = " << n+1 << ": " << precision*100);
+		LOG(logger_, debug, "Precision for n = " << n+1 << ": " << precision*100);
 		precision_product *= precision;	
 	}
 
@@ -411,16 +399,18 @@ void BleuModel::calculateBLEU(BleuModelState &state, Float &s) const {
 
 	if(total_candidate_length>referenceLength_){
 		BP = 1.0;
+		//LOG(logger_,debug,"Candidate longer than reference");
 	}
 	else{
-		BP = exp(1-referenceLength_/total_candidate_length);
+		BP = exp(1.0-(double)referenceLength_/total_candidate_length);
+		//LOG(logger_,debug,"Reference longer than candidate");
 	}
 
 	s = BP*pow(precision_product,0.25);
 
-	//LOG(logger_, debug, "Candiate length = " << total_candidate_length);
-	//LOG(logger_, debug, "Reference length = " << referenceLength_);
-	//LOG(logger_, debug, "BP = " << BP);
-	//LOG(logger_, debug, "BLEU score = " << s);
+	LOG(logger_, debug, "Candidate length = " << total_candidate_length);
+	LOG(logger_, debug, "Reference length = " << referenceLength_);
+	LOG(logger_, debug, "BP = " << BP);
+	LOG(logger_, debug, "BLEU score = " << s);
 
 }
