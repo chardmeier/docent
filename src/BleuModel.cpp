@@ -190,7 +190,8 @@ FeatureFunction::StateModifications *BleuModel::estimateScoreUpdate(const Docume
 	while(mod_it!=doc_mods.end()){
 
 		uint sent_no = mod_it->sentno;		
-		
+		LOG(logger_, debug, "Modifying sentence " << sent_no+1);		
+	
 		std::vector<std::vector<SearchStep::Modification>::const_iterator> mod_iterators;		
 		mod_iterators.push_back(mod_it);	
 
@@ -208,16 +209,7 @@ FeatureFunction::StateModifications *BleuModel::estimateScoreUpdate(const Docume
 			}
 		}
 
-		LOG(logger_, debug, "Modifying sentence " << sent_no+1);
 		LOG(logger_, debug, "Number of modifications this sentence: " << no_mods_this_sentence);
-		
-		std::vector<PhraseSegmentation> proposals(no_mods_this_sentence);
-		std::vector<PhraseSegmentation::const_iterator> prop_ng_its(no_mods_this_sentence);		
-
-		for(uint mod_id=0;mod_id<no_mods_this_sentence;mod_id++){
-			proposals[mod_id] = mod_iterators[mod_id]->proposal;
-			prop_ng_its[mod_id] = proposals[mod_id].begin();		
-		}
 
 		const PhraseSegmentation &old_seg = doc.getPhraseSegmentation(sent_no);
 
@@ -231,7 +223,7 @@ FeatureFunction::StateModifications *BleuModel::estimateScoreUpdate(const Docume
 		// construct a vector of the proposed tokens in the modified sentence		
 		for(uint mod_id=0;mod_id<no_mods_this_sentence;mod_id++){
 			
-			// add the tokens between the beginning of the sentence and the first modification
+			// add the tokens between the modifications
 			while(ng_it!=mod_iterators[mod_id]->from_it){
 
 				modified_tokens.insert(modified_tokens.end(),ng_it->second.get().getTargetPhrase().get().begin(),
@@ -239,17 +231,17 @@ FeatureFunction::StateModifications *BleuModel::estimateScoreUpdate(const Docume
 
 				++ng_it;
 			}
-		
-			// add the modified tokens
-			for(uint phrase_no=mod_iterators[mod_id]->from; phrase_no<mod_iterators[mod_id]->to; phrase_no++){
-				
-				modified_tokens.insert(modified_tokens.end(),prop_ng_its[mod_id]->second.get().getTargetPhrase().get().begin(),
-					prop_ng_its[mod_id]->second.get().getTargetPhrase().get().end());
 
-				++prop_ng_its[mod_id];
+			PhraseSegmentation::const_iterator prop_it = mod_iterators[mod_id]->proposal.begin();
+			
+			// add the modified tokens
+			while(prop_it!=mod_iterators[mod_id]->proposal.end()){
+				modified_tokens.insert(modified_tokens.end(),prop_it->second.get().getTargetPhrase().get().begin(),
+					prop_it->second.get().getTargetPhrase().get().end());
+				++prop_it;
 			}
 
-			ng_it = mod_iterators[mod_id]->to_it;	
+			ng_it = mod_iterators[mod_id]->to_it;
 
 		}
 		
@@ -261,11 +253,6 @@ FeatureFunction::StateModifications *BleuModel::estimateScoreUpdate(const Docume
 
 			++ng_it;
 		}	
-
-		//for(Tokens_::iterator it = modified_tokens.begin(); it!= modified_tokens.end(); ++it){
-		//	LOG(logger_, debug, *it);
-		//}
-
 		
 		for(uint mod_id=0;mod_id<no_mods_this_sentence;mod_id++){
 			++mod_it;
@@ -412,5 +399,14 @@ void BleuModel::calculateBLEU(BleuModelState &state, Float &s) const {
 	LOG(logger_, debug, "Reference length = " << referenceLength_);
 	LOG(logger_, debug, "BP = " << BP);
 	LOG(logger_, debug, "BLEU score = " << s);
+
+}
+
+// for debugging
+void BleuModel::printTokens(BleuModel::Tokens_ tokens) const {
+
+	for(Tokens_::iterator it = tokens.begin(); it!= tokens.end(); ++it){
+		LOG(logger_, debug, *it);
+	}
 
 }
