@@ -39,6 +39,7 @@ public:
 	std::vector<uint> calculateClippedCounts(const Tokens_ candidate_tokens, const uint sent_no) const;
 	void updateState(struct BleuModelState &current_state, const struct BleuModelModifications &bleu_state_mods) const;
 	void calculateBLEU(struct BleuModelState &state, Float &s) const;
+	void printTokens(Tokens_ tokens) const;
 
 };
 

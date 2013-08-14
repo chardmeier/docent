@@ -192,39 +192,42 @@ FeatureFunction::StateModifications *BleuModel::estimateScoreUpdate(const Docume
 		uint sent_no = mod_it->sentno;		
 		LOG(logger_, debug, "Modifying sentence " << sent_no+1);		
 	
-		std::vector<std::vector<SearchStep::Modification>::const_iterator> mod_iterators;		
-		mod_iterators.push_back(mod_it);	
-
-		uint no_mods_this_sentence = 1;
-		
-		// find all the modifications to the current sentence
-		std::vector<SearchStep::Modification>::const_iterator it1 = mod_it;
-		while(++it1 != doc_mods.end()){
-			if(it1->sentno == sent_no){
-				mod_iterators.push_back(it1);
-				no_mods_this_sentence++;
-			}
-			else{
-				break;
-			}
-		}
-
-		LOG(logger_, debug, "Number of modifications this sentence: " << no_mods_this_sentence);
+		Tokens_ modified_tokens;
 
 		const PhraseSegmentation &old_seg = doc.getPhraseSegmentation(sent_no);
 
 		PhraseSegmentation::const_iterator ng_it = old_seg.begin();
 		PhraseSegmentation::const_iterator to_it = old_seg.end();
-		
-		Tokens_ modified_tokens;
 
-		//uint phrase_no=0;
-		
-		// construct a vector of the proposed tokens in the modified sentence		
-		for(uint mod_id=0;mod_id<no_mods_this_sentence;mod_id++){
+		// add the tokens before the first modification in this sentence
+		while(ng_it!=mod_it->from_it){
+
+			modified_tokens.insert(modified_tokens.end(),ng_it->second.get().getTargetPhrase().get().begin(),
+				ng_it->second.get().getTargetPhrase().get().end());
+
+			++ng_it;
+		}
+
+		PhraseSegmentation::const_iterator prop_it = mod_it->proposal.begin();
 			
+		// add the tokens of the first modification to this sentence
+		while(prop_it!=mod_it->proposal.end()){
+			modified_tokens.insert(modified_tokens.end(),prop_it->second.get().getTargetPhrase().get().begin(),
+				prop_it->second.get().getTargetPhrase().get().end());
+			++prop_it;
+		}
+
+		ng_it = mod_it->to_it;
+
+		uint no_mods_this_sentence = 1;
+		
+		// this inner loop deals with cases where there is more than one modification in the same sentence
+		while(++mod_it != doc_mods.end() && mod_it->sentno == sent_no){
+				
+			no_mods_this_sentence++;
+
 			// add the tokens between the modifications
-			while(ng_it!=mod_iterators[mod_id]->from_it){
+			while(ng_it!=mod_it->from_it){
 
 				modified_tokens.insert(modified_tokens.end(),ng_it->second.get().getTargetPhrase().get().begin(),
 					ng_it->second.get().getTargetPhrase().get().end());
@@ -232,18 +235,20 @@ FeatureFunction::StateModifications *BleuModel::estimateScoreUpdate(const Docume
 				++ng_it;
 			}
 
-			PhraseSegmentation::const_iterator prop_it = mod_iterators[mod_id]->proposal.begin();
+			PhraseSegmentation::const_iterator prop_it = mod_it->proposal.begin();
 			
 			// add the modified tokens
-			while(prop_it!=mod_iterators[mod_id]->proposal.end()){
+			while(prop_it!=mod_it->proposal.end()){
 				modified_tokens.insert(modified_tokens.end(),prop_it->second.get().getTargetPhrase().get().begin(),
 					prop_it->second.get().getTargetPhrase().get().end());
 				++prop_it;
 			}
 
-			ng_it = mod_iterators[mod_id]->to_it;
+			ng_it = mod_it->to_it;				
 
 		}
+
+		LOG(logger_, debug, "Number of modifications this sentence: " << no_mods_this_sentence);
 		
 		// add the tokens between the end of the final modification and the end of the sentence
 		while(ng_it != to_it){
@@ -253,10 +258,6 @@ FeatureFunction::StateModifications *BleuModel::estimateScoreUpdate(const Docume
 
 			++ng_it;
 		}	
-		
-		for(uint mod_id=0;mod_id<no_mods_this_sentence;mod_id++){
-			++mod_it;
-		}
 
 		// add the modifications to the modifications structure		
 		bleu_mods->state_mods.push_back(std::make_pair(sent_no,modified_tokens));	
