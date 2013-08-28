@@ -202,13 +202,6 @@ public:
 		else
 			return targetAnnotations_[level];
 	}
-
-	Phrase getTargetPhraseOrAnnotations(int level) const {
-		if(level==-1)
-			return getTargetPhrase();
-		else
-			return getTargetAnnotations(level);
-	}
 	
 	Phrase getTargetPhraseOrAnnotations(int annotationLevel, bool tokenFlag) const {
 		if(annotationLevel==-1||(oovFlag_&& tokenFlag))

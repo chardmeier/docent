@@ -76,8 +76,6 @@ private:
 	int annotationLevel_;
 	bool tokenFlag_;
 
-	int annotation_level;
-
 public:
 	virtual ~NgramModel();
 
