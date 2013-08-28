@@ -35,6 +35,7 @@
 #include "ConsistencyQModelWord.h"
 #include "OvixModel.h"
 #include "TypeTokenRateModel.h"
+#include "BleuModel.h"
 
 #include <algorithm>
 #include <limits>
@@ -254,6 +255,7 @@ void GeometricDistortionModel::computeSentenceScores(const DocumentState &doc, u
 
 FeatureFunction::StateModifications *GeometricDistortionModel::estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
 		Scores::const_iterator psbegin, Scores::iterator sbegin) const {
+	
 	std::copy(psbegin, psbegin + getNumberOfScores(), sbegin);
 	const std::vector<SearchStep::Modification> &mods = step.getModifications();
 	for(std::vector<SearchStep::Modification>::const_iterator it = mods.begin(); it != mods.end(); ++it) {
@@ -393,13 +395,15 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 	else if(type == "sentence-parity-model")
 		ff = new SentenceParityModel(params);
 	else if(type == "ovix")
-	  ff = new OvixModel(params);
+		ff = new OvixModel(params);
 	else if(type == "type-token")
-	  ff = new TypeTokenRateModel(params);
+		ff = new TypeTokenRateModel(params);
 	else if(type == "consistency-q-model-phrase")
-	  ff = new ConsistencyQModelPhrase(params);
+		ff = new ConsistencyQModelPhrase(params);
 	else if(type == "consistency-q-model-word")
-	  ff = new ConsistencyQModelWord(params);
+		ff = new ConsistencyQModelWord(params);
+	else if(type == "bleu-model")
+		ff = new BleuModel(params);	
 	else 
 		BOOST_THROW_EXCEPTION(ConfigurationException());
 
