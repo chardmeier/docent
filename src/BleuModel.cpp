@@ -144,17 +144,11 @@ FeatureFunction::State *BleuModel::initDocument(const DocumentState &doc, Scores
 		// loop over the phrases in the current sentence, adding all the tokens to the candidate_tokens variable		
 		while(ng_it != to_it){
 		
-			for(PhraseData::const_iterator wi = ng_it->second.get().getTargetPhrase().get().begin();
-				wi != ng_it->second.get().getTargetPhrase().get().end(); ++wi) {
-				candidate_tokens.push_back(*wi);		
-				//LOG(logger_, debug, *wi);
-			}
+			candidate_tokens.insert(candidate_tokens.end(),ng_it->second.get().getTargetPhrase().get().begin(),
+				ng_it->second.get().getTargetPhrase().get().end());		
+
 			++ng_it;	
 		}
-
-		//for(Tokens_::iterator tmp_it = candidate_tokens.begin(); tmp_it!=candidate_tokens.end(); ++tmp_it){
-		//	LOG(logger_, debug, *tmp_it);
-		//}
 
 		state->candidate_lengths[sent_no] = candidate_tokens.size();
 		std::vector<uint> clipped_counts = calculateClippedCounts(candidate_tokens, sent_no);
@@ -265,11 +259,11 @@ FeatureFunction::StateModifications *BleuModel::estimateScoreUpdate(const Docume
 	}
 
 	// create the proposed new state in order to calculate the BLEU score	
-	BleuModelState new_state = state;
-	updateState(new_state,*bleu_mods);
+	BleuModelState proposed_state = state;
+	updateState(proposed_state,*bleu_mods);
 
 	Float &s = *sbegin;	
-	calculateBLEU(new_state,s);
+	calculateBLEU(proposed_state,s);
 	return bleu_mods;
 
 }

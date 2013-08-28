@@ -203,6 +203,7 @@ add_library(
 	src/SimulatedAnnealing.cpp
 	src/StateGenerator.cpp
 	src/TypeTokenRateModel.cpp
+	src/BleuModel.cpp
 )
 
 add_dependencies(decoder
