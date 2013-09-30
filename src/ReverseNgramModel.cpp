@@ -268,7 +268,7 @@ FeatureFunction::StateModifications *ReverseNgramModel<M>::updateScore(const Doc
 			PieceIt from_piece(pieces.begin(), pieces.begin() + pieceIndex - 2, pieces.end(), from_it);
 			PieceIt to_piece(pieces.begin(), pieces.begin() + pieceIndex + 2, pieces.end(), to_it);
 			PieceIt end_piece(pieces.begin(), pieces.end() - 2, pieces.end(), next_from_it);
-			s += scorePhraseSegmentation<false>(&last_state, from_piece, to_piece, 
+			s += scorePhraseSegmentation<false>(&last_state, from_piece, to_piece, // end_piece, 
 							    // TODO: is it correct to use from_piece here? (Joerg)
 							    from_piece,
 				sntstate.begin() + state_pos, last_mod_in_sentence);
