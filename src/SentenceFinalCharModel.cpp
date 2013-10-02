@@ -1,5 +1,5 @@
 /*
- *  SentenceInitialCharModel.cpp
+ *  SentenceFinalCharModel.cpp
  *
  *  Copyright 2013 by Joerg Tiedemann. All rights reserved.
  *
@@ -27,13 +27,13 @@ using namespace std;
 #include "DocumentState.h"
 #include "FeatureFunction.h"
 #include "SearchStep.h"
-#include "SentenceInitialCharModel.h"
+#include "SentenceFinalCharModel.h"
 
 #include <boost/unordered_map.hpp>
 
 
-struct SentenceInitialCharModelState : public FeatureFunction::State, public FeatureFunction::StateModifications {
-  SentenceInitialCharModelState(uint nsents) : charFreq(nsents), mostFreq(0), mostFreqChar('.') { docSize = nsents; mostFreq = 0; mostFreqChar = '.'; }
+struct SentenceFinalCharModelState : public FeatureFunction::State, public FeatureFunction::StateModifications {
+  SentenceFinalCharModelState(uint nsents) : charFreq(nsents), mostFreq(0), mostFreqChar('.') { docSize = nsents; mostFreq = 0; mostFreqChar = '.'; }
   
   // std::vector<char> initialChar;
   typedef boost::unordered_map<char,uint> CharFreq_;
@@ -93,25 +93,27 @@ struct SentenceInitialCharModelState : public FeatureFunction::State, public Fea
   }
 
 
-  virtual SentenceInitialCharModelState *clone() const {
-    return new SentenceInitialCharModelState(*this);
+  virtual SentenceFinalCharModelState *clone() const {
+    return new SentenceFinalCharModelState(*this);
   }
 };
 
 
 
-FeatureFunction::State *SentenceInitialCharModel::initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
+
+
+FeatureFunction::State *SentenceFinalCharModel::initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
 	const std::vector<PhraseSegmentation> &sentences = doc.getPhraseSegmentations();
 
-	SentenceInitialCharModelState *s = new SentenceInitialCharModelState(sentences.size());
+	SentenceFinalCharModelState *s = new SentenceFinalCharModelState(sentences.size());
 
 	for(uint i = 0; i < sentences.size(); i++){
-	  std::string firstWord = *sentences[i].begin()->second.get().getTargetPhrase().get().begin();
-	  char firstChar = *firstWord.begin();
-	  s->charFreq[firstChar]++;
-	  if (s->charFreq[firstChar] > s->mostFreq){
-	    s->mostFreq = s->charFreq[firstChar];
-	    s->mostFreqChar = firstChar;
+	  std::string lastWord = *sentences[i].rbegin()->second.get().getTargetPhrase().get().rbegin();
+	  char lastChar = *lastWord.rbegin();
+	  s->charFreq[lastChar]++;
+	  if (s->charFreq[lastChar] > s->mostFreq){
+	    s->mostFreq = s->charFreq[lastChar];
+	    s->mostFreqChar = lastChar;
 	  }
 	}
 
@@ -120,29 +122,37 @@ FeatureFunction::State *SentenceInitialCharModel::initDocument(const DocumentSta
 }
 
 
-
-void SentenceInitialCharModel::computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const {
+void SentenceFinalCharModel::computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const {
 	*sbegin = Float(0);
 }
 
-FeatureFunction::StateModifications *SentenceInitialCharModel::estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
+FeatureFunction::StateModifications *SentenceFinalCharModel::estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
 		Scores::const_iterator psbegin, Scores::iterator sbegin) const {
-	const SentenceInitialCharModelState *prevstate = dynamic_cast<const SentenceInitialCharModelState *>(state);
-	SentenceInitialCharModelState *s = prevstate->clone();
+
+	const SentenceFinalCharModelState *prevstate = dynamic_cast<const SentenceFinalCharModelState *>(state);
+	SentenceFinalCharModelState *s = prevstate->clone();
 
 	const std::vector<SearchStep::Modification> &mods = step.getModifications();
 	for(std::vector<SearchStep::Modification>::const_iterator it = mods.begin(); it != mods.end(); ++it) {
 	  uint sentno = it->sentno;
-	  PhraseSegmentation sentence = doc.getPhraseSegmentation(sentno);
-	  if (it->from == 0){
-	    std::string oldWord = sentence.begin()->second.get().getTargetPhrase().get()[0];
-	    std::string newWord = it->proposal.begin()->second.get().getTargetPhrase().get()[0];
+	  const PhraseSegmentation &sentence = doc.getPhraseSegmentation(sentno);
+
+	  //// !!! it->to is not reliable! --> use iterator to_it instead!
+	  //// also: countTargetWords(sentence)) is wrong! count segments instead!
+	  //
+	  // cerr << it->to << "  "<< sentence.size() << endl;
+	  // if (it->to == sentence.size()){
+
+	  if(it->to_it == sentence.end()) {
+
+	    std::string oldWord = *sentence.rbegin()->second.get().getTargetPhrase().get().rbegin();
+	    std::string newWord = *it->proposal.rbegin()->second.get().getTargetPhrase().get().rbegin();
 
 	    char oldChar = *oldWord.rbegin();
 	    char newChar = *newWord.rbegin();
 
-	    if (oldWord[0] != newWord[0]){
-	      s->changeChar(oldWord[0],newWord[0]);
+	    if (newChar != oldChar){
+	      s->changeChar(oldChar,newChar);
 	    }
 	  }
 	}
@@ -151,15 +161,17 @@ FeatureFunction::StateModifications *SentenceInitialCharModel::estimateScoreUpda
 	return s;
 }
 
-FeatureFunction::StateModifications *SentenceInitialCharModel::updateScore(const DocumentState &doc, const SearchStep &step, const State *state,
+
+FeatureFunction::StateModifications *SentenceFinalCharModel::updateScore(const DocumentState &doc, const SearchStep &step, const State *state,
 		FeatureFunction::StateModifications *estmods, Scores::const_iterator psbegin, Scores::iterator estbegin) const {
-	return estmods;
+  return estmods;
 }
 
-FeatureFunction::State *SentenceInitialCharModel::applyStateModifications(FeatureFunction::State *oldState, FeatureFunction::StateModifications *modif) const {
-	SentenceInitialCharModelState *os = dynamic_cast<SentenceInitialCharModelState *>(oldState);
-	SentenceInitialCharModelState *ms = dynamic_cast<SentenceInitialCharModelState *>(modif);
+
+FeatureFunction::State *SentenceFinalCharModel::applyStateModifications(FeatureFunction::State *oldState, FeatureFunction::StateModifications *modif) const {
+	SentenceFinalCharModelState *os = dynamic_cast<SentenceFinalCharModelState *>(oldState);
+	SentenceFinalCharModelState *ms = dynamic_cast<SentenceFinalCharModelState *>(modif);
 	os->charFreq.swap(ms->charFreq);
 	os->mostFreq = ms->mostFreq;
-	return oldState;
+	return os;
 }

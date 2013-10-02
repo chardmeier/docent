@@ -203,6 +203,8 @@ add_library(
 	src/SemanticSpaceLanguageModel.cpp
 	src/SentenceParityModel.cpp
 	src/SentenceInitialCharModel.cpp
+	src/SentenceFinalCharModel.cpp
+	src/SentenceFinalWordModel.cpp
 	src/SimulatedAnnealing.cpp
 	src/StateGenerator.cpp
 	src/TypeTokenRateModel.cpp
