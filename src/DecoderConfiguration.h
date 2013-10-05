@@ -28,6 +28,7 @@
 
 #include <iostream>
 #include <vector>
+#include <cstdlib>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
@@ -163,6 +164,15 @@ private:
 			return boost::optional<bool>();
 	}
 
+	boost::optional<int> getInt(const std::string &name) const {
+		std::string str;
+		if(getString(name, str)) {
+		  return atoi(str.c_str());
+		} else
+		  return boost::optional<int>();
+	}
+
+
 public:
 	Parameters(Logger &logger, const Arabica::DOM::Node<std::string> parent) :
 		logger_(logger), parentNode_(parent) {}
@@ -204,6 +214,25 @@ inline bool Parameters::get<bool>(const std::string &name, const bool &defaultVa
 	else
 		return defaultValue;
 }
+
+template<>
+inline int Parameters::get<int>(const std::string &name) const {
+	boost::optional<int> v = getInt(name);
+	if(v) // check initialisation status
+		return *v;
+	else
+		BOOST_THROW_EXCEPTION(ParameterNotFoundException() << err_info::Parameter(name));
+}
+
+template<>
+inline int Parameters::get<int>(const std::string &name, const int &defaultValue) const {
+	boost::optional<int> v = getInt(name);
+	if(v) // check initialisation status
+		return *v;
+	else
+		return defaultValue;
+}
+
 
 #endif
 

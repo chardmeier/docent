@@ -22,6 +22,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <cstdlib>
 
 using namespace std;
 
@@ -36,14 +37,21 @@ using namespace std;
 #include <boost/regex.hpp>
 
 struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureFunction::StateModifications {
-  FinalWordRhymeModelState(uint nsents) : rhymeMap(nsents), rhymeEntropy(nsents), currentScore(0) { docSize = nsents; }
+  FinalWordRhymeModelState(uint nsents, uint maxGap) : 
+    wordList(nsents), rhymeMap(nsents), rhymeEntropy(nsents), currentScore(0) {
+    docSize = nsents; 
+    maxGapSize = maxGap;
+    wordList.resize(docSize);
+  }
 
   uint docSize;
+  uint maxGapSize;
 
   typedef boost::unordered_map<std::string,boost::dynamic_bitset<> > WordMap_;
   typedef boost::unordered_map<std::string,float> WordEntropy_;
   typedef boost::unordered_map<uint,uint> GapFreq_;
 
+  std::vector<std::string> wordList;
   WordMap_ rhymeMap;
   WordEntropy_ rhymeEntropy;
   float currentScore;
@@ -54,7 +62,6 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
 
 
   void updateScore() {
-
 
     boost::dynamic_bitset<> covered(docSize);
 
@@ -76,10 +83,9 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
       }
     }
 
-    /*
+    // how many lines are covered?
     Float ratio = (float) covered.count() / docSize;
-    currentScore *= (1-ratio);
-    */
+    currentScore *= ratio;
     
 
     if (currentScore < oldScore){
@@ -132,6 +138,10 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
 
     /// TODO: could use bitset.find_next instead of for-loop (more efficient?)
 
+    uint countWordChange = 0;
+    uint countWordPairs = 0;
+    std::string &lastWord = wordList[0];
+
     uint lastPos = 0;
     // boost::dynamic_bitset<> bitmap(docSize);
     // bitmap = (it->second);
@@ -141,8 +151,18 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
       if (bitmap.test(i)){
 	if (lastPos > 0){
 	  uint gap = i+1-lastPos;
-	  gapFreq[gap]++;
+	  if (gap <= maxGapSize){
+	    gapFreq[gap]++;
+	    countWordPairs++;
+	    if (lastWord != wordList[i]){
+	      // cerr << "rhyme " << word << " changed word from " << lastWord << " to " << wordList[i] << endl;
+	      // cerr << "last pos = " << lastPos-1 << " new pos " << i << endl;
+	      // cerr << wordList << endl;
+	      countWordChange++;
+	    }
+	  }
 	}
+	lastWord=wordList[i];
 	lastPos=i+1;
       }
     }
@@ -154,6 +174,13 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
       float prob = float(g_it->second) / float(nrGaps);
       entropy[word] -= prob * log(prob) / log(2);
     }
+
+    if (countWordPairs > 0){
+      cerr << " score: " << entropy[word] << " (" << countWordChange << "/" << countWordPairs;
+      entropy[word] *= float(countWordChange+1) / float(countWordPairs+1);
+      cerr << ") - " << entropy[word] << endl;
+    }
+
   }
 
 
@@ -164,7 +191,8 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
       rhymeMap[rhyme].resize(docSize);
     }
     rhymeMap[rhyme].set(sentno);
-    // cerr << " rhymemap " << rhymeMap[rhyme] << " / " << rhyme << endl;
+    wordList[sentno] = word;
+    // cerr << sentno << " ... rhyme ... " << rhyme << " word " << word << endl; 
   }
 
 
@@ -198,14 +226,22 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
 
 
 
-void FinalWordRhymeModel::loadPronounciationModel(const Parameters &params){
+void FinalWordRhymeModel::initializeRhymeModel(const Parameters &params){
+  /*
+  const std::string p = params.get<std::string>("max-rhyme-distance", "");
+  maxRhymeDistance = atoi(p.c_str());
+  */
+
+  maxRhymeDistance = params.get<int>("max-rhyme-distance", 4);
   std::string file = params.get<std::string>("rhymes-file", "");
-  ifstream infile(file.c_str());
-  std::string word, rhyme;
-  while ( infile >> word >> rhyme ){
-    rhymes[word] = rhyme;
+  if (file != ""){
+    ifstream infile(file.c_str());
+    std::string word, rhyme;
+    while ( infile >> word >> rhyme ){
+      rhymes[word] = rhyme;
+    }
+    infile.close();
   }
-  infile.close();
 }
 
 void FinalWordRhymeModel::printPronounciationTable() const {
@@ -222,7 +258,7 @@ void FinalWordRhymeModel::printPronounciationTable() const {
 FeatureFunction::State *FinalWordRhymeModel::initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
 	const std::vector<PhraseSegmentation> &sentences = doc.getPhraseSegmentations();
 
-	FinalWordRhymeModelState *s = new FinalWordRhymeModelState(sentences.size());
+	FinalWordRhymeModelState *s = new FinalWordRhymeModelState(sentences.size(),maxRhymeDistance);
 
 	for(uint i = 0; i < sentences.size(); i++){
 	  const std::string &word = *sentences[i].rbegin()->second.get().getTargetPhrase().get().rbegin();
@@ -248,21 +284,29 @@ const std::string FinalWordRhymeModel::getPronounciation(const std::string &word
   if (it != rhymes.end()){
     return it->second;
   }
-  boost::regex re(".*[^aeiou]([aeiou].*)");
-  boost::cmatch matches;
 
-  if (boost::regex_match(word.c_str(), matches, re)){
+  // TODO: move regexes to config files
+  // ---> more flexible for different languages!
+  // (could leave default regexes for English in here as fallback)
 
-    // matches[0] contains the original string.  matches[n]
-    // contains a sub_match object for each matching
-    // subexpression
+  // matches[0] contains the original string.  matches[n]
+  // contains a sub_match object for each matching
+  // subexpression
 
-    // sub_match::first and sub_match::second are iterators that
-    // refer to the first and one past the last chars of the
-    // matching subexpression
+  // sub_match::first and sub_match::second are iterators that
+  // refer to the first and one past the last chars of the
+  // matching subexpression
 
+  boost::cmatch matches; 
+  boost::regex re0(".*[^aeiou]([aeiou].*?e[nr])");
+  if (boost::regex_match(word.c_str(), matches, re0)){
     // cerr << " found matches: " << matches.size() << " - " << matches[1].first << " + " 
     //      << matches[1].second << endl;
+    return matches[1].first;
+  }
+
+  boost::regex re1(".*[^aeiou]([aeiou]..*?)");
+  if (boost::regex_match(word.c_str(), matches, re1)){
     return matches[1].first;
   }
 
@@ -313,6 +357,7 @@ FeatureFunction::State *FinalWordRhymeModel::applyStateModifications(FeatureFunc
 	FinalWordRhymeModelState *ms = dynamic_cast<FinalWordRhymeModelState *>(modif);
 	os->rhymeMap.swap(ms->rhymeMap);
 	os->rhymeEntropy.swap(ms->rhymeEntropy);
+	os->wordList.swap(ms->wordList);
 	os->currentScore = ms->currentScore;
 	return os;
 }

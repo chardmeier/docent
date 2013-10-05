@@ -29,16 +29,16 @@ class FinalWordRhymeModel : public FeatureFunction {
 
  private:
 
-  void loadPronounciationModel(const Parameters &params);
+  void initializeRhymeModel(const Parameters &params);
   const std::string getPronounciation(const std::string &word) const;
+  typedef boost::unordered_map<std::string,std::string> Rhymes_;
+  Rhymes_ rhymes;
+  uint maxRhymeDistance;
 
  public:
 
-  typedef boost::unordered_map<std::string,std::string> Rhymes_;
-  Rhymes_ rhymes;
-
   FinalWordRhymeModel(const Parameters &params) {
-    this->loadPronounciationModel(params);
+    this->initializeRhymeModel(params);
   }
 
   void printPronounciationTable() const;
