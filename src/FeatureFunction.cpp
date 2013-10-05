@@ -27,13 +27,14 @@
 #include "NgramModel.h"
 #include "PhraseTable.h"
 //#include "PronominalAnaphoraModel.h"
-#include "ReverseNgramModel.h"
+//#include "ReverseNgramModel.h"
 #include "SearchStep.h"
 #include "SemanticSpaceLanguageModel.h"
 #include "SentenceParityModel.h"
 #include "SentenceInitialCharModel.h"
 #include "SentenceFinalCharModel.h"
 #include "SentenceFinalWordModel.h"
+#include "FinalWordRhymeModel.h"
 #include "InitialCharModel.h"
 //#include "WordSpaceCohesionModel.h"
 #include "ConsistencyQModelPhrase.h"
@@ -377,8 +378,10 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 		ff = new PhraseTable(params, random_);
 	else if(type == "ngram-model")
 		ff = NgramModelFactory::createNgramModel(params);
+	/*
 	else if(type == "reverse-ngram-model")
 		ff = ReverseNgramModelFactory::createNgramModel(params);
+	*/
 	else if(type == "geometric-distortion-model")
 		ff = new GeometricDistortionModel(params);
 	else if(type == "sentence-length-model")
@@ -405,6 +408,8 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 		ff = new SentenceFinalCharModel(params);
 	else if(type == "sentence-final-word-model")
 		ff = new SentenceFinalWordModel(params);
+	else if(type == "final-word-rhyme-model")
+		ff = new FinalWordRhymeModel(params);
 	else if(type == "initial-char-model")
 		ff = new InitialCharModel(params);
 	else if(type == "ovix")

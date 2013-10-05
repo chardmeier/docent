@@ -180,11 +180,12 @@ add_library(
 
 	src/BeamSearchAdapter.cpp
 	src/ConsistencyQModelPhrase.cpp
-    src/ConsistencyQModelWord.cpp
+	src/ConsistencyQModelWord.cpp
 	src/CoolingSchedule.cpp
 	src/DecoderConfiguration.cpp
 	src/DocumentState.cpp
 	src/FeatureFunction.cpp
+	src/FinalWordRhymeModel.cpp
 	src/InitialCharModel.cpp
 	src/LocalBeamSearch.cpp
 	src/Logger.cpp
