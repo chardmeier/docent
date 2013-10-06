@@ -38,7 +38,7 @@ using namespace std;
 
 struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureFunction::StateModifications {
   FinalWordRhymeModelState(uint nsents, uint maxGap) : 
-    wordList(nsents), rhymeMap(nsents), rhymeEntropy(nsents), currentScore(0) {
+    rhymeMap(nsents), rhymeEntropy(nsents), wordList(nsents), highestEntropy(nsents), currentScore(0) {
     docSize = nsents; 
     maxGapSize = maxGap;
     wordList.resize(docSize);
@@ -51,35 +51,73 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
   typedef boost::unordered_map<std::string,float> WordEntropy_;
   typedef boost::unordered_map<uint,uint> GapFreq_;
 
-  std::vector<std::string> wordList;
-  WordMap_ rhymeMap;
-  WordEntropy_ rhymeEntropy;
+  WordMap_ rhymeMap;                  // rhyme chains stored in bitsets
+  WordEntropy_ rhymeEntropy;          // gap entropy for each rhyme
+  boost::dynamic_bitset<> coverage;   // rhyme coverage vector
+
+  std::vector<std::string> wordList;  // list of sentence-final words
+  std::vector<float> highestEntropy;  // highest rhyme-chain entropy per sentence
   float currentScore;
 
   Float score() const {
-    return -Float(1/currentScore);
+    if (coverage.count()){
+      Float ratio = (float) coverage.count() / docSize;
+      return -Float(1/(currentScore*ratio));
+    }
+    return 0;
   }
 
 
-
-  /*
   void updateScore(const uint &sentno) {
+
+    float maxScore=0;
     for (WordMap_::const_iterator r_it = rhymeMap.begin(); r_it != rhymeMap.end(); ++r_it ) {
       if (r_it->second.test(sentno)){
-	WordEntropy_::const_iterator e_it;
-	e_it = rhymeEntropy.find(r_it->first);
+	WordEntropy_::const_iterator e_it = rhymeEntropy.find(r_it->first);
 	if (e_it != rhymeEntropy.end()){
-
-
+	  if (e_it->second > maxScore){
+	    maxScore = e_it->second;
+	  }
+	}
       }
     }
-  */
+
+    if (highestEntropy.size() <= sentno){
+      highestEntropy.resize(docSize);
+    }
+    else{
+      currentScore -= highestEntropy[sentno];
+    }
+    if (maxScore != highestEntropy[sentno]){
+      if (maxScore > highestEntropy[sentno]){
+	cerr << "-----------------------------" << endl;
+	cerr << currentScore+highestEntropy[sentno] << " -> " << currentScore+maxScore << endl;
+	cerr << "-----------------------------" << endl;
+	printRhymeMap();
+	printRhymeEntropies();
+      }
+      highestEntropy[sentno] = maxScore;
+      currentScore += highestEntropy[sentno];
+      updateCoverage();
+    }
+  }
+
+  void updateCoverage(){
+    coverage = getCoverage();
+  }
+
+  boost::dynamic_bitset<> getCoverage(){
+    boost::dynamic_bitset<> covered(docSize);
+    covered.reset();
+    for (WordMap_::const_iterator it = rhymeMap.begin(); it != rhymeMap.end(); ++it ) {
+      boost::dynamic_bitset<> combined((covered^=it->second));
+      covered = combined;
+    }
+    return covered;
+  }
 
 
-  // TODO: only count one alternative pronounciation!
-  // now: words with several patterns contribute more than others!
-  // idea: add highest rhyme entropy value for each final word?
-
+  /*
   void updateScore() {
 
     boost::dynamic_bitset<> covered(docSize);
@@ -96,9 +134,7 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
 	// XOR of bitsets
 	boost::dynamic_bitset<> combined((covered^=r_it->second));
 	covered = combined;
-	/*
-	cerr << " ---- "  << combined << " = " << ratio << " = " << currentScore << endl;
-	*/
+	// cerr << " ---- "  << combined << " = " << ratio << " = " << currentScore << endl;
       }
     }
 
@@ -115,9 +151,8 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
       printRhymeMap();
       printRhymeEntropies();
     }
-
   }
-
+*/
 
   void computeAllEntropies() {
     computeAllEntropies(rhymeMap,rhymeEntropy);
@@ -256,7 +291,8 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
       }
     }
     if (needUpdate){
-      updateScore();
+      updateScore(sentno);
+      // updateScore();
     }
 
     /*
@@ -294,12 +330,13 @@ void FinalWordRhymeModel::initializeRhymeModel(const Parameters &params){
     std::string word, rhyme;
     while ( infile >> word >> rhyme ){
       rhymes[word].push_back(rhyme);
+      // cerr << word << " .... " << rhyme << endl;
     }
     infile.close();
     for(Rhymes_::const_iterator it = rhymes.begin(); it != rhymes.end(); ++it) {
       rhymes[it->first].push_back(getLastSyllable(it->first));
+      // cerr << it->first << " .... " << getLastSyllable(it->first) << endl;
     }
-
   }
 
   // lastSyllRE: simple regex-heuristics to extract final rhyme syllables
@@ -338,10 +375,18 @@ FeatureFunction::State *FinalWordRhymeModel::initDocument(const DocumentState &d
 	  }
 	}
 	s->computeAllEntropies();
-	s->updateScore();
+	// s->updateScore();
+
+	// s->updateCoverage();
+	for(uint i = 0; i < sentences.size(); ++i){
+	  s->updateScore(i);
+	}
 
 	/*
 	cerr << "+++++++++++++++++++++++++++++++++" << endl;
+	cerr << " score: " << s->score() << endl;
+	cerr << " current score: " << s->currentScore << endl;
+	cerr << " coverage: " << s->coverage << endl;
 	s->printRhymeMap();
 	s->printRhymeEntropies();
 	cerr << "+++++++++++++++++++++++++++++++++" << endl;
@@ -447,8 +492,10 @@ FeatureFunction::State *FinalWordRhymeModel::applyStateModifications(FeatureFunc
 	FinalWordRhymeModelState *ms = dynamic_cast<FinalWordRhymeModelState *>(modif);
 	os->rhymeMap.swap(ms->rhymeMap);
 	os->rhymeEntropy.swap(ms->rhymeEntropy);
+	os->highestEntropy.swap(ms->highestEntropy);
 	os->wordList.swap(ms->wordList);
 	os->currentScore = ms->currentScore;
+	os->coverage = ms->coverage;
 	return os;
 }
 
