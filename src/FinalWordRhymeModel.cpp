@@ -57,9 +57,28 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
   float currentScore;
 
   Float score() const {
-    return currentScore-100;
+    return -Float(1/currentScore);
   }
 
+
+
+  /*
+  void updateScore(const uint &sentno) {
+    for (WordMap_::const_iterator r_it = rhymeMap.begin(); r_it != rhymeMap.end(); ++r_it ) {
+      if (r_it->second.test(sentno)){
+	WordEntropy_::const_iterator e_it;
+	e_it = rhymeEntropy.find(r_it->first);
+	if (e_it != rhymeEntropy.end()){
+
+
+      }
+    }
+  */
+
+
+  // TODO: only count one alternative pronounciation!
+  // now: words with several patterns contribute more than others!
+  // idea: add highest rhyme entropy value for each final word?
 
   void updateScore() {
 
@@ -88,9 +107,10 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
     currentScore *= ratio;
     
 
-    if (currentScore < oldScore){
+    if (currentScore > oldScore){
       cerr << "-----------------------------" << endl;
-      cerr << oldScore << " : " << currentScore << endl;
+      // cerr << oldScore << " -> " << currentScore << endl;
+      cerr << -Float(1/oldScore) << " -> " << -Float(1/currentScore) << endl;
       cerr << "-----------------------------" << endl;
       printRhymeMap();
       printRhymeEntropies();
@@ -176,15 +196,16 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
     }
 
     if (countWordPairs > 0){
-      cerr << " score: " << entropy[word] << " (" << countWordChange << "/" << countWordPairs;
+      // cerr << " score: " << entropy[word] << " (" << countWordChange << "/" << countWordPairs;
       entropy[word] *= float(countWordChange+1) / float(countWordPairs+1);
-      cerr << ") - " << entropy[word] << endl;
+      // cerr << ") - " << entropy[word] << endl;
     }
 
   }
 
 
-  void setWord(const uint sentno, const std::string word, const std::string rhyme){
+  void setWord(const uint &sentno, const std::string &word, const std::string &rhyme){
+    // TODO: really skip all cases where word = rhyme?
     if (rhyme == word){ return; }
     WordMap_::const_iterator it = rhymeMap.find(rhyme);
     if (it == rhymeMap.end()){
@@ -192,21 +213,59 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
     }
     rhymeMap[rhyme].set(sentno);
     wordList[sentno] = word;
-    // cerr << sentno << " ... rhyme ... " << rhyme << " word " << word << endl; 
+    //    cerr << sentno << " ... rhyme ... " << rhyme << " word " << word << endl; 
   }
 
 
 
-  void resetWord(const uint sentno, const std::string word, const std::string rhyme){
+  void resetWord(const uint &sentno, const std::string &word, const std::string &rhyme){
+    // TODO: really skip all cases where word = rhyme?
     if (rhyme == word){ return; }
+    WordMap_::const_iterator it = rhymeMap.find(rhyme);
+    if (it == rhymeMap.end()){
+      /*
+      cerr << " ... not found? " << sentno << " " << word << " - " << rhyme << endl;
+      printRhymeMap();
+      printRhymeEntropies();
+      */
+      rhymeMap[rhyme].resize(docSize);
+      // exit(1);
+    }
     rhymeMap[rhyme].reset(sentno);
   }
 
 
 
-  void changeWord(const uint sentno, 
-		  const std::string oldWord, const std::string oldRhyme,
-		  const std::string newWord, const std::string newRhyme){
+  void changeWord(const uint &sentno, 
+		  const std::string &oldWord, const std::vector<std::string> &oldRhyme,
+		  const std::string &newWord, const std::vector<std::string> &newRhyme){
+
+    bool needUpdate=false;
+    for (uint i=0;i<oldRhyme.size();++i){
+      if(std::find(newRhyme.begin(), newRhyme.end(), oldRhyme[i])!=newRhyme.end()){
+	resetWord(sentno,oldWord,oldRhyme[i]);
+	computeEntropy(rhymeMap,oldRhyme[i],rhymeEntropy);
+	needUpdate=true;
+      }
+    }
+    for (uint i=0;i<newRhyme.size();++i){
+      if(std::find(oldRhyme.begin(), oldRhyme.end(), newRhyme[i])!=oldRhyme.end()){
+	setWord(sentno,newWord,newRhyme[i]);
+	computeEntropy(rhymeMap,newRhyme[i],rhymeEntropy);
+	needUpdate=true;
+      }
+    }
+    if (needUpdate){
+      updateScore();
+    }
+
+    /*
+    if (! equal(oldRhyme.begin(), oldRhyme.end(), newRhyme.begin()) ){
+      updateScore();
+    }
+    */
+
+    /*
     if (oldRhyme != newRhyme){
       resetWord(sentno,oldWord,oldRhyme);
       setWord(sentno,newWord,newRhyme);
@@ -214,6 +273,7 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
       computeEntropy(rhymeMap,newRhyme,rhymeEntropy);
       updateScore();
     }
+    */
   }
 
 
@@ -227,31 +287,36 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
 
 
 void FinalWordRhymeModel::initializeRhymeModel(const Parameters &params){
-  /*
-  const std::string p = params.get<std::string>("max-rhyme-distance", "");
-  maxRhymeDistance = atoi(p.c_str());
-  */
-
   maxRhymeDistance = params.get<int>("max-rhyme-distance", 4);
   std::string file = params.get<std::string>("rhymes-file", "");
   if (file != ""){
     ifstream infile(file.c_str());
     std::string word, rhyme;
     while ( infile >> word >> rhyme ){
-      rhymes[word] = rhyme;
+      rhymes[word].push_back(rhyme);
     }
     infile.close();
+    for(Rhymes_::const_iterator it = rhymes.begin(); it != rhymes.end(); ++it) {
+      rhymes[it->first].push_back(getLastSyllable(it->first));
+    }
+
   }
+
+  // lastSyllRE: simple regex-heuristics to extract final rhyme syllables
+  // TODO: move regexes to config files
+  // --> make it more flexible for other languages
+  lastSyllRE.push_back(boost::regex (".*[^aeiou]([aeiou].*?e[nr])"));
+  lastSyllRE.push_back(boost::regex (".*[^aeiou]([aeiou]..*?)"));
+  lastSyllRE.push_back(boost::regex ("^([aeiou].*)"));
 }
 
 void FinalWordRhymeModel::printPronounciationTable() const {
-  typedef boost::unordered_map<std::string,std::string> Rhymes_;
-  boost::unordered_map<std::string,std::string>::const_iterator it;
-    cerr << "-----------------------------------" << endl;
-    for (Rhymes_::const_iterator it = rhymes.begin(); it != rhymes.end(); ++it ) {
-      cerr << " *** " << it->first << " = " << it->second << endl;
-    }
-    cerr << "-----------------------------------" << endl;
+  typedef boost::unordered_map<std::string,vector<std::string> > Rhymes_;
+  cerr << "-----------------------------------" << endl;
+  for (Rhymes_::const_iterator it = rhymes.begin(); it != rhymes.end(); ++it ) {
+    cerr << " *** " << it->first << " = " << it->second << endl;
+  }
+  cerr << "-----------------------------------" << endl;
 }
 
 
@@ -262,12 +327,25 @@ FeatureFunction::State *FinalWordRhymeModel::initDocument(const DocumentState &d
 
 	for(uint i = 0; i < sentences.size(); i++){
 	  const std::string &word = *sentences[i].rbegin()->second.get().getTargetPhrase().get().rbegin();
-	  const std::string rhyme = getPronounciation(word);
-
-	  s->setWord(i,word,rhyme);
+	  const std::vector<std::string> rhyme = getRhyme(word);
+	  // cerr << " + " << i << " " << word << " - " << rhyme;
+	  if (rhyme.size()>0){
+	    for (uint j=0;j<rhyme.size();++j){
+	      // cerr << ".";
+	      s->setWord(i,word,rhyme[j]);
+	    }
+	    // cerr << " ok " << endl;
+	  }
 	}
 	s->computeAllEntropies();
 	s->updateScore();
+
+	/*
+	cerr << "+++++++++++++++++++++++++++++++++" << endl;
+	s->printRhymeMap();
+	s->printRhymeEntropies();
+	cerr << "+++++++++++++++++++++++++++++++++" << endl;
+	*/
 
 	*sbegin = s->score();
 	return s;
@@ -278,45 +356,57 @@ void FinalWordRhymeModel::computeSentenceScores(const DocumentState &doc, uint s
 	*sbegin = Float(0);
 }
 
-const std::string FinalWordRhymeModel::getPronounciation(const std::string &word) const{
-  boost::unordered_map<std::string,std::string>::const_iterator it;
+const std::vector<std::string> FinalWordRhymeModel::getRhyme(const std::string &word) const{
+  boost::unordered_map<std::string,vector<std::string> >::const_iterator it;
+
   it = rhymes.find(word);
   if (it != rhymes.end()){
     return it->second;
   }
 
-  // TODO: move regexes to config files
-  // ---> more flexible for different languages!
-  // (could leave default regexes for English in here as fallback)
+  std::vector<std::string> syll(1);
+  syll[0] = getLastSyllable(word);
+  return syll;
+}
 
-  // matches[0] contains the original string.  matches[n]
-  // contains a sub_match object for each matching
-  // subexpression
+const std::string FinalWordRhymeModel::getLastSyllable(const std::string &word) const{
 
+  // matches[0] contains the original string.
+  // matches[n] contains a sub_match object for each matching subexpression
   // sub_match::first and sub_match::second are iterators that
-  // refer to the first and one past the last chars of the
-  // matching subexpression
+  // refer to the first and the last chars of the matching subexpression
 
-  boost::cmatch matches; 
-  boost::regex re0(".*[^aeiou]([aeiou].*?e[nr])");
-  if (boost::regex_match(word.c_str(), matches, re0)){
-    // cerr << " found matches: " << matches.size() << " - " << matches[1].first << " + " 
-    //      << matches[1].second << endl;
-    return matches[1].first;
+  if (lastSyllRE.size()>0){
+    boost::cmatch matches; 
+    for (uint i = 0; i<lastSyllRE.size();++i){
+      if (boost::regex_match(word.c_str(), matches, lastSyllRE[i])){
+	// cerr << " found matches: " << matches.size() << " - " << matches[1].first << " + " 
+	//      << matches[1].second << endl;
+	return matches[1].first;
+      }
+    }
   }
 
-  boost::regex re1(".*[^aeiou]([aeiou]..*?)");
-  if (boost::regex_match(word.c_str(), matches, re1)){
-    return matches[1].first;
-  }
+  else{
 
-  boost::regex re2("^([aeiou].*)");
-  if (boost::regex_match(word.c_str(), matches, re2)){
-    return matches[1].first;
+    // fallback for English if no lastSyllRE is given
+    boost::cmatch matches; 
+    boost::regex re0(".*[^aeiou]([aeiou].*?e[nr])");
+    if (boost::regex_match(word.c_str(), matches, re0)){
+      return matches[1].first;
+    }
+    boost::regex re1(".*[^aeiou]([aeiou]..*?)");
+    if (boost::regex_match(word.c_str(), matches, re1)){
+      return matches[1].first;
+    }
+    boost::regex re2("^([aeiou].*)");
+    if (boost::regex_match(word.c_str(), matches, re2)){
+      return matches[1].first;
+    }
   }
-
   return word;
 }
+
 
 FeatureFunction::StateModifications *FinalWordRhymeModel::estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
 		Scores::const_iterator psbegin, Scores::iterator sbegin) const {
@@ -332,10 +422,10 @@ FeatureFunction::StateModifications *FinalWordRhymeModel::estimateScoreUpdate(co
 	  if (it->to_it == sentence.end()) {
 
 	    const std::string &oldWord = *sentence.rbegin()->second.get().getTargetPhrase().get().rbegin();
-	    const std::string oldRhyme = getPronounciation(oldWord);
+	    const std::vector<std::string> oldRhyme = getRhyme(oldWord);
 
 	    const std::string &newWord = *it->proposal.rbegin()->second.get().getTargetPhrase().get().rbegin();
-	    const std::string newRhyme = getPronounciation(newWord);
+	    const std::vector<std::string> newRhyme = getRhyme(newWord);
 
 	    s->changeWord(sentno,oldWord,oldRhyme,newWord,newRhyme);
 

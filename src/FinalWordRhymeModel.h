@@ -25,15 +25,21 @@
 
 // using namespace std;
 
+#include <boost/regex.hpp>
+
+
 class FinalWordRhymeModel : public FeatureFunction {
 
  private:
 
   void initializeRhymeModel(const Parameters &params);
-  const std::string getPronounciation(const std::string &word) const;
-  typedef boost::unordered_map<std::string,std::string> Rhymes_;
+  const std::vector<std::string> getRhyme(const std::string &word) const;
+  const std::string getLastSyllable(const std::string &word) const;
+
+  typedef boost::unordered_map<std::string,std::vector<std::string> > Rhymes_;
   Rhymes_ rhymes;
   uint maxRhymeDistance;
+  std::vector<boost::regex> lastSyllRE;
 
  public:
 
