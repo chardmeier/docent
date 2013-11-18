@@ -36,6 +36,7 @@
 #include "OvixModel.h"
 #include "TypeTokenRateModel.h"
 #include "BleuModel.h"
+#include "PhraseDistortionModel.h"
 
 #include <algorithm>
 #include <limits>
@@ -253,6 +254,7 @@ void GeometricDistortionModel::computeSentenceScores(const DocumentState &doc, u
 	scoreSegment(seg.begin(), seg.end(), sbegin, std::plus<Float>());
 }
 
+
 FeatureFunction::StateModifications *GeometricDistortionModel::estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
 		Scores::const_iterator psbegin, Scores::iterator sbegin) const {
 	
@@ -281,13 +283,17 @@ FeatureFunction::StateModifications *GeometricDistortionModel::estimateScoreUpda
 					(*(sbegin + 1))--;
 				++to_it;
 			}
-		} else if(from_it != oldseg.begin() && to_it != oldseg.end()) {
-			--from_it;
-			Float dist = computeDistortionDistance(from_it->first, to_it->first);
-			*sbegin += dist;
-			if(-dist > distortionLimit_)
-				(*(sbegin + 1))--;
-			++to_it;
+		} else {
+			if(from_it != oldseg.begin())
+				--from_it;
+			if(from_it != oldseg.begin() && to_it != oldseg.end()) {
+				Float dist = computeDistortionDistance(from_it->first, to_it->first);
+				*sbegin += dist;
+				if(-dist > distortionLimit_)
+					(*(sbegin + 1))--;
+			}
+			if(to_it != oldseg.end())
+				++to_it;
 		}
 		
 		scoreSegment(from_it, to_it, sbegin, std::minus<Float>());
