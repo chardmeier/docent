@@ -33,15 +33,74 @@
 #include <algorithm>
 #include <vector>
 
+#include<iostream>
+
 // from kenlm
 #include "lm/binary_format.hh"
 #include "lm/model.hh"
 
 #include <boost/foreach.hpp>
 
+template<class M> struct NgramDocumentState;
+template<class M> struct NgramDocumentModifications;
+
+template<class Model>
+class NgramModel : public FeatureFunction {
+	friend class NgramModelFactory;
+	friend struct NgramDocumentState<NgramModel<Model> >;
+	friend struct NgramDocumentModifications<NgramModel<Model> >;
+
+private:
+	typedef typename Model::Vocabulary VocabularyType_;
+	typedef typename Model::State StateType_;
+
+	typedef NgramDocumentState<NgramModel<Model> > NgramDocumentState_;
+	typedef NgramDocumentModifications<NgramModel<Model> > NgramDocumentModifications_;
+
+	typedef std::pair<StateType_,Float> WordState_;
+	typedef std::vector<WordState_> SentenceState_;
+
+	mutable Logger logger_;
+
+	Model *model_;
+
+	NgramModel(const std::string &file, const int annotationLevel, const bool tokenFlag);
+
+	Float scoreNgram(const StateType_ &old_state, lm::WordIndex word, WordState_ &out_state) const;
+
+	template<bool ScoreCompleteSentence,class PhrasePairIterator,class StateIterator>
+	Float scorePhraseSegmentation(const StateType_ *last_state, PhrasePairIterator from_it,
+		PhrasePairIterator to_it, PhrasePairIterator eos,
+		StateIterator state_it, bool atEos = false) const;
+		
+	int annotationLevel_;
+	bool tokenFlag_;
+
+public:
+	virtual ~NgramModel();
+
+	virtual FeatureFunction::State *initDocument(const DocumentState &doc, Scores::iterator sbegin) const;
+
+	virtual StateModifications *estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
+		Scores::const_iterator psbegin, Scores::iterator sbegin) const;
+	virtual StateModifications *updateScore(const DocumentState &doc, const SearchStep &step, const State *state,
+		StateModifications *estmods, Scores::const_iterator psbegin, Scores::iterator estbegin) const;
+
+	virtual FeatureFunction::State *applyStateModifications(FeatureFunction::State *oldState, FeatureFunction::StateModifications *modif) const;
+
+	virtual void computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const;
+	
+	virtual uint getNumberOfScores() const {
+		return 1;
+	}
+};
+
 FeatureFunction *NgramModelFactory::createNgramModel(const Parameters &params) {
 	std::string file = params.get<std::string>("lm-file");
 	lm::ngram::ModelType mtype;
+
+	int annotationLevel = params.get<uint>("annotation-level", -1);
+	bool tokenFlag = params.get<bool>("token-flag", false);
 
 	std::string smtype = params.get<std::string>("model-type", "");
 
@@ -67,19 +126,22 @@ FeatureFunction *NgramModelFactory::createNgramModel(const Parameters &params) {
 		if(!smtype.empty() && smtype != "hash-probing")
 			LOG(logger, error, "Incorrect LM type in configuration "
 				"for file " << file);
-		return new NgramModel<lm::ngram::ProbingModel>(file);
+
+		return new NgramModel<lm::ngram::ProbingModel>(file,annotationLevel,tokenFlag);
+
 	case lm::ngram::TRIE_SORTED:
 		if(!smtype.empty() && smtype != "trie-sorted")
 			LOG(logger, error, "Incorrect LM type in configuration "
 				"for file " << file);
-		return new NgramModel<lm::ngram::TrieModel>(file);
+		return new NgramModel<lm::ngram::TrieModel>(file,annotationLevel,tokenFlag);
+
 /*
 	case lm::ngram::QUANT_TRIE_SORTED:
 		if(!smtype.empty() && smtype != "quant-trie-sorted")
 			LOG(logger, error, "Incorrect LM type in configuration "
 				"for file " << file);
 
-		return new NgramModel<lm::ngram::QuantTrieModel>(file);
+		return new NgramModel<lm::ngram::QuantTrieModel>(file,annotationLevel,tokenFlag);
 */
 	default:
 		LOG(logger, error, "Unsupported LM type for file " << file);
@@ -109,14 +171,19 @@ struct NgramDocumentModifications : public FeatureFunction::StateModifications {
 
 
 template<class Model>
-NgramModel<Model>::NgramModel(const std::string &file) :
+NgramModel<Model>::NgramModel(const std::string &file, const int annotationLevel, const bool tokenFlag) :
 		logger_("NgramModel") {
-  model_ = new Model(file.c_str());
+	model_ = new Model(file.c_str());
+	annotationLevel_ = annotationLevel;
+	tokenFlag_ = tokenFlag;
+	LOG(logger_, debug, "Annotation level of N-gram model set to " << annotationLevel_);
+	LOG(logger_, debug, "Token flag set to " << tokenFlag_);
 }
 
 
 template<class M>
 FeatureFunction::State *NgramModel<M>::initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
+
 	NgramDocumentState_ *state = new NgramDocumentState_();
 	const std::vector<PhraseSegmentation> &segs = doc.getPhraseSegmentations();
 	state->lmCache.resize(segs.size());
@@ -307,7 +374,7 @@ Float NgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, Phras
 		PhrasePairIterator to_it, PhrasePairIterator eos, StateIterator state_it, bool atEos) const {
 	const VocabularyType_ &vocab = model_->GetVocabulary();
 
-	PhrasePairIterator ng_it = from_it;
+	PhrasePairIterator ng_it = from_it;	
 
 	uint last_statelen = last_state->Length();
 
@@ -315,8 +382,9 @@ Float NgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, Phras
 	Float s = .0;
 	while(ng_it != to_it) {
 		LOG(logger_, debug, "running (a) loop");
-		for(PhraseData::const_iterator wi = ng_it->second.get().getTargetPhrase().get().begin();
-				wi != ng_it->second.get().getTargetPhrase().get().end(); ++wi) {
+		for(PhraseData::const_iterator wi = ng_it->second.get().getTargetPhraseOrAnnotations(annotationLevel_,tokenFlag_).get().begin();
+				wi != ng_it->second.get().getTargetPhraseOrAnnotations(annotationLevel_,tokenFlag_).get().end(); ++wi) {
+
 			Float lscore = scoreNgram(*last_state, vocab.Index(*wi), *state_it);
 			// old score has already been subtracted
 			last_state = &state_it->first;
@@ -332,8 +400,10 @@ Float NgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, Phras
 	bool independent = false;
 	while(!ScoreCompleteSentence && ng_it != eos && !independent) {
 		LOG(logger_, debug, "running (b) loop");
-		for(PhraseData::const_iterator wi = ng_it->second.get().getTargetPhrase().get().begin();
-				wi != ng_it->second.get().getTargetPhrase().get().end(); ++wi) {
+
+		for(PhraseData::const_iterator wi = ng_it->second.get().getTargetPhraseOrAnnotations(annotationLevel_,tokenFlag_).get().begin();
+				wi != ng_it->second.get().getTargetPhraseOrAnnotations(annotationLevel_,tokenFlag_).get().end(); ++wi) {
+
 			if(future > last_state->Length() && future > last_statelen) {
 				LOG(logger_, debug, "breaking, future = " << future
 					<< ", last state size is " << uint(last_state->Length())

@@ -61,7 +61,7 @@ private:
 
 	static void manageTranslators(boost::mpi::communicator comm, NistXmlTestset &testset);
 
-	PlainTextDocument runDecoder(const MMAXDocument &input);
+	PlainTextDocument runDecoder(const NumberedInputDocument &input);
 
 public:
 	DocumentDecoder(boost::mpi::communicator comm, const std::string &config) :
@@ -174,16 +174,16 @@ void DocumentDecoder::translate() {
 			NumberedOutputDocument output;
 			LOG(logger_, debug, "T: Received document " << input.first << " for translation.");
 			output.first = input.first;
-			output.second = runDecoder(input.second);
+			output.second = runDecoder(input);
 			LOG(logger_, debug, "T: Sending translation of document " << input.first << " to collector.");
 			communicator_.send(0, TAG_COLLECT, output);
 		}
 	}
 }
 
-PlainTextDocument DocumentDecoder::runDecoder(const MMAXDocument &input) {
-	boost::shared_ptr<MMAXDocument> mmax = boost::make_shared<MMAXDocument>(input);
-	boost::shared_ptr<DocumentState> doc(new DocumentState(configuration_, mmax));
+PlainTextDocument DocumentDecoder::runDecoder(const NumberedInputDocument &input) {
+	boost::shared_ptr<MMAXDocument> mmax = boost::make_shared<MMAXDocument>(input.second);
+	boost::shared_ptr<DocumentState> doc(new DocumentState(configuration_, mmax, input.first));
 	NbestStorage nbest(1);
 	std::cerr << "Initial score: " << doc->getScore() << std::endl;
 	configuration_.getSearchAlgorithm().search(doc, nbest);
