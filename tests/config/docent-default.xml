@@ -31,7 +31,7 @@
 </models>
 <weights>
 	<weight model="d" score="0">0.141806519223522</weight>
-	<weight model="d" score="1">-1e30</weight>
+	<weight model="d" score="1">1e30</weight>
 	<weight model="w">-0.273416114951401</weight>
 	<weight model="oov">100.0</weight>
 	<weight model="lm">0.142658800199951</weight>
