@@ -171,6 +171,7 @@ add_library(
 	decoder STATIC
 
 	src/BeamSearchAdapter.cpp
+	src/BleuModel.cpp
 	src/ConsistencyQModelPhrase.cpp
 	src/ConsistencyQModelWord.cpp
 	src/CoolingSchedule.cpp
@@ -182,6 +183,7 @@ add_library(
 	src/MMAXDocument.cpp
 	src/NbestStorage.cpp
 	src/NgramModel.cpp
+	src/NistXmlRefset.cpp
 	src/NistXmlTestset.cpp
 	src/OvixModel.cpp	
 	src/PhrasePair.cpp
@@ -195,7 +197,6 @@ add_library(
 	src/SimulatedAnnealing.cpp
 	src/StateGenerator.cpp
 	src/TypeTokenRateModel.cpp
-	src/BleuModel.cpp
 )
 
 add_dependencies(decoder

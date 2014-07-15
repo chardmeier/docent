@@ -82,6 +82,10 @@ public:
 	~DocumentState();
 	DocumentState &operator=(const DocumentState &o);
 	
+	uint getDocNumber() const {
+		return docNumber_;
+	}
+
 	bool operator==(const DocumentState &o) const {
 		return configuration_ == o.configuration_ && sentences_ == o.sentences_;
 	}

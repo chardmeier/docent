@@ -9,12 +9,19 @@
 #include <fstream>
 #include <numeric>
 
+#include "NistXmlRefset.h"
+#include "NistXmlTestset.h"
+#include <iosfwd>
+#include <vector>
+
 struct BleuModelState : public FeatureFunction::State {
 	
 	// clipped counts for each sentence for each value of n (1<=n<=4). inner vector is over sentences; outer is over n.	
 	std::vector<std::vector<uint> > clipped_counts;
 	// length of each sentence in the candidate translation.	
 	std::vector<uint> candidate_lengths;
+
+	uint doc_no;
 
 	virtual BleuModelState *clone() const {
 		return new BleuModelState(*this);
@@ -31,84 +38,82 @@ struct BleuModelModifications : public FeatureFunction::StateModifications {
 // constructor
 BleuModel::BleuModel(const Parameters &params) : logger_("BleuModel"){
 
-	//LOG(logger_, debug, "BleuModel::BleuModel");
+	LOG(logger_, debug, "BleuModel::BleuModel");
+
+	typedef boost::shared_ptr<NistXmlDocument> value_type;
+        typedef std::vector<value_type>::iterator iterator;
+        typedef std::vector<Word>::iterator word_iterator;
 
 	std::string fileName = params.get<std::string>("reference-file", "");
-	//LOG(logger_, debug, "Reading file: " << fileName);
-	std::ifstream infile(fileName.c_str());			
+	LOG(logger_, debug, "Reading file: " << fileName);
+	NistXmlRefset Refset = NistXmlRefset(fileName);
 
-	referenceLength_ = 0;
+	LOG(logger_, debug, "Number of documents in Refset = " << Refset.size() << "\n");
 
-	std::string sentence;
-	// loop over the reference file, putting each line in the variable "sentence"	
-	while (std::getline(infile, sentence))
-	{		
-		//LOG(logger_, debug, "Reading sentence: " << sentence);
-	
-		// create a vector of tokens by splitting the current line at whitespaces		
-		Tokens_ tokens;
-		std::istringstream iss(sentence);
-		std::string current_token;		
-		uint sentence_length = 0; 		
-		while(iss >> current_token){			
-			tokens.push_back(current_token);
-			sentence_length++;
-			referenceLength_++;
-		}
-		referenceLengths_.push_back(sentence_length);
+	// Loop over the documents in the refset
+        for(iterator it = Refset.begin(); it != Refset.end(); ++it){
+		
+		uint doc_length = 0; // Number of words in the current ref doc
+		std::vector<uint> sent_lengths; // Number of words in each sentence of the current ref doc
+		std::vector<TokenHash_> sent_counts; // Ngram counts for each sentence of the current ref doc	
 
-		//LOG(logger_, debug, "Finished reading sentence: " << sentence);
-		//LOG(logger_, debug, "Size of tokens vector = " << tokens.size());
+		uint number_sents = (*it)->asPlainTextDocument().getNumberOfSentences();
+		//LOG(logger_, debug, "Number of sentences: " << number_sents);
+		PlainTextDocument plain_doc = (*it)->asPlainTextDocument();
 
-		// TokenHash_ to store the n-gram counts for the current sentence
-		TokenHash_ sentence_counts;		
+		// Loop over the sentences in the current document
+		for(uint sentno=0;sentno<number_sents;sentno++){
+			Tokens_ tokens;
+			uint sentence_length = 0;
+			//LOG(logger_, debug, "Sentence " << sentno);		
+			for(word_iterator word_it = plain_doc.sentence_begin(sentno); word_it != plain_doc.sentence_end(sentno); ++word_it){
+				tokens.push_back(*word_it);
+				sentence_length++;
+				doc_length++;		
+				//LOG(logger_, debug, "Word: " << *word_it);
+			}
+			sent_lengths.push_back(sentence_length);
+			//LOG(logger_, debug, "Finished reading sentence: " << sentence);
+			LOG(logger_, debug, "Size of tokens vector = " << tokens.size());
+			
+			TokenHash_ sentence_counts;		
 
-		// loop over values of n from 1 to 4 (these are the n-grams used in calculating the BLEU score)
-		for(uint n=0; n<4; n++){
+			// loop over values of n from 1 to 4 (these are the n-grams used in calculating the BLEU score)
+			for(uint n=0; n<4; n++){
 			//LOG(logger_, debug, "n = " << n);				
-			if(tokens.size()>n){		
-				// loop over the n-grams in the current sentence.		
-				for(uint i = 0; i < tokens.size()-n; i++) {
-					//LOG(logger_, debug, "i = " << i);				
+				if(tokens.size()>n){		
+					// loop over the n-grams in the current sentence.		
+					for(uint i = 0; i < tokens.size()-n; i++) {
+						//LOG(logger_, debug, "i = " << i);				
 				
-					// create a blank n-gram of the correct size and add the first token
-					Tokens_ ngram(n+1);
-					ngram[0] = tokens[i];					
-					//std::string ngram = tokens[i];
-					for(uint j=1; j<=n; j++){
-						//LOG(logger_, debug, "j = " << j);					
-						ngram[j] = tokens[i+j];				
-					}
-					// test if the n-gram has already been seen, and if not create an entry for it with count 1				
-					if (sentence_counts.find(ngram) == sentence_counts.end()) {
-						sentence_counts.insert(std::make_pair(ngram,1));
-					}
-					// otherwise simply add one to its count
-					else {
-						sentence_counts[ngram]++;
+						// create a blank n-gram of the correct size and add the first token
+						Tokens_ ngram(n+1);
+						ngram[0] = tokens[i];					
+						//std::string ngram = tokens[i];
+						for(uint j=1; j<=n; j++){
+							//LOG(logger_, debug, "j = " << j);					
+							ngram[j] = tokens[i+j];				
+						}
+						// test if the n-gram has already been seen, and if not create an entry for it with count 1				
+						if (sentence_counts.find(ngram) == sentence_counts.end()) {
+							sentence_counts.insert(std::make_pair(ngram,1));
+						}
+						// otherwise simply add one to its count
+						else {
+							sentence_counts[ngram]++;
+						}
 					}
 				}
 			}
+
+			// add the current sentence counts to the vector for the current document
+			sent_counts.push_back(sentence_counts);
+
 		}
-
-		//LOG(logger_, debug, "Finished recording n-grams for sentence: " << sentence);
-		
-		// add the current sentence counts to the referenceNgramCounts_ variable
-		referenceNgramCounts_.push_back(sentence_counts);
-		
+		refLength_.push_back(doc_length);		
+		refSentLengths_.push_back(sent_lengths);	
+		refNgramCounts_.push_back(sent_counts);
 	}
-
-	
-	//for(std::vector<uint>::iterator it = referenceLengths_.begin(); it != referenceLengths_.end(); ++it) {
-    	//	LOG(logger_, debug, "Sentence length: " << *it);      
-	//}	
-
-	//for(std::vector<TokenHash_>::iterator it = referenceNgramCounts_.begin(); it != referenceNgramCounts_.end(); ++it) {
-    	//	LOG(logger_, debug, "TokenHash_ contains: ");
-	//	BOOST_FOREACH( TokenHash_::value_type v, *it ) {
-    	//		LOG(logger_, debug, v.first << " " << v.second);      
-	//	}
-	//}
 
 };
 
@@ -121,6 +126,11 @@ FeatureFunction::State *BleuModel::initDocument(const DocumentState &doc, Scores
 	//LOG(logger_, debug, "BleuModel::initDocument");
 
 	BleuModelState *state = new BleuModelState();
+
+	uint doc_no = doc.getDocNumber();
+	state->doc_no = doc_no;
+
+	LOG(logger_, debug, "Initialising Document " << doc_no);
 
 	const std::vector<PhraseSegmentation> &segs = doc.getPhraseSegmentations();
 	uint no_sents = segs.size();
@@ -151,7 +161,7 @@ FeatureFunction::State *BleuModel::initDocument(const DocumentState &doc, Scores
 		}
 
 		state->candidate_lengths[sent_no] = candidate_tokens.size();
-		std::vector<uint> clipped_counts = calculateClippedCounts(candidate_tokens, sent_no);
+		std::vector<uint> clipped_counts = calculateClippedCounts(candidate_tokens, sent_no, doc_no);
 		for(uint n=0;n<4;n++){
 			state->clipped_counts[n][sent_no] = clipped_counts[n];
 		}
@@ -287,12 +297,12 @@ FeatureFunction::State *BleuModel::applyStateModifications(FeatureFunction::Stat
 	return &state;
 }
 
-std::vector<uint> BleuModel::calculateClippedCounts(const BleuModel::Tokens_ candidate_tokens, const uint sent_no) const {
+std::vector<uint> BleuModel::calculateClippedCounts(const BleuModel::Tokens_ candidate_tokens, const uint sent_no, const uint doc_no) const {
 	
 	//LOG(logger_, debug, "BleuModel::calculateClippedCounts");
 
 	TokenHash_ tmp_counts;
-	TokenHash_ reference = referenceNgramCounts_[sent_no];
+	TokenHash_ reference = refNgramCounts_[doc_no][sent_no];
 
 	std::vector<uint> clipped_counts(4);
 
@@ -349,7 +359,7 @@ void BleuModel::updateState(BleuModelState &state, const BleuModelModifications 
 		uint sent_no = bleu_mods.state_mods[current_mod].first;
 		BleuModel::Tokens_ tokens = bleu_mods.state_mods[current_mod].second;		
 		state.candidate_lengths[sent_no] = tokens.size();
-		std::vector<uint> clipped_counts = calculateClippedCounts(tokens, sent_no);
+		std::vector<uint> clipped_counts = calculateClippedCounts(tokens, sent_no, state.doc_no);
 		for(uint n=0;n<4;n++){
 			state.clipped_counts[n][sent_no] = clipped_counts[n];
 		}
@@ -378,20 +388,21 @@ void BleuModel::calculateBLEU(BleuModelState &state, Float &s) const {
 	double BP;
 
 	uint total_candidate_length = std::accumulate(state.candidate_lengths.begin(),state.candidate_lengths.end(),0);
+	uint doc_no = state.doc_no;
 
-	if(total_candidate_length>referenceLength_){
+	if(total_candidate_length>refLength_[doc_no]){
 		BP = 1.0;
 		//LOG(logger_,debug,"Candidate longer than reference");
 	}
 	else{
-		BP = exp(1.0-(double)referenceLength_/total_candidate_length);
+		BP = exp(1.0-(double)refLength_[doc_no]/total_candidate_length);
 		//LOG(logger_,debug,"Reference longer than candidate");
 	}
 
 	s = BP*pow(precision_product,0.25);
 
 	LOG(logger_, debug, "Candidate length = " << total_candidate_length);
-	LOG(logger_, debug, "Reference length = " << referenceLength_);
+	LOG(logger_, debug, "Reference length = " << refLength_[doc_no]);
 	LOG(logger_, debug, "BP = " << BP);
 	LOG(logger_, debug, "BLEU score = " << s);
 

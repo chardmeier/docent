@@ -13,9 +13,9 @@ private:
 	typedef boost::unordered_map<Tokens_,uint> TokenHash_;		
 	Logger logger_;
 
-	uint referenceLength_;
-	std::vector<uint> referenceLengths_;	
-	std::vector<TokenHash_> referenceNgramCounts_;
+	std::vector<uint> refLength_; // Vector containing total ref length for each doc
+	std::vector<std::vector<uint> > refSentLengths_; // Vector of vectors containing ref sentence lengths for each doc	
+	std::vector<std::vector<TokenHash_> > refNgramCounts_; // Vector of vectors containing Ngram counts for each ref sentence for each doc
 
 public:
 	BleuModel(const Parameters &params);
@@ -36,7 +36,7 @@ public:
 		return 1;
 	}
 
-	std::vector<uint> calculateClippedCounts(const Tokens_ candidate_tokens, const uint sent_no) const;
+	std::vector<uint> calculateClippedCounts(const Tokens_ candidate_tokens, const uint sent_no, const uint doc_no) const;
 	void updateState(struct BleuModelState &current_state, const struct BleuModelModifications &bleu_state_mods) const;
 	void calculateBLEU(struct BleuModelState &state, Float &s) const;
 	void printTokens(Tokens_ tokens) const;
