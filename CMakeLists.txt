@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.1)
 cmake_policy(SET CMP0015 NEW)
 project(docent)
 
+include(CheckLibraryExists)
 include(ExternalProject)
 set_directory_properties(PROPERTY EP_BASE external)
 
@@ -32,9 +33,6 @@ if(APPLE)
 	# Darwin ld doesn't support, and doesn't seem to need, start-/end-group
 	set(LD_START_GROUP "")
 	set(LD_END_GROUP "")
-
-	# This is to enable -Wl,@ processing on platforms that don't use GNU ld
-	set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ${CMAKE_SOURCE_DIR}/at-wrapper.sh)
 else()
 	set(LD_START_GROUP -Wl,--start-group)
 	set(LD_END_GROUP -Wl,--end-group)
@@ -97,26 +95,12 @@ set(STEMMER_INCLUDE_DIRS ${STEMMER_ROOT}/include)
 ### Build Arabica
 
 set(Arabica_ROOT ${CMAKE_SOURCE_DIR}/external/arabica)
-set(Arabica_INSTALL_DIR ${CMAKE_BINARY_DIR}/external/Install/arabica_external)
 
-ExternalProject_add(arabica_external
-	SOURCE_DIR ${Arabica_ROOT}
-	CONFIGURE_COMMAND ./autogen.sh ${Arabica_WITH_BOOST} --prefix=${Arabica_INSTALL_DIR}
-	BUILD_COMMAND ${MAKE}
-	INSTALL_COMMAND make install && sh -c ". ${Arabica_INSTALL_DIR}/lib/libarabica.la && echo $dependency_libs >${Arabica_INSTALL_DIR}/lib/libarabica.deps"
-	INSTALL_DIR ${Arabica_INSTALL_DIR}
-	BUILD_IN_SOURCE 1)
+set(BUILD_ARABICA_EXAMPLES OFF)
+add_subdirectory(${Arabica_ROOT})
 
-add_library(arabica STATIC IMPORTED)
-add_dependencies(arabica arabica_external)
-set_target_properties(arabica PROPERTIES
-	IMPORTED_LOCATION "${Arabica_INSTALL_DIR}/lib/libarabica.a")
-
-set(Arabica_INCLUDE_DIRS ${Arabica_INSTALL_DIR}/include/arabica)
-set(Arabica_LIBRARY_DIRS ${Arabica_INSTALL_DIR}/lib)
-set(Arabica_LIBRARIES
-	arabica
-	-Wl,@${Arabica_INSTALL_DIR}/lib/libarabica.deps)
+get_property(Arabica_INCLUDE_DIRS DIRECTORY external/arabica PROPERTY INCLUDE_DIRECTORIES)
+set(Arabica_LIBRARIES arabica)
 
 ### Build Moses
 
@@ -137,6 +121,13 @@ add_dependencies(moses moses_external)
 add_definitions(-DKENLM_MAX_ORDER=${KENLM_MAX_ORDER})
 
 find_package(ZLIB REQUIRED)
+check_library_exists(-lrt clock_gettime "" HAVE_LIBRT)
+if(HAVE_LIBRT)
+	set(LIBRT_LIBRARIES -lrt)
+else()
+	set(LIBRT_LIBRARIES "")
+endif()
+
 set(MOSES_INCLUDE_DIRS
 	${MOSES_INSTALL_DIR}/include
 	${ZLIB_INCLUDE_DIRS})
@@ -156,6 +147,7 @@ set(MOSES_LIBRARIES
 	${MOSES_INSTALL_DIR}/lib/libRuleTable.a
 	${MOSES_INSTALL_DIR}/lib/libScope3Parser.a
 	${LD_END_GROUP}
+	${LIBRT_LIBRARIES}
 	${ZLIB_LIBRARIES})
 
 ### Build Docent
@@ -179,6 +171,7 @@ add_library(
 	decoder STATIC
 
 	src/BeamSearchAdapter.cpp
+	src/BleuModel.cpp
 	src/ConsistencyQModelPhrase.cpp
 	src/ConsistencyQModelWord.cpp
 	src/CoolingSchedule.cpp
@@ -192,6 +185,7 @@ add_library(
 	src/MMAXDocument.cpp
 	src/NbestStorage.cpp
 	src/NgramModel.cpp
+	src/NistXmlRefset.cpp
 	src/NistXmlTestset.cpp
 	src/OvixModel.cpp	
 	src/PhrasePair.cpp
