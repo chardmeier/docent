@@ -27,15 +27,9 @@
 #include "NgramModel.h"
 #include "PhraseTable.h"
 //#include "PronominalAnaphoraModel.h"
-//#include "ReverseNgramModel.h"
 #include "SearchStep.h"
 #include "SemanticSpaceLanguageModel.h"
 #include "SentenceParityModel.h"
-#include "SentenceInitialCharModel.h"
-#include "SentenceFinalCharModel.h"
-#include "SentenceFinalWordModel.h"
-#include "FinalWordRhymeModel.h"
-#include "InitialCharModel.h"
 //#include "WordSpaceCohesionModel.h"
 #include "ConsistencyQModelPhrase.h"
 #include "ConsistencyQModelWord.h"
@@ -43,6 +37,7 @@
 #include "TypeTokenRateModel.h"
 #include "BleuModel.h"
 //#include "PhraseDistortionModel.h"
+#include "FinalWordRhymeModel.h"
 
 #include <algorithm>
 #include <limits>
@@ -386,10 +381,6 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 		ff = new PhraseTable(params, random_);
 	else if(type == "ngram-model")
 		ff = NgramModelFactory::createNgramModel(params);
-	/*
-	else if(type == "reverse-ngram-model")
-		ff = ReverseNgramModelFactory::createNgramModel(params);
-	*/
 	else if(type == "geometric-distortion-model")
 		ff = new GeometricDistortionModel(params);
 	else if(type == "sentence-length-model")
@@ -410,16 +401,6 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 	//	ff = PronominalAnaphoraModelFactory::createPronominalAnaphoraModel(params);
 	else if(type == "sentence-parity-model")
 		ff = new SentenceParityModel(params);
-	else if(type == "sentence-initial-char-model")
-		ff = new SentenceInitialCharModel(params);
-	else if(type == "sentence-final-char-model")
-		ff = new SentenceFinalCharModel(params);
-	else if(type == "sentence-final-word-model")
-		ff = new SentenceFinalWordModel(params);
-	else if(type == "final-word-rhyme-model")
-		ff = new FinalWordRhymeModel(params);
-	else if(type == "initial-char-model")
-		ff = new InitialCharModel(params);
 	else if(type == "ovix")
 		ff = new OvixModel(params);
 	else if(type == "type-token")
@@ -430,6 +411,8 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 		ff = new ConsistencyQModelWord(params);
 	else if(type == "bleu-model")
 		ff = new BleuModel(params);	
+	else if(type == "final-word-rhyme-model")
+		ff = new FinalWordRhymeModel(params);
 	else 
 		BOOST_THROW_EXCEPTION(ConfigurationException());
 

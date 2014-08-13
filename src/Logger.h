@@ -51,9 +51,6 @@ public:
 
 	Logger(const std::string &channel);
 
-	// TODO: I don't know why I had to add an empty constructor to make ReverseNgramModel compile (Joerg)
-	Logger() {};
-
 	bool loggable(LogLevel l) const {
 		return l >= levels_[index_];
 	}
