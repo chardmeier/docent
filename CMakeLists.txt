@@ -179,7 +179,7 @@ add_library(
 	src/DocumentState.cpp
 	src/FeatureFunction.cpp
 	src/FinalWordRhymeModel.cpp
-	src/InitialCharModel.cpp
+##	src/InitialCharModel.cpp
 	src/LocalBeamSearch.cpp
 	src/Logger.cpp
 	src/MMAXDocument.cpp
@@ -192,17 +192,17 @@ add_library(
 	src/PhrasePairCollection.cpp
 	src/PhraseTable.cpp
 	src/Random.cpp
-	src/ReverseNgramModel.cpp
+##	src/ReverseNgramModel.cpp
 	src/SearchAlgorithm.cpp
 	src/SearchStep.cpp
 	src/SemanticSpaceLanguageModel.cpp
 	src/SentenceParityModel.cpp
-	src/SentenceInitialCharModel.cpp
-	src/SentenceFinalCharModel.cpp
-	src/SentenceFinalWordModel.cpp
+##	src/SentenceInitialCharModel.cpp
+##	src/SentenceFinalCharModel.cpp
+##	src/SentenceFinalWordModel.cpp
 	src/SimulatedAnnealing.cpp
 	src/StateGenerator.cpp
-	src/TypeTokenRateModel.cpp
+##	src/TypeTokenRateModel.cpp
 )
 
 add_dependencies(decoder
@@ -215,25 +215,25 @@ set(DECODER_LIBRARIES
 	${MOSES_LIBRARIES}
 	${Boost_LIBRARIES})
 
-add_executable(
-	docent
-	src/docent.cpp
-)
+#add_executable(
+#	docent
+#	src/docent.cpp
+#)
 
-target_link_libraries(
-	docent
-	${DECODER_LIBRARIES}
-)
+#target_link_libraries(
+#	docent
+#	${DECODER_LIBRARIES}
+#)
 
-add_executable(
-	detailed-docent
-	src/detailed-docent.cpp
-)
+#add_executable(
+#	detailed-docent
+#	src/detailed-docent.cpp
+#)
 
-target_link_libraries(
-	detailed-docent
-	${DECODER_LIBRARIES}
-)
+#target_link_libraries(
+#	detailed-docent
+#	${DECODER_LIBRARIES}
+#)
 
 add_executable(
 	lcurve-docent

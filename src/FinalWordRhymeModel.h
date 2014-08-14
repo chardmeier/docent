@@ -41,9 +41,11 @@ class FinalWordRhymeModel : public FeatureFunction {
   uint maxRhymeDistance;
   std::vector<boost::regex> lastSyllRE;
 
+  mutable Logger logger_;
+
  public:
 
-  FinalWordRhymeModel(const Parameters &params) {
+ FinalWordRhymeModel(const Parameters &params) : logger_("FinalWordRhymeModel") {
     this->initializeRhymeModel(params);
   }
 
