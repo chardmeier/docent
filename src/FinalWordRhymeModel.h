@@ -57,6 +57,7 @@ class FinalWordRhymeModel : public FeatureFunction {
   virtual StateModifications *updateScore(const DocumentState &doc, const SearchStep &step, const State *state,
 					  StateModifications *estmods, Scores::const_iterator, Scores::iterator estbegin) const;
   virtual FeatureFunction::State *applyStateModifications(FeatureFunction::State *oldState, FeatureFunction::StateModifications *modif) const;
+
   virtual uint getNumberOfScores() const {
     return 1;
   }

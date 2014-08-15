@@ -40,34 +40,55 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
   FinalWordRhymeModelState(uint nsents) : 
     rhymeMap(nsents), 
     wordList(nsents), 
-    rhymeList(nsents), 
-    currentScore(0) {
+    rhymeList(nsents),
+    logger_("FinalWordRhymeModelState") {
     docSize = nsents; 
     wordList.resize(docSize);
     rhymeList.resize(docSize);
+    avgRhymeDistance = docSize;
+    overallRhymeRepetition=0;
+    overallRhymes=0;
   }
 
   uint docSize;
+  float avgRhymeDistance;
+  uint overallRhymeRepetition;
+  uint overallRhymes;
+  mutable Logger logger_;
+
 
   typedef boost::unordered_map<std::string,boost::dynamic_bitset<> > WordMap_;
 
   WordMap_ rhymeMap;                  // rhyme chains stored in bitsets
   boost::dynamic_bitset<> coverage;   // rhyme coverage vector
 
-  std::vector<std::string> wordList;  // list of sentence-final words
+  std::vector<std::string> wordList;                 // list of sentence-final words
   std::vector< std::vector<std::string> > rhymeList; // list of sentence-final rhymes (syllables)
+
+  // for each rhyme - store word frequencies of words that appear with this rhyme
+  boost::unordered_map<std::string, boost::unordered_map<std::string,uint> > rhymeRepetition;
+  // boost::unordered_map<std::string, uint > rhymeRepetition2;
+
+
   float currentScore;
 
   Float score() const {
     if (docSize>0){
       // return (0 - (float)docSize + float(coverage.count()))/docSize;
-      return (0 - (float)docSize + float(coverage.count()))/docSize-averageRhymeDistance()/docSize;
+      float repetitionPenalty = 0;
+      if (overallRhymes>0){
+	repetitionPenalty = (float)overallRhymeRepetition/overallRhymes;
+      }
+      return (0 - (float)docSize + float(coverage.count()))/docSize - 
+      	avgRhymeDistance/docSize - repetitionPenalty;
+      // return (0 - (float)docSize + float(coverage.count()))/docSize - avgRhymeDistance/docSize;
     }
     return 0;
   }
 
   void updateScore() {
     updateCoverage();
+    avgRhymeDistance = averageRhymeDistance();
     currentScore = score();
   }
 
@@ -97,6 +118,17 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
     return distance;
   }
 
+  /*
+  // return average repetition ratio for rhyming words
+  float averageRepetitionRatio() const {
+    for (WordMap_::const_iterator it = rhymeMap.begin(); it != rhymeMap.end(); ++it ) {
+      uint  = it->second.find_first();
+      while (
+      if (it->second.count() > 1){
+	
+  }
+  */
+
   void updateCoverage(){
     coverage = getCoverage();
   }
@@ -113,44 +145,158 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
     return covered;
   }
 
-
-
-
+  void printRepetitionTable() const {
+    for (auto it1 = rhymeRepetition.begin(); it1 != rhymeRepetition.end(); ++it1){
+      cout << it1->first << ":";
+      for (auto it2 = it1->second.begin(); it2 != it1->second.end(); ++it2){
+	cout << it2->first << "=" << it2->second << " ";
+      }
+      cout << endl;
+    }
+  }
 
   void printRhymeMap() const {
     for (WordMap_::const_iterator it = rhymeMap.begin(); it != rhymeMap.end(); ++it ) {
       if (it->second.count() > 1){
-	cerr << it->second << it->first << endl;
+	cout << it->second << it->first << endl;
       }
     }
   }
 
 
   void setWord(const uint &sentno, const std::string &word, const std::string &rhyme){
+
     // TODO: really skip all cases where word = rhyme?
     if (rhyme == word){ return; }
-    WordMap_::const_iterator it = rhymeMap.find(rhyme);
-    if (it == rhymeMap.end()){
+
+    if (rhymeMap.find(rhyme) == rhymeMap.end()){
       rhymeMap[rhyme].resize(docSize);
     }
     rhymeMap[rhyme].set(sentno);
+    if (rhymeMap[rhyme].count() > 1){
+      overallRhymes++;
+    }
+
+    // increase word count for this rhyme pattern
+    if (rhymeRepetition.find(rhyme) == rhymeRepetition.end()){
+      rhymeRepetition[rhyme][word] = 1;
+    }
+    else{
+      if (rhymeRepetition[rhyme].find(word) == rhymeRepetition[rhyme].end()){
+	rhymeRepetition[rhyme][word] = 1;
+      }
+      else{
+	rhymeRepetition[rhyme][word]++;
+      }
+    }
+
+    if (rhymeRepetition[rhyme][word] > 1){
+      overallRhymeRepetition++;
+      if (logger_.loggable(debug)){
+	LOG(logger_, debug,
+	    "++++++ set " << word << " (" << rhyme << "in sentence " << sentno << ", repetition = " << overallRhymeRepetition);
+	printRhymeMap();
+	// printRepetitionTable();
+      }
+    }
+
+    // update list of words corresponding list of rhymes
     wordList[sentno] = word;
     rhymeList[sentno].push_back(rhyme);
   }
 
 
-
   void resetWord(const uint &sentno, const std::string &word, const std::string &rhyme){
+
     // TODO: really skip all cases where word = rhyme?
     if (rhyme == word){ return; }
-    WordMap_::const_iterator it = rhymeMap.find(rhyme);
-    if (it == rhymeMap.end()){
+
+
+    if (rhymeMap.find(rhyme) == rhymeMap.end()){
       rhymeMap[rhyme].resize(docSize);
     }
-    rhymeMap[rhyme].reset(sentno);
+    // unset rhyme pattern for this sentence
+    else{
+      uint nrWords = rhymeMap[rhyme].count();
+      rhymeMap[rhyme].reset(sentno);
+      // decrease number of rhymes if the count is below 2 now
+      if ( rhymeMap[rhyme].count() < 2 && nrWords > 1 ){
+	if (overallRhymes > 0){
+	  overallRhymes--;
+	}
+      }
+    }
+
+    if ( rhymeRepetition.find(rhyme) != rhymeRepetition.end() ){
+      if ( rhymeRepetition[rhyme].find(word) != rhymeRepetition[rhyme].end() ){
+	if (rhymeRepetition[rhyme][word] > 1){
+	  if (overallRhymeRepetition > 0){
+	    overallRhymeRepetition--;
+	  }
+	  else{
+	    LOG(logger_, debug,
+		"???? repeated word but overall-count = 0 " << word << " (" 
+		<< rhyme << ") in sentence " 
+		<< sentno << ", repetition = " 
+		<< rhymeRepetition[rhyme][word]);
+	  }
+	}
+	if (rhymeRepetition[rhyme][word] > 0){
+	  rhymeRepetition[rhyme][word]--;
+	}
+	else{
+	    LOG(logger_, debug,
+		"???? unset word but no count " << word << " (" 
+		<< rhyme << ") in sentence " 
+		<< sentno << ", repetition = " << overallRhymeRepetition);
+	}
+      }
+      else{
+	LOG(logger_, debug,
+	    "???? non-existing word " << word << " (" << rhyme << ") in sentence " 
+	    << sentno << ", repetition = " << overallRhymeRepetition);
+      }
+    }
+    else{
+      LOG(logger_, debug,
+	  "???? non-existing rhyme pattern " << word << " (" << rhyme << ") in sentence " 
+	  << sentno << ", repetition = " << overallRhymeRepetition);
+    }
+
+    // clear list of rhymes for this sentence
     rhymeList[sentno].clear();
+    wordList[sentno]="";
   }
 
+
+
+  /*
+  // compute the number of word repetitions for a given rhyme pattern
+  uint computeRhymeRepetition(const std::string &rhyme){
+    boost::unordered_map<std::string, uint> freq;
+    if (rhymeMap[rhyme].count() > 0){
+      uint pos = rhymeMap[rhyme].find_first();
+      do {
+	auto it = freq.find(wordList[pos]);
+	if (it == freq.end()){
+	  freq[wordList[pos]] = 1;
+	}
+	else{
+	  freq[wordList[pos]]++;
+	}
+      } while (pos = rhymeMap[rhyme].find_next(pos) != boost::dynamic_bitset<>::npos);
+
+      uint repetitions = 0;
+      for (auto it = freq.begin(); it != freq.end(); ++it ){
+	if (it->second > 1){
+	  cerr << " ..... freq > 1! " << it->first << ":" << it->second << " rhyme=" << rhyme << endl;
+	  repetitions += it->second - 1;
+	}
+      }
+      return repetitions;
+    }
+  }
+  */
 
 
   void changeWord(const uint &sentno, 
@@ -158,23 +304,21 @@ struct FinalWordRhymeModelState : public FeatureFunction::State, public FeatureF
 		  const std::string &newWord, const std::vector<std::string> &newRhyme){
 
     bool needUpdate=false;
-    for (uint i=0;i<oldRhyme.size();++i){
-      if(std::find(newRhyme.begin(), newRhyme.end(), oldRhyme[i])!=newRhyme.end()){
-	resetWord(sentno,oldWord,oldRhyme[i]);
-	needUpdate=true;
-      }
+    for (auto rhyme = oldRhyme.begin() ; rhyme != oldRhyme.end(); ++rhyme){
+      // if(std::find(newRhyme.begin(), newRhyme.end(), *rhyme)!=newRhyme.end()){
+      resetWord(sentno,oldWord,*rhyme);
+      needUpdate=true;
+      //  }
     }
-    for (uint i=0;i<newRhyme.size();++i){
-      if(std::find(oldRhyme.begin(), oldRhyme.end(), newRhyme[i])!=oldRhyme.end()){
-	setWord(sentno,newWord,newRhyme[i]);
-	needUpdate=true;
-      }
+    for (auto rhyme = newRhyme.begin() ; rhyme != newRhyme.end(); ++rhyme){
+      // if(std::find(oldRhyme.begin(), oldRhyme.end(), *rhyme)!=oldRhyme.end()){
+      setWord(sentno,newWord,*rhyme);
+      needUpdate=true;
+      // }
     }
     if (needUpdate){
       updateScore();
     }
-    // currentScore = score();
-
   }
 
 
@@ -213,11 +357,11 @@ void FinalWordRhymeModel::initializeRhymeModel(const Parameters &params){
 
 void FinalWordRhymeModel::printPronounciationTable() const {
   typedef boost::unordered_map<std::string,vector<std::string> > Rhymes_;
-  cerr << "-----------------------------------" << endl;
+  cout << "-----------------------------------" << endl;
   for (Rhymes_::const_iterator it = rhymes.begin(); it != rhymes.end(); ++it ) {
-    cerr << " *** " << it->first << " = " << it->second << endl;
+    cout << " *** " << it->first << " = " << it->second << endl;
   }
-  cerr << "-----------------------------------" << endl;
+  cout << "-----------------------------------" << endl;
 }
 
 
@@ -227,7 +371,7 @@ FeatureFunction::State *FinalWordRhymeModel::initDocument(const DocumentState &d
 	FinalWordRhymeModelState *s = new FinalWordRhymeModelState(sentences.size());
 
 	for(uint i = 0; i < sentences.size(); i++){
-	  const std::string &word = *sentences[i].rbegin()->second.get().getTargetPhrase().get().rbegin();
+	  const std::string &word = sentences[i].back().second.get().getTargetPhrase().get().back();
 	  const std::vector<std::string> rhyme = getRhyme(word);
 	  LOG(logger_, debug, " + " << i << " " << word << " - " << rhyme );
 	  if (rhyme.size()>0){
@@ -239,14 +383,16 @@ FeatureFunction::State *FinalWordRhymeModel::initDocument(const DocumentState &d
 	
 	s->updateScore();
 
-	/*
-	cerr << "+++++++++++++++++++++++++++++++++" << endl;
-	cerr << " score: " << s->score() << endl;
-	cerr << " current score: " << s->currentScore << endl;
-	cerr << " coverage: " << s->coverage << endl;
-	s->printRhymeMap();
-	cerr << "+++++++++++++++++++++++++++++++++" << endl;
-	*/
+	if (logger_.loggable(debug)){
+	  LOG(logger_, debug, "========================================================================");
+	  LOG(logger_, debug, "  score: " << " -> " << s->currentScore);
+	  LOG(logger_, debug, "  avg rhyme distance score: " << s->averageRhymeDistance()/s->docSize);
+	  LOG(logger_, debug, "  coverage: " << s->coverage);
+	  LOG(logger_, debug, "  repetitionPenalty: " << s->overallRhymeRepetition << '/' << s->overallRhymes);
+	  LOG(logger_, debug, "========================================================================");
+	  s->printRhymeMap();
+	  s->printRepetitionTable();
+	}
 
 	*sbegin = s->score();
 	return s;
@@ -309,50 +455,68 @@ const std::string FinalWordRhymeModel::getLastSyllable(const std::string &word) 
 }
 
 
-FeatureFunction::StateModifications *FinalWordRhymeModel::estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
-		Scores::const_iterator psbegin, Scores::iterator sbegin) const {
+FeatureFunction::StateModifications *FinalWordRhymeModel::estimateScoreUpdate(const DocumentState &doc, 
+									      const SearchStep &step, 
+									      const State *state,
+									      Scores::const_iterator psbegin, 
+									      Scores::iterator sbegin) const {
 
-	const FinalWordRhymeModelState *prevstate = dynamic_cast<const FinalWordRhymeModelState *>(state);
-	FinalWordRhymeModelState *s = prevstate->clone();
+  const FinalWordRhymeModelState *prevstate = dynamic_cast<const FinalWordRhymeModelState *>(state);
+  FinalWordRhymeModelState *s = prevstate->clone();
   
-	const std::vector<SearchStep::Modification> &mods = step.getModifications();
-	for(std::vector<SearchStep::Modification>::const_iterator it = mods.begin(); it != mods.end(); ++it) {
-	  uint sentno = it->sentno;
-	  const PhraseSegmentation &sentence = doc.getPhraseSegmentation(sentno);
+  const std::vector<SearchStep::Modification> &mods = step.getModifications();
 
-	  if (it->to_it == sentence.end()) {
+  for(std::vector<SearchStep::Modification>::const_iterator it = mods.begin(); it != mods.end(); ++it) {
 
-	    const std::string &oldWord = *sentence.rbegin()->second.get().getTargetPhrase().get().rbegin();
-	    const std::vector<std::string> oldRhyme = getRhyme(oldWord);
+    uint sentno = it->sentno;
+    const PhraseSegmentation &sentence = doc.getPhraseSegmentation(sentno);
 
-	    const std::string &newWord = *it->proposal.rbegin()->second.get().getTargetPhrase().get().rbegin();
-	    const std::vector<std::string> newRhyme = getRhyme(newWord);
+    if (it->to_it == sentence.end()) {
+     
+	const std::string &oldWord = sentence.back().second.get().getTargetPhrase().get().back();
+	const std::vector<std::string> oldRhyme = getRhyme(oldWord);
 
-	    Float oldScore = s->currentScore;
-	    s->changeWord(sentno,oldWord,oldRhyme,newWord,newRhyme);
-	    if (s->currentScore > oldScore){
-	      LOG(logger_, debug, "+ improved score: " << oldScore << " -> " << s->currentScore);
-	      LOG(logger_, debug, "  avg rhyme distance score: " << s->averageRhymeDistance()/s->docSize);
-	      LOG(logger_, debug, "  coverage: " << s->coverage);
-	      if (logger_.loggable(debug)){
-		s->printRhymeMap();
-	      }
-	    }
-	    else{
-	      if (s->currentScore < oldScore){
-		LOG(logger_, debug, "- decreased score: " << oldScore << " -> " << s->currentScore);
-		LOG(logger_, debug, "  avg rhyme distance score: " << s->averageRhymeDistance()/s->docSize);
-		LOG(logger_, debug, "  coverage: " << s->coverage);
-		if (logger_.loggable(debug)){
-		  s->printRhymeMap();
-		}
-	      }
-	    }
-	  }
+	const std::string &newWord = it->proposal.back().second.get().getTargetPhrase().get().back();
+	const std::vector<std::string> newRhyme = getRhyme(newWord);
+
+	/*
+	if (oldWord != oldWord2){
+	  LOG(logger_, debug, "** replace " << oldWord << " -> " << newWord << " in " << sentno);
+	  LOG(logger_, debug, "** but " << oldWord2 << " -> " << newWord << " in " << sentno);
 	}
-	*sbegin = s->score();
-	return s;
+	*/
+
+	Float oldScore = s->currentScore;
+	s->changeWord(sentno,oldWord,oldRhyme,newWord,newRhyme);
+
+	if (logger_.loggable(debug)){
+	  if (s->currentScore > oldScore){
+	    LOG(logger_, debug, "+ improved score: " << oldScore << " -> " << s->currentScore);
+	    LOG(logger_, debug, "  avg rhyme distance score: " << s->averageRhymeDistance()/s->docSize);
+	    LOG(logger_, debug, "  coverage: " << s->coverage);
+	    LOG(logger_, debug, "  repetitionPenalty: " << s->overallRhymeRepetition << '/' << s->overallRhymes);
+	    s->printRhymeMap();
+	    // s->printRepetitionTable();
+	  }
+	  /*
+	    else{
+	    if (s->currentScore < oldScore){
+	    LOG(logger_, debug, "- decreased score: " << oldScore << " -> " << s->currentScore);
+	    LOG(logger_, debug, "  avg rhyme distance score: " << s->averageRhymeDistance()/s->docSize);
+	    LOG(logger_, debug, "  coverage: " << s->coverage);
+	    LOG(logger_, debug, "  repetitionPenalty: " << s->overallRhymeRepetition << '/' << s->overallRhymes);
+	    s->printRhymeMap();
+	    s->printRepetitionTable();
+	    }
+	    }
+	  */
+	}
+    }
+  }
+  *sbegin = s->score();
+  return s;
 }
+
 
 
 FeatureFunction::StateModifications *FinalWordRhymeModel::updateScore(const DocumentState &doc, 
@@ -371,8 +535,11 @@ FeatureFunction::State *FinalWordRhymeModel::applyStateModifications(FeatureFunc
 	os->rhymeMap.swap(ms->rhymeMap);
 	os->wordList.swap(ms->wordList);
 	os->rhymeList.swap(ms->rhymeList);
+	os->rhymeRepetition.swap(ms->rhymeRepetition);
 	os->currentScore = ms->currentScore;
 	os->coverage = ms->coverage;
+	os->overallRhymeRepetition = ms->overallRhymeRepetition;
+	os->overallRhymes = ms->overallRhymes;
 	return os;
 }
 

@@ -202,7 +202,7 @@ add_library(
 ##	src/SentenceFinalWordModel.cpp
 	src/SimulatedAnnealing.cpp
 	src/StateGenerator.cpp
-##	src/TypeTokenRateModel.cpp
+	src/TypeTokenRateModel.cpp
 )
 
 add_dependencies(decoder
