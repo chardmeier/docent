@@ -1,0 +1,53 @@
+<mteval>
+<srcset setid="test" trglang="any" srclang="any" sysid="sys">
+<doc sysid="sys" docid="test1" genre="any" origlang="any">
+<seg id="1">Ringel Ringel Rosen</seg>
+<seg id="2">schöne Aprikosen</seg>
+<seg id="3">Veilchen und vergiss mein nicht</seg>
+<seg id="4">alle Kinder setzen sich</seg>
+</doc>
+
+
+<doc sysid="sys" docid="test1" genre="any" origlang="any">
+<seg id="5">Backe backe Kuchen</seg>
+<seg id="6">der Bäcker hat gerufen</seg>
+<seg id="7">Wer will guten Kuchen backen</seg>
+<seg id="8">der muss haben sieben Sachen</seg>
+<seg id="9">Eier und Schmalz</seg>
+<seg id="10">Butter und Salz</seg>
+<seg id="11">Milch und Mehl</seg>
+<seg id="12">Safran macht den Kuchen gelb</seg>
+<seg id="13">schieb schieb in den Ofen rein</seg>
+</doc>
+
+
+<doc sysid="sys" docid="test1" genre="any" origlang="any">
+<seg id="14">Das ist der Daumen</seg>
+<seg id="15">der schüttelt die Pflaumen</seg>
+<seg id="16">der hebt sie auf</seg>
+<seg id="17">der trägt sie nach Haus</seg>
+<seg id="18">der kleine Schelm isst sie alle auf</seg>
+</doc>
+
+
+<doc sysid="sys" docid="test1" genre="any" origlang="any">
+<seg id="4.1">Hoppe hoppe Reiter</seg>
+<seg id="4.2">wenn er fällt dann schreit er</seg>
+<seg id="4.3">Fällt er in den Graben</seg>
+<seg id="4.4">fressen ihn die Raben</seg>
+<seg id="4.5">Fällt er in die Hecken</seg>
+<seg id="4.6">fressen ihn die Schnecken</seg>
+<seg id="4.7">Fällt er in den Sumpf</seg>
+<seg id="4.8">macht der Reiter plumps</seg>
+</doc>
+
+
+<doc sysid="sys" docid="test1" genre="any" origlang="any">
+<seg id="26">Ein Huhn, das fraß</seg>
+<seg id="27">man glaubt es kaum</seg>
+<seg id="28">die Blätter von einem Gummi baum</seg>
+<seg id="29">dann ging es in den Hühnerstall</seg>
+<seg id="30">und legte einen Gummi ball</seg>
+</doc>
+</srcset>
+</mteval>
