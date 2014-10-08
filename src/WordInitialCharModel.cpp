@@ -1,5 +1,5 @@
 /*
- *  InitialCharModel.cpp
+ *  WordInitialCharModel.cpp
  *
  *  Copyright 2013 by Joerg Tiedemann. All rights reserved.
  *
@@ -28,7 +28,7 @@ using namespace std;
 #include "DocumentState.h"
 #include "FeatureFunction.h"
 #include "SearchStep.h"
-#include "InitialCharModel.h"
+#include "WordInitialCharModel.h"
 #include "PhrasePair.h"
 
 
@@ -37,10 +37,11 @@ using namespace std;
 #include <boost/unordered_map.hpp>
 #include <boost/regex.hpp>
 
-struct InitialCharModelState : public FeatureFunction::State, public FeatureFunction::StateModifications {
-  InitialCharModelState(uint nwords) : charFreq(nwords) { docSize = nwords; }
-  
-  // std::vector<char> initialChar;
+struct WordInitialCharModelState : public FeatureFunction::State, public FeatureFunction::StateModifications {
+  WordInitialCharModelState(uint nwords) : charFreq(nwords), logger_("WordInitialCharModel") { docSize = nwords; }
+
+  mutable Logger logger_;
+
   typedef boost::unordered_map<char,uint> CharFreq_;
   CharFreq_ charFreq;
   uint docSize;
@@ -50,31 +51,25 @@ struct InitialCharModelState : public FeatureFunction::State, public FeatureFunc
     uint mostFreq = 0;
     char mostFreqChar;
 
-    // float entropy;
-
     boost::unordered_map<char,uint>::const_iterator it;
     for (CharFreq_::const_iterator it = charFreq.begin(); it != charFreq.end(); ++it ) {
-      // float prob = float(it->second) / float(docSize);
-      // entropy += prob * log(prob) / log(2);
       if (it->second > mostFreq){
 	mostFreqChar = it->first;
 	mostFreq = it->second;
       }
     }
     
-    // cerr << "score = " << entropy << endl;
-    // cerr << "most freq = " << mostFreqChar << " freq = " << mostFreq << " score = " << score << endl;
+    LOG(logger_, debug, "most freq = " << mostFreqChar << " freq = " << mostFreq );
 
     return -Float(docSize - mostFreq);
-    // return entropy;
   }
 
-  virtual InitialCharModelState *clone() const {
-    return new InitialCharModelState(*this);
+  virtual WordInitialCharModelState *clone() const {
+    return new WordInitialCharModelState(*this);
   }
 };
 
-FeatureFunction::State *InitialCharModel::initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
+FeatureFunction::State *WordInitialCharModel::initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
 	const std::vector<PhraseSegmentation> &sentences = doc.getPhraseSegmentations();
 
 	uint count = 0;
@@ -82,8 +77,7 @@ FeatureFunction::State *InitialCharModel::initDocument(const DocumentState &doc,
 	  count += countSourceWords(sentences[i].begin(),sentences[i].end());
 	}
 
-	//	InitialCharModelState *s = new InitialCharModelState(sentences.size());
-	InitialCharModelState *s = new InitialCharModelState(count);
+	WordInitialCharModelState *s = new WordInitialCharModelState(count);
 
 	boost::regex initialRE("^[a-zA-Z].*");
 
@@ -105,14 +99,14 @@ FeatureFunction::State *InitialCharModel::initDocument(const DocumentState &doc,
 
 
 
-void InitialCharModel::computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const {
+void WordInitialCharModel::computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const {
 	*sbegin = Float(0);
 }
 
-FeatureFunction::StateModifications *InitialCharModel::estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
+FeatureFunction::StateModifications *WordInitialCharModel::estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
 		Scores::const_iterator psbegin, Scores::iterator sbegin) const {
-	const InitialCharModelState *prevstate = dynamic_cast<const InitialCharModelState *>(state);
-	InitialCharModelState *s = prevstate->clone();
+	const WordInitialCharModelState *prevstate = dynamic_cast<const WordInitialCharModelState *>(state);
+	WordInitialCharModelState *s = prevstate->clone();
 	boost::regex initialRE("^[a-zA-Z].*");
 
 
@@ -121,49 +115,41 @@ FeatureFunction::StateModifications *InitialCharModel::estimateScoreUpdate(const
 
 	  // subtract initial char counts for old words
 
-	  // cout << " old: ";
 	  for (PhraseSegmentation::const_iterator pi = it->from_it; pi != it->to_it; ++pi){
 	    Phrase phrase = pi->second.get().getTargetPhrase();
 	    const std::vector<Word> words = phrase.get();
 	    for (uint wi = 0; wi < words.size(); wi++){
 	      std::string word = words[wi];
-	      //  cout << word << ' ';
 	      if (boost::regex_match (word,initialRE))
 		s->charFreq[word[0]]--;
 	    }
 	  }
-	  // cout << endl;
 
 	  // add counts for proposed words
 
-	  // cout << " new: ";
 	  for (PhraseSegmentation::const_iterator pi = it->proposal.begin(); pi != it->proposal.end(); ++pi){
 	    Phrase phrase = pi->second.get().getTargetPhrase();
 	    const std::vector<Word> words = phrase.get();
 	    for (uint wi = 0; wi < words.size(); wi++){
 	      std::string word = words[wi];
-	      // cout << word << ' ';
 	      if (boost::regex_match (word,initialRE))
 		s->charFreq[word[0]]++;
 	    }
 	  }
 	}
-	// cout << endl;
-
-	// cout << "score = " << s->score() << endl;
 
 	*sbegin = s->score();
 	return s;
 }
 
-FeatureFunction::StateModifications *InitialCharModel::updateScore(const DocumentState &doc, const SearchStep &step, const State *state,
+FeatureFunction::StateModifications *WordInitialCharModel::updateScore(const DocumentState &doc, const SearchStep &step, const State *state,
 		FeatureFunction::StateModifications *estmods, Scores::const_iterator psbegin, Scores::iterator estbegin) const {
 	return estmods;
 }
 
-FeatureFunction::State *InitialCharModel::applyStateModifications(FeatureFunction::State *oldState, FeatureFunction::StateModifications *modif) const {
-	InitialCharModelState *os = dynamic_cast<InitialCharModelState *>(oldState);
-	InitialCharModelState *ms = dynamic_cast<InitialCharModelState *>(modif);
+FeatureFunction::State *WordInitialCharModel::applyStateModifications(FeatureFunction::State *oldState, FeatureFunction::StateModifications *modif) const {
+	WordInitialCharModelState *os = dynamic_cast<WordInitialCharModelState *>(oldState);
+	WordInitialCharModelState *ms = dynamic_cast<WordInitialCharModelState *>(modif);
 	os->charFreq.swap(ms->charFreq);
 	return oldState;
 }

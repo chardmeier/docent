@@ -37,6 +37,10 @@
 #include "TypeTokenRateModel.h"
 #include "BleuModel.h"
 //#include "PhraseDistortionModel.h"
+
+// feature functions for poetic
+#include "SentenceInitialCharModel.h"
+#include "WordInitialCharModel.h"
 #include "FinalWordRhymeModel.h"
 
 #include <algorithm>
@@ -411,8 +415,16 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 		ff = new ConsistencyQModelWord(params);
 	else if(type == "bleu-model")
 		ff = new BleuModel(params);	
+
+
 	else if(type == "final-word-rhyme-model")
 		ff = new FinalWordRhymeModel(params);
+	else if(type == "sentence-initial-char-model")
+		ff = new WordInitialCharModel(params);
+	else if(type == "word-initial-char-model")
+		ff = new WordInitialCharModel(params);
+
+
 	else 
 		BOOST_THROW_EXCEPTION(ConfigurationException());
 

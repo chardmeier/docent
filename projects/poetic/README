@@ -1,4 +1,20 @@
 
+Feature functions
+
+FinalRhymeModel          - rhyming words at the end of each sentence
+SentenceInitialCharModel - identical initial characters for each sentence
+WordInitalCharModel      - identical initial characters for each word
+
+
+Config files
+
+de-en.rhyme.ini - FinalRhymeModel
+de-en.initial.ini - SentenceInitialCharModel
+de-en.initial-char.ini - WordInitialCharModel
+
+
+
+NOTES
 
 suffix array implementation:
 http://code.google.com/p/esaxx/

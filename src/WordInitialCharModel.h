@@ -1,5 +1,5 @@
 /*
- *  InitialCharModel.h
+ *  WordInitialCharModel.h
  *
  *  Copyright 2013 by Joerg Tiedemann. All rights reserved.
  *
@@ -20,12 +20,21 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef docent_InitialCharModel_h
-#define docent_InitialCharModel_h
 
-class InitialCharModel : public FeatureFunction {
+
+/*
+
+WordInitialCharModel - push words to start with the same initial character
+
+ */
+
+
+#ifndef docent_WordInitialCharModel_h
+#define docent_WordInitialCharModel_h
+
+class WordInitialCharModel : public FeatureFunction {
 public:
-	InitialCharModel(const Parameters &params) {}
+	WordInitialCharModel(const Parameters &params) {}
 
 	virtual State *initDocument(const DocumentState &doc, Scores::iterator sbegin) const;
 	virtual StateModifications *estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,

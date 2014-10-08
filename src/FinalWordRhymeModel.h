@@ -20,6 +20,16 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
+
+
+/*
+
+FinalWordRhymeModel - score word rhymes at the end of each sentence
+
+ */
+
+
+
 #ifndef docent_FinalWordRhymeModel_h
 #define docent_FinalWordRhymeModel_h
 

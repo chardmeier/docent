@@ -179,7 +179,6 @@ add_library(
 	src/DocumentState.cpp
 	src/FeatureFunction.cpp
 	src/FinalWordRhymeModel.cpp
-##	src/InitialCharModel.cpp
 	src/LocalBeamSearch.cpp
 	src/Logger.cpp
 	src/MMAXDocument.cpp
@@ -197,12 +196,13 @@ add_library(
 	src/SearchStep.cpp
 	src/SemanticSpaceLanguageModel.cpp
 	src/SentenceParityModel.cpp
-##	src/SentenceInitialCharModel.cpp
+	src/SentenceInitialCharModel.cpp
 ##	src/SentenceFinalCharModel.cpp
 ##	src/SentenceFinalWordModel.cpp
 	src/SimulatedAnnealing.cpp
 	src/StateGenerator.cpp
 	src/TypeTokenRateModel.cpp
+	src/WordInitialCharModel.cpp
 )
 
 add_dependencies(decoder
