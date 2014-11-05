@@ -36,6 +36,9 @@
 #include "OvixModel.h"
 #include "TypeTokenRateModel.h"
 #include "BleuModel.h"
+#include "ClosingTagModel.h"
+#include "WellFormednessModel.h"
+
 
 #include <algorithm>
 #include <limits>
@@ -409,6 +412,10 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 		ff = new ConsistencyQModelWord(params);
 	else if(type == "bleu-model")
 		ff = new BleuModel(params);	
+	else if(type == "tag-model")
+		ff = new ClosingTagModel(params);	
+	else if(type == "well-formedness-model")
+		ff = new WellFormednessModel(params);
 	else 
 		BOOST_THROW_EXCEPTION(ConfigurationException());
 
