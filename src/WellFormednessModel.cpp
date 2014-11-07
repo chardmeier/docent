@@ -84,11 +84,11 @@ struct WellFormednessModelState : public FeatureFunction::State, public FeatureF
 	    conflictCount++;
 	  }
 	  else{
-	    if (tags[tags.size()].compare(tagindex[i].tag) != 0){
+	    if (tags[tags.size()-1].compare(tagindex[i].tag) != 0){
 	      conflictCount++;
 	      // check if the next one would match and pop the last two tags if it does
 	      if (tags.size() > 1){
-		if (tags[tags.size()-1].compare(tagindex[i].tag) == 0){
+		if (tags[tags.size()-2].compare(tagindex[i].tag) == 0){
 		  tags.pop_back();
 		  tags.pop_back();
 		}
@@ -110,6 +110,9 @@ struct WellFormednessModelState : public FeatureFunction::State, public FeatureF
       while (tags.size() > 0){
 	conflictCount++;
 	tags.pop_back();
+      }
+      if (currentScore < -Float(conflictCount)){
+	LOG(logger_, debug, "improved wellformedness score: " << currentScore << " --> " << -Float(conflictCount));
       }
       currentScore = -Float(conflictCount);
     }
@@ -157,9 +160,16 @@ struct WellFormednessModelState : public FeatureFunction::State, public FeatureF
 	return;
       }
     }
-    // ..... this should not happen! add error message!
+    LOG(logger_, debug, "cannot find tag " << tag.tag << " at " << tag.sentNo << "/" << tag.phraseNo << "/" << tag.wordNo);
   }
 
+  void RemoveSegTag(uint sentNo) {
+    for (uint i = 0; i != tagindex.size(); ++i){
+      if (tagindex[i].sentNo == sentNo){
+	tagindex.erase(tagindex.begin()+i);
+      }
+    }
+  }
 
   virtual WellFormednessModelState *clone() const {
     return new WellFormednessModelState(*this);
@@ -197,9 +207,34 @@ FeatureFunction::State *WellFormednessModel::initDocument(const DocumentState &d
     }
   }
 
+  s->requiresUpdate = true;
   *sbegin = s->score();
   return s;
 }
+
+
+/*
+void WellFormednessModel::indexSegTags(State &s, const PhraseSegmentation &seg) const {
+  static const boost::regex tagRE("\\[(.*)\\]");
+
+  s->RemoveSegTag(seg.sentno);
+
+  uint phraseCount=0;
+  BOOST_FOREACH(const AnchoredPhrasePair &app, seg) {
+    uint wordCount=0;
+    BOOST_FOREACH(const std::string &w, app.second.get().getTargetPhrase().get()) {
+      boost::match_results<std::string::const_iterator> result;
+      if (boost::regex_match(w, result, tagRE)){
+	TagIndex tag(result[1],i,phraseCount,wordCount);
+	s->tagindex.push_back(tag);
+      }
+      wordCount++;
+    }
+    phraseCount++;
+  }
+  s->requiresUpdate = true;
+}
+*/
 
 void WellFormednessModel::computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const {
 	*sbegin = Float(0);
@@ -226,8 +261,8 @@ FeatureFunction::StateModifications *WellFormednessModel::estimateScoreUpdate(co
     uint startPhrase = std::distance(current.begin(), from_it);
 
     uint phraseNo = startPhrase;
-    uint wordNo = 0;
     for (PhraseSegmentation::const_iterator pit=from_it; pit != to_it; pit++) {
+      uint wordNo = 0;
       BOOST_FOREACH(const std::string &w, pit->second.get().getTargetPhrase().get()) {
 	boost::match_results<std::string::const_iterator> result;
 	if (boost::regex_match(w, result, tagRE)){
@@ -241,9 +276,8 @@ FeatureFunction::StateModifications *WellFormednessModel::estimateScoreUpdate(co
     }
 
     phraseNo = startPhrase;
-    wordNo = 0;
-
     BOOST_FOREACH(const AnchoredPhrasePair &app, it->proposal) {
+      uint wordNo = 0;
       BOOST_FOREACH(const std::string &w, app.second.get().getTargetPhrase().get()) {
 	boost::match_results<std::string::const_iterator> result;
 	if (boost::regex_match(w, result, tagRE)){
@@ -271,8 +305,8 @@ FeatureFunction::State *WellFormednessModel::applyStateModifications(FeatureFunc
 	WellFormednessModelState *os = dynamic_cast<WellFormednessModelState *>(oldState);
 	WellFormednessModelState *ms = dynamic_cast<WellFormednessModelState *>(modif);
 
-	ms->currentScore = os->currentScore;
-	ms->requiresUpdate = os->requiresUpdate;
+	os->currentScore = ms->currentScore;
+	os->requiresUpdate = ms->requiresUpdate;
 	os->tagindex.swap(ms->tagindex);
 
 	return oldState;
