@@ -111,7 +111,7 @@ FeatureFunction::State *ClosingTagModel::initDocument(const DocumentState &doc, 
   ClosingTagModelState *s = new ClosingTagModelState(segs.size());
 
   static const boost::regex opentagRE("\\[(.*)\\]");
-  static const boost::regex closetagRE("\\[\/(.*)\\]");
+  static const boost::regex closetagRE("\\[\\/(.*)\\]");
 
   for(TagList_::const_iterator it = opentaglist.begin(); it != opentaglist.end(); ++it){
     // s->taglist.insert(it->first,it->second);
@@ -157,7 +157,7 @@ FeatureFunction::StateModifications *ClosingTagModel::estimateScoreUpdate(const 
 		Scores::const_iterator psbegin, Scores::iterator sbegin) const {
   
   static const boost::regex opentagRE("\\[(.*)\\]");
-  static const boost::regex closetagRE("\\[\/(.*)\\]");
+  static const boost::regex closetagRE("\\[\\/(.*)\\]");
 
 	const ClosingTagModelState *prevstate = dynamic_cast<const ClosingTagModelState *>(state);
 	ClosingTagModelState *s = prevstate->clone();

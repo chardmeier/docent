@@ -189,12 +189,21 @@ void WellFormednessModel::computeSentenceScores(const DocumentState &doc, uint s
 
 FeatureFunction::StateModifications *WellFormednessModel::estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
 		Scores::const_iterator psbegin, Scores::iterator sbegin) const {
-  
-  static const boost::regex tagRE("\\[(.*)\\]");
+
+  static const boost::regex tagRE("\\[(.*)\\]");  
 
   const WellFormednessModelState *prevstate = dynamic_cast<const WellFormednessModelState *>(state);
   WellFormednessModelState *s = prevstate->clone();
 
+  // create a vector to flag sentences that need updates
+  const std::vector<PhraseSegmentation> &segs = doc.getPhraseSegmentations();
+  std::vector<bool> requiresUpdate (segs.size(),false);
+
+  // store tags in modified regions and store modification range
+  std::vector< std::vector< std::vector<Tag> > > modTags(segs.size());
+  std::vector< std::vector< uint > > modRange(segs.size());
+
+  // run through all modifications and check if we need to update the tag list
   const std::vector<SearchStep::Modification> &mods = step.getModifications();
   for(std::vector<SearchStep::Modification>::const_iterator it = mods.begin(); it != mods.end(); ++it) {
 
@@ -204,14 +213,16 @@ FeatureFunction::StateModifications *WellFormednessModel::estimateScoreUpdate(co
     uint sentNo = it->sentno;
     const PhraseSegmentation &current = doc.getPhraseSegmentation(sentNo);
 
-    // check if we need to update the current tag list for the current sentence
+    uint startPos = std::distance(current.begin(), from_it);
 
-    bool requiresUpdate = false;
+    modTags[sentNo].resize(current.size());
+    modRange[sentNo].resize(current.size(),0);
+
+    modRange[sentNo][startPos] = std::distance(from_it, to_it);
+
     std::vector<Tag> currentTags;
-    std::vector<Tag> modifTags;
 
     // record the tags in the current sentence in the modified region
-
     for (PhraseSegmentation::const_iterator pit=from_it; pit != to_it; pit++) {
       BOOST_FOREACH(const std::string &w, pit->second.get().getTargetPhrase().get()) {
 	boost::match_results<std::string::const_iterator> result;
@@ -223,54 +234,64 @@ FeatureFunction::StateModifications *WellFormednessModel::estimateScoreUpdate(co
     }
 
     // record the tags in the proposed modification (and compare to current tag list)
-
     BOOST_FOREACH(const AnchoredPhrasePair &app, it->proposal) {
       BOOST_FOREACH(const std::string &w, app.second.get().getTargetPhrase().get()) {
 	boost::match_results<std::string::const_iterator> result;
 	if (boost::regex_match(w, result, tagRE)){
 	  Tag tag(result[1]);
-	  modifTags.push_back(tag);
-	  if (currentTags.size() >= modifTags.size()){
-	    if (tag != currentTags[modifTags.size()-1]){
-	      requiresUpdate=true;
+	  modTags[sentNo][startPos].push_back(tag);
+	  if (currentTags.size() >= modTags[sentNo][startPos].size()){
+	    if (tag != currentTags[modTags[sentNo][startPos].size()-1]){
+	      requiresUpdate[sentNo]=true;
 	    }
 	  }
 	  else{
-	    requiresUpdate=true;
+	    requiresUpdate[sentNo]=true;
 	  }
 	}
       }
     }
+    if (currentTags.size() != modTags[sentNo][startPos].size()){
+      requiresUpdate[sentNo]=true;
+    }
+  }
 
-    // re-create the tag list for the ENTIRE sentence if we need to update
-    // TODO: this is probably not very optimal)
+  // re-create the tag list for the ENTIRE sentence if we need to update it
+  // TODO: this is probably not very optimal
 
-    if (requiresUpdate){
-      s->sentTags[sentNo].clear();
-      for (PhraseSegmentation::const_iterator pit=current.begin(); pit != from_it; pit++) {
-	BOOST_FOREACH(const std::string &w, pit->second.get().getTargetPhrase().get()) {
-	  boost::match_results<std::string::const_iterator> result;
-	  if (boost::regex_match(w, result, tagRE)){
-	    Tag tag(result[1]);
-	    s->sentTags[sentNo].push_back(tag);
-	  }
-	}
-      }
-      for (std::vector<Tag>::iterator tit=modifTags.begin(); tit != modifTags.end(); ++tit){
-	s->sentTags[sentNo].push_back(*tit);
-      }
-      for (PhraseSegmentation::const_iterator pit=to_it; pit != current.end(); pit++) {
-	BOOST_FOREACH(const std::string &w, pit->second.get().getTargetPhrase().get()) {
-	  boost::match_results<std::string::const_iterator> result;
-	  if (boost::regex_match(w, result, tagRE)){
-	    Tag tag(result[1]);
-	    s->sentTags[sentNo].push_back(tag);
-	  }
-	}
-      }
+  for (uint i=0;i<segs.size();i++){
+    if (requiresUpdate[i]){
       s->requiresUpdate = true;
-    }
+      s->sentTags[i].clear();
+      LOG(logger_, debug, "need to update sentence " << i);
 
+      const PhraseSegmentation &current = doc.getPhraseSegmentation(i);
+      uint pos=0;
+      PhraseSegmentation::const_iterator pit=current.begin();
+      while (pit != current.end()){
+	if (modRange[i][pos] > 0){
+	  for (std::vector<Tag>::iterator it = modTags[i][pos].begin() ; it != modTags[i][pos].end(); ++it){
+	      s->sentTags[i].push_back(*it);
+	  }
+	  uint endPos = pos+modRange[i][pos];
+	  while (pos<endPos){
+	    pit++;
+	    pos++;
+	  }
+	}
+	else{
+	  BOOST_FOREACH(const std::string &w, pit->second.get().getTargetPhrase().get()) {
+	    boost::match_results<std::string::const_iterator> result;
+	    if (boost::regex_match(w, result, tagRE)){
+	      Tag tag(result[1]);
+	      s->sentTags[i].push_back(tag);
+	    }
+	  }
+	  pos++;
+	  pit++;
+	}
+      }
+    }
   }
 
   *sbegin = s->score();
