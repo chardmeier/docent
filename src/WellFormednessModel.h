@@ -38,7 +38,6 @@ public:
 	WellFormednessModel(const Parameters &params);
 
 	virtual State *initDocument(const DocumentState &doc, Scores::iterator sbegin) const;
-	// virtual void indexSegTags(const State &s,const PhraseSegmentation &seg) const;
 	virtual StateModifications *estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
 		Scores::const_iterator psbegin, Scores::iterator sbegin) const;
 	virtual StateModifications *updateScore(const DocumentState &doc, const SearchStep &step, const State *state,
