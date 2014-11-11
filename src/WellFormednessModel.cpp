@@ -100,13 +100,6 @@ struct WellFormednessModelState : public FeatureFunction::State, public FeatureF
 	    else{
 	      if (tags[tags.size()-1].compare(sentTags[s][i].tag) != 0){
 		conflictCount++;
-		// check if the next one would match and pop the last two tags if it does
-		if (tags.size() > 1){
-		  if (tags[tags.size()-2].compare(sentTags[s][i].tag) == 0){
-		    tags.pop_back();
-		    tags.pop_back();
-		  }
-		}
 	      }
 	      else{
 		tags.pop_back();
