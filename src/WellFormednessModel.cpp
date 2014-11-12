@@ -121,15 +121,18 @@ struct WellFormednessModelState : public FeatureFunction::State, public FeatureF
       }
       if (currentScore < -Float(conflictCount)){
 	LOG(logger_, debug, "improved wellformedness score: " << currentScore << " --> " << -Float(conflictCount));
-      }
-      std::string tagSeq = "";
-      for (uint s = 0; s != sentTags.size(); ++s){
-	for (uint i = 0; i != sentTags[s].size(); ++i){
-	  tagSeq += sentTags[s][i].tag + ' ';
+	// TODO: avoid doing this if not in DEBUG mode!
+	if (logger_.loggable(debug)){
+	  std::string tagSeq = "";
+	  for (uint s = 0; s != sentTags.size(); ++s){
+	    for (uint i = 0; i != sentTags[s].size(); ++i){
+	      tagSeq += sentTags[s][i].tag + ' ';
+	    }
+	    tagSeq += "- ";
+	  }
+	  LOG(logger_, debug, "tag sequence: " << tagSeq << " (" << -Float(conflictCount) << ")");
 	}
-	tagSeq += "- ";
       }
-      LOG(logger_, debug, "tag sequence: " << tagSeq << " (" << -Float(conflictCount) << ")");
       currentScore = -Float(conflictCount);
     }
     requiresUpdate=false;
@@ -256,7 +259,7 @@ FeatureFunction::StateModifications *WellFormednessModel::estimateScoreUpdate(co
     if (requiresUpdate[i]){
       s->requiresUpdate = true;
       s->sentTags[i].clear();
-      LOG(logger_, debug, "need to update sentence " << i);
+      // LOG(logger_, debug, "need to update sentence " << i);
 
       const PhraseSegmentation &current = doc.getPhraseSegmentation(i);
       uint pos=0;

@@ -170,10 +170,9 @@ include_directories(
 add_library(
 	decoder STATIC
 
-	src/WellFormednessModel.cpp
 	src/BeamSearchAdapter.cpp
 	src/BleuModel.cpp
-	src/ClosingTagModel.cpp
+	src/BracketingModel.cpp
 	src/ConsistencyQModelPhrase.cpp
 	src/ConsistencyQModelWord.cpp
 	src/CoolingSchedule.cpp
@@ -199,6 +198,7 @@ add_library(
 	src/SimulatedAnnealing.cpp
 	src/StateGenerator.cpp
 	src/TypeTokenRateModel.cpp
+	src/WellFormednessModel.cpp
 )
 
 add_dependencies(decoder
