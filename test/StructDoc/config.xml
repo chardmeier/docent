@@ -22,7 +22,7 @@
 	</model>
 	<model type="well-formedness-model" id="wfm"/>
 	<model type="geometric-distortion-model" id="d">
-		<p name="distortion-limit">6</p>
+		<p name="distortion-limit">20</p>
 	</model>
 	<model type="word-penalty" id="w"/>
 	<model type="oov-penalty" id="oov"/>
@@ -35,7 +35,7 @@
 </models>
 <weights>
 	<weight model="bm" score="0">1</weight>
-	<weight model="wfm" score="0">1</weight>
+	<weight model="wfm" score="0">100</weight>
 	<weight model="d" score="0">0.113695</weight>
 	<weight model="d" score="1">1e30</weight>
 	<weight model="w">-0.29083</weight>
