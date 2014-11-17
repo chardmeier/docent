@@ -170,6 +170,7 @@ include_directories(
 add_library(
 	decoder STATIC
 
+	src/SelectedWordLM.cpp
 	src/BeamSearchAdapter.cpp
 	src/BleuModel.cpp
 	src/BracketingModel.cpp

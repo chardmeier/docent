@@ -1,0 +1,9 @@
+<mteval>
+<srcset setid="test" trglang="any" srclang="any" sysid="sys">
+<doc sysid="sys" docid="test1" genre="any" origlang="any">
+<seg id="1">[tag1] ta det röda blocket</seg>
+<seg id="2">" [tag3] ställ blocket [tag2] på den röda [/tag3] cirkeln</seg>
+<seg id="3">" jag ställer [/tag1]  det blåa blocket [/tag2] på den gröna pilen</seg>
+</doc>
+</srcset>
+</mteval>
