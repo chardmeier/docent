@@ -1,0 +1,32 @@
+
+===========
+BracketingModel
+===========
+
+CONFIG NAME
+bracketing-model
+
+NR OF SCORES: 1
+
+PARAMETER: 
+ - tags (path to file with space-separated bracket-pairs, one pair per line)
+
+DESCRIPTION:
+Counts the number of matching brackets and adds a penalty score for each missing bracket. The model does not look at the positions of brackets and how they are embedded. Supported brackets are tags like [tag] - [/tag] with arbitrary tag names. Additional bracket pairs may be specified in an external file (parameter "tags"). The file should contain space separated bracket pairs with one pair per line. An example pair is '( )'.
+
+
+==============
+WellFormednessModel
+==============
+
+CONFIG NAME
+well-formedness-model
+
+NR OF SCORES: 1
+
+PARAMETER:
+none
+
+DESCRIPTION:
+Feature function that checks wellformedness of tags in the generated target language document. Tags are specified as pairs of [tag] - [/tag] with arbitrary tag names. The model adds a penalty for any wellfoemedness violation. Any embedding is supported and no embedding restrictions can be specified.
+

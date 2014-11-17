@@ -12,9 +12,9 @@
 	</operation>
 </state-generator>
 <search algorithm="simulated-annealing">
-	<p name="max-steps">1000000</p>
+	<p name="max-steps">10000</p>
 	<p name="schedule">hill-climbing</p>
-	<p name="hill-climbing:max-rejected">100000</p>
+	<p name="hill-climbing:max-rejected">1000</p>
 </search>
 <models>
 	<model type="bracketing-model" id="bm">
