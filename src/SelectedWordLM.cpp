@@ -57,7 +57,7 @@ private:
 
   mutable Logger logger_;
   Model *model_;
-  uint maxWordLength;
+  uint minWordLength;
 
   SelectedWordLM(const std::string &file,const Parameters &params);
   Float scoreNgram(const StateType_ &old_state, lm::WordIndex word, WordState_ &out_state) const;
@@ -178,7 +178,7 @@ struct SelectedWordLMState : public FeatureFunction::State, public FeatureFuncti
     }
   };
 
-  uint AddWord(const uint sentno, const uint phrno, const AnchoredPhrasePair &app, const uint maxLength){
+  uint AddWord(const uint sentno, const uint phrno, const AnchoredPhrasePair &app, const uint minLength){
     WordAlignment wa = app.second.get().getWordAlignment();
     PhraseData sd = app.second.get().getSourcePhrase().get();
     PhraseData td = app.second.get().getTargetPhrase().get();
@@ -186,7 +186,7 @@ struct SelectedWordLMState : public FeatureFunction::State, public FeatureFuncti
     uint addCount=0;
     for (uint j=0; j<sd.size(); ++j) {
       // just for testing: words longer than 5 characters .... (should use some other criteria here!)
-      if ( (maxLength==0) || (sd[j].size() > maxLength) ){
+      if ( (minLength==0) || (sd[j].size() >= minLength) ){
 	for (WordAlignment::const_iterator wit = wa.begin_for_source(j);
 	     wit != wa.end_for_source(j); ++wit) {
 	  SelectedWord word(phrno,*wit,sd[j],td[*wit]);
@@ -251,7 +251,7 @@ FeatureFunction *SelectedWordLMFactory::createNgramModel(const Parameters &param
 template<class Model>
 SelectedWordLM<Model>::SelectedWordLM(const std::string &file,const Parameters &params) : logger_("SelectedWordLM") {
   model_ = new Model(file.c_str());
-  maxWordLength = params.get<uint>("max-word-length");
+  minWordLength = params.get<uint>("min-word-length");
 
 }
 
@@ -281,7 +281,7 @@ FeatureFunction::State *SelectedWordLM<M>::initDocument(const DocumentState &doc
   for(uint i = 0; i < segs.size(); i++) {
     uint phrCount=0;
     BOOST_FOREACH(const AnchoredPhrasePair &app, segs[i]) {
-      s->AddWord(i,phrCount,app,maxWordLength);
+      s->AddWord(i,phrCount,app,minWordLength);
       phrCount++;
     }
   }
@@ -412,7 +412,7 @@ FeatureFunction::StateModifications *SelectedWordLM<M>::estimateScoreUpdate(cons
     uint modLength = 0;
     BOOST_FOREACH(const AnchoredPhrasePair &app, it->proposal) {
       uint newPhrNo = phrNo+modLength+phrNoDiff;
-      uint added = s->AddWord(sentNo,newPhrNo,app,maxWordLength);
+      uint added = s->AddWord(sentNo,newPhrNo,app,minWordLength);
       for (uint j = s->selectedWords[sentNo].size() - added; j < s->selectedWords[sentNo].size(); ++j){
 	Float score = model_->Score(add_state,
 				    vocab.Index(s->selectedWords[sentNo][j].trgWord),

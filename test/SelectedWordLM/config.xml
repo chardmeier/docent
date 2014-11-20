@@ -20,7 +20,7 @@
 	<model type="selected-word-lm" id="swlm">
 		<p name="lm-file">../models/blockworld-tatoeba.en.kenlm</p>
 		<p name="load-alignments">true</p>
-		<p name="max-word-length">4</p>
+		<p name="min-word-length">4</p>
 	</model>
 	<model type="geometric-distortion-model" id="d">
 		<p name="distortion-limit">20</p>

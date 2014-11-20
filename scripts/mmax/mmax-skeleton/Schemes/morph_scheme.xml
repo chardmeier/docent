@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- Mark-Christoph Mueller, European Media Lab, Heidelberg, Germany (mueller@eml.org) -->
+<annotationscheme>
+
+	<attribute id="level_morph_lemma" name="lemma" text="Lemma morphological analysis" type="freetext">
+		<value id="value_700" name="lemma"/>
+	</attribute>
+	<attribute id="level_morph_affix" name="affix" text="Affix morphological analysis" type="freetext">
+		<value id="value_800" name="affix"/>
+	</attribute>
+
+
+</annotationscheme>

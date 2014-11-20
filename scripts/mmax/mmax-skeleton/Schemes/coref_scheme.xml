@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- Mark-Christoph Mueller, European Media Lab, Heidelberg, Germany (mueller@eml.org) -->
+<annotationscheme>
+	<attribute id="level_coref_comment" name="comment" text=""  type="freetext">
+		<value id="value_1" name="comment"/>
+	</attribute>
+
+	<attribute id="level_coref_ante" name="dir_antecedent" text="" type="markable_pointer" style="smartcurve" 
+		   color="blue" width="1" max_size="1" satellite_domain="coref">
+		<value id="value_2" name="empty"/>
+		<value id="value_8" name="non_empty"/>
+	</attribute>
+
+	<attribute id="level_coref_minwords" name="min_words" text=""  type="freetext">
+		<value id="value_3" name="min_words"/>
+	</attribute>
+	<attribute id="level_coref_minids" name="min_ids" text=""  type="freetext">
+		<value id="value_4" name="min_ids"/>
+	</attribute>
+
+	<attribute id="level_coref_type" name="status" text=""  type="nominal_button">
+		<value id="value_5" name="none"/>
+		<value id="value_6" name="OPT"/>
+	</attribute>
+
+	<attribute id="level_coref_phrase" name="mention" text=""  type="nominal_button">
+		<value id="value_7" name="pronoun"/>
+		<value id="value_8" name="nominal"/>
+		<value id="value_8" name="name"/>
+	</attribute>
+
+	<attribute id="level_coref_member" name="coref_set" text="" color="green" type="markable_set">
+		<value id="value_9" name="coref_set"/>
+	</attribute>
+
+
+</annotationscheme>
