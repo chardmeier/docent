@@ -80,23 +80,105 @@ public:
 };
 
 
+struct SelectedWord {
+  SelectedWord(uint pn, uint wn, std::string s, std::string t)  : 
+    srcWord(""), trgWord(""), phrNo(0), wordNo(0) 
+  {
+    phrNo = pn;
+    wordNo = wn;
+    srcWord = s;
+    trgWord = t;
+  };
+
+  /*
+  SelectedWord(uint pn, std::string t)  : 
+    phrNo(0), wordNo(0), srcWord(""), trgWord("") 
+  {
+    phrNo = pn;
+    trgWord = t;
+  };
+  */
+
+  std::string srcWord, trgWord;
+  uint phrNo, wordNo;
+};
 
 
 struct SelectedWordLMState : public FeatureFunction::State, public FeatureFunction::StateModifications {
   SelectedWordLMState(uint nsents)  : logger_("SelectedWordLM"), currentScore(0) {
-    sentWords.resize(nsents);
+    selectedWords.resize(nsents);
   };
 
-  std::vector< std::vector<std::string> > sentWords;
+  std::vector< std::vector< SelectedWord > > selectedWords;
 
   mutable Logger logger_;
   Float currentScore;
 
   Float score() {
     return currentScore;
+  };
+
+  std::string GetWords(uint sentno){
+    std::string words = "";
+    for (uint i=0; i<selectedWords[sentno].size(); i++){
+      words += selectedWords[sentno][i].trgWord+" ";
+    }
+    return words;
   }
 
-  uint AddWord(const uint sentno, const AnchoredPhrasePair &app, const uint maxLength){
+  void GetHistory(std::vector<std::string>& history,uint sentNo, const uint size){
+    while ( history.size() < size ){
+      std::vector<SelectedWord>::const_iterator it=selectedWords[sentNo].end();
+      while (it!=selectedWords[sentNo].begin()){
+	it--;
+	history.push_back(it->trgWord);
+	if (history.size() == size) return;
+      }
+      if (sentNo == 0) break;
+      sentNo--;
+    }
+  }
+
+  void GetFuture(std::vector<std::string>& future,
+		 uint sentNo, const uint idx, const uint size,
+		 const uint stopSentNo, const uint stopPhrNo){
+
+    std::vector<SelectedWord>::const_iterator it=selectedWords[sentNo].begin()+idx;
+
+    while ( future.size() < size ){
+      while (it!=selectedWords[sentNo].end()){
+	if ( sentNo == stopSentNo && it->phrNo == stopPhrNo ) return;
+	future.push_back((*it).trgWord);
+	if (future.size() == size) return;
+	it++;
+      }
+      sentNo++;
+      if (sentNo >= selectedWords.size()) return;
+      if (sentNo > stopSentNo) return;
+      it = selectedWords[sentNo].begin();
+    }
+  }
+
+
+  void ClearWords(const uint sentNo){
+    selectedWords[sentNo].clear();
+  };
+
+  void CopyWords(const SelectedWordLMState& state, const uint sentno, 
+		 const uint start, const uint end, const int diff){
+    for (uint i=0; i<state.selectedWords[sentno].size(); i++){
+      if (state.selectedWords[sentno][i].phrNo >= start){
+	if (state.selectedWords[sentno][i].phrNo < end){
+	  selectedWords[sentno].push_back(state.selectedWords[sentno][i]);
+	  if (diff != 0){   
+	    selectedWords[sentno][selectedWords[sentno].size()-1].phrNo += diff;
+	  }
+	}
+      }
+    }
+  };
+
+  uint AddWord(const uint sentno, const uint phrno, const AnchoredPhrasePair &app, const uint maxLength){
     WordAlignment wa = app.second.get().getWordAlignment();
     PhraseData sd = app.second.get().getSourcePhrase().get();
     PhraseData td = app.second.get().getTargetPhrase().get();
@@ -107,15 +189,15 @@ struct SelectedWordLMState : public FeatureFunction::State, public FeatureFuncti
       if ( (maxLength==0) || (sd[j].size() > maxLength) ){
 	for (WordAlignment::const_iterator wit = wa.begin_for_source(j);
 	     wit != wa.end_for_source(j); ++wit) {
-	  sentWords[sentno].push_back(td[*wit]);
+	  SelectedWord word(phrno,*wit,sd[j],td[*wit]);
+	  selectedWords[sentno].push_back(word);
 	  addCount++;
 	  // LOG(logger_, debug, "add word " << td[*wit] << " aligned to " << sd[j]);
 	}
       }
     }
     return addCount;
-  }
-
+  };
 
   virtual SelectedWordLMState *clone() const {
     return new SelectedWordLMState(*this);
@@ -196,12 +278,11 @@ FeatureFunction::State *SelectedWordLM<M>::initDocument(const DocumentState &doc
 
   SelectedWordLMState *s = new SelectedWordLMState(segs.size());
 
-  uint count=0;
   for(uint i = 0; i < segs.size(); i++) {
+    uint phrCount=0;
     BOOST_FOREACH(const AnchoredPhrasePair &app, segs[i]) {
-      if (s->AddWord(i,app,maxWordLength)){
-	count++;
-      }
+      s->AddWord(i,phrCount,app,maxWordLength);
+      phrCount++;
     }
   }
 
@@ -209,13 +290,14 @@ FeatureFunction::State *SelectedWordLM<M>::initDocument(const DocumentState &doc
   const VocabularyType_ &vocab = model_->GetVocabulary();
 
   Float score;
-  for (uint i = 0; i != s->sentWords.size(); ++i){
-    for (uint j = 0; j != s->sentWords[i].size(); ++j){
-      score += model_->Score(state,vocab.Index(s->sentWords[i][j]),out_state);
-      // LOG(logger_, debug, "add score for " << s->sentWords[i][j] << " = " << score);
+  for (uint i = 0; i != s->selectedWords.size(); ++i){
+    for (uint j = 0; j != s->selectedWords[i].size(); ++j){
+      score += model_->Score(state,vocab.Index(s->selectedWords[i][j].trgWord),out_state);
+      // LOG(logger_, debug, "add score for " << s->selectedWords[i][j].trgWord << " = " << score);
       state = out_state;
     }
   }
+  // TODO: Do we need end-of-sentence?
 
   s->currentScore = score;
   *sbegin = score;
@@ -228,9 +310,8 @@ void SelectedWordLM<M>::computeSentenceScores(const DocumentState &doc, uint sen
 	*sbegin = Float(0);
 }
 
-
-
-
+// TODO: do something smart to estimateScoreUpdate and move the code below to updateScore
+// TODO: avoid recomputing scores if nothing actually changes (in the list of selected words)
 
 template<class M>
 FeatureFunction::StateModifications *SelectedWordLM<M>::estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
@@ -239,8 +320,20 @@ FeatureFunction::StateModifications *SelectedWordLM<M>::estimateScoreUpdate(cons
   const SelectedWordLMState *prevstate = dynamic_cast<const SelectedWordLMState *>(state);
   SelectedWordLMState *s = prevstate->clone();
 
+  bool firstSent = true;
   uint sentNo = 0;
-  uint lastPos = 0;
+  uint phrNo = 0;
+  int phrNoDiff = 0;
+
+  const std::vector<PhraseSegmentation> &segs = doc.getPhraseSegmentations();
+  const uint docSize = segs.size();
+
+  uint lmOrder = model_->Order();
+  const VocabularyType_ &vocab = model_->GetVocabulary();
+
+  StateType_ add_state;
+  StateType_ remove_state;
+  StateType_ out_state;
 
   // run through all modifications and check if we need to update the word list
   const std::vector<SearchStep::Modification> &mods = step.getModifications();
@@ -251,52 +344,179 @@ FeatureFunction::StateModifications *SelectedWordLM<M>::estimateScoreUpdate(cons
     PhraseSegmentation::const_iterator to_it = it->to_it;
 
     const PhraseSegmentation &current = doc.getPhraseSegmentation(it->sentno);
-    if (sentNo != it->sentno){
+    phrNo = std::distance(current.begin(), from_it);
+
+    if ( firstSent || (sentNo != it->sentno) ){
       sentNo = it->sentno;
-      s->sentWords[sentNo].clear();
-      for (PhraseSegmentation::const_iterator pit=current.begin(); pit!=from_it; pit++) {
-	s->AddWord(sentNo,*pit,maxWordLength);
+      firstSent = false;
+
+      LOG(logger_, debug, "word list before: " << s->GetWords(sentNo));
+
+      phrNoDiff = 0;
+
+      // start from scratch:
+      // copy words from all phrases before the current modification
+      s->ClearWords(sentNo);
+      s->CopyWords(*prevstate,sentNo,0,phrNo,phrNoDiff);
+
+      // get the LM history before the modification (initialize LM states)
+      std::vector<std::string> history;
+      s->GetHistory(history,sentNo,lmOrder-1);
+
+      if ( history.size() < lmOrder-1 ){
+	// TODO: Do we need begin-of-sentence?
+	StateType_ begin_state(model_->BeginSentenceState());
+	add_state = begin_state;
       }
-      lastPos = 0;
+
+      while (!history.empty()){
+	// TODO: change state without scoring
+	model_->Score(add_state,vocab.Index(history.back()),out_state);
+	add_state = out_state;
+	history.pop_back();
+      }
+      remove_state = add_state;
     }
-    if ( lastPos > std::distance(current.begin(), from_it) ){
-      LOG(logger_, debug, "WARNING! Modifications are not in target sentence order! " 
-	  << lastPos << "  " <<  std::distance(current.begin(), from_it));
+
+    //-------------------------------------------------------
+    // remove scores for modified part
+    //-------------------------------------------------------
+
+    StateType_ out_state;
+    uint oldLength = 0;
+    for (PhraseSegmentation::const_iterator pit=from_it; pit!=to_it; pit++) {
+      uint phr = std::distance(current.begin(), pit);
+
+      if (prevstate->selectedWords[sentNo].size() > 0){
+	for (uint i=0; i<prevstate->selectedWords[sentNo].size(); i++){
+	  if (prevstate->selectedWords[sentNo][i].phrNo > phr) break;
+	  if ( prevstate->selectedWords[sentNo][i].phrNo == phr ){
+	    Float score = model_->Score(remove_state,
+					vocab.Index(prevstate->selectedWords[sentNo][i].trgWord),
+					out_state);
+	    s->currentScore -= score;
+	    remove_state = out_state;
+	    LOG(logger_, debug, "(a) remove score for " <<  
+		prevstate->selectedWords[sentNo][i].trgWord << " (" << score << ")");
+	  }
+	}
+      }
+      oldLength++;
     }
-    lastPos = std::distance(current.begin(), from_it);
+
+    //-------------------------------------------------------
+    // add scores
+    //-------------------------------------------------------
 
     // record the words in the proposed modification (and compare to current word list)
+    uint modLength = 0;
     BOOST_FOREACH(const AnchoredPhrasePair &app, it->proposal) {
-      s->AddWord(sentNo,app,maxWordLength);
+      uint newPhrNo = phrNo+modLength+phrNoDiff;
+      uint added = s->AddWord(sentNo,newPhrNo,app,maxWordLength);
+      for (uint j = s->selectedWords[sentNo].size() - added; j < s->selectedWords[sentNo].size(); ++j){
+	Float score = model_->Score(add_state,
+				    vocab.Index(s->selectedWords[sentNo][j].trgWord),
+				    out_state);
+	s->currentScore += score;
+	add_state = out_state;
+	LOG(logger_, debug, "(b) add score for " 
+	    <<  s->selectedWords[sentNo][j].trgWord << " (" << score << ")");
+      }
+      modLength++;
     }
 
+    // accumulate length difference between modification and original
+    phrNoDiff += modLength - oldLength;
+
+    //------------------------------------------------------------------------------------
+    // remove scores for subsequent words but not further than start of next modification
+    //------------------------------------------------------------------------------------
+
     it++;
+    uint currentSentNo = sentNo;
+    uint nextModSentNo = docSize-1;
+    uint nextModFrom = std::distance(segs[segs.size()-1].begin(), segs[segs.size()-1].end());
+
     if (it!=mods.end()){
-      if (sentNo != it->sentno){
-	for (PhraseSegmentation::const_iterator pit=to_it; pit!=current.end(); pit++) {
-	  s->AddWord(sentNo,*pit,maxWordLength);
+      const PhraseSegmentation &next = doc.getPhraseSegmentation(it->sentno);
+      nextModSentNo = it->sentno;
+      nextModFrom = std::distance(next.begin(), it->from_it);
+    }
+
+    // don't forget to copy remaining selected words in currentSentNo!
+    phrNo = std::distance(current.begin(), to_it);
+    uint wordIdx = s->selectedWords[sentNo].size();
+
+    if (phrNo < current.size()){
+      if (currentSentNo == nextModSentNo){
+	s->CopyWords(*prevstate,currentSentNo,phrNo,nextModFrom,phrNoDiff);
+      }
+      else{
+	s->CopyWords(*prevstate,currentSentNo,phrNo,current.size(),phrNoDiff);
+      }
+    }
+
+    LOG(logger_, debug, " word list after: " << s->GetWords(currentSentNo));
+
+    // run through more context words as needed by LM until next modification point or end of document
+
+    std::vector<std::string> future;
+    s->GetFuture(future,sentNo,wordIdx,lmOrder-1,nextModSentNo,nextModFrom);
+
+    for (std::vector<std::string>::const_iterator it = future.begin(); it != future.end(); it++){
+      Float oldScore = model_->Score(remove_state,vocab.Index(*it),out_state);
+      remove_state = out_state;
+      Float newScore = model_->Score(add_state,vocab.Index(*it),out_state);
+      add_state = out_state;
+      s->currentScore -= oldScore;
+      s->currentScore += newScore;
+
+      LOG(logger_, debug, "(c) change score for " <<  *it 
+	  << " (old: " << oldScore << ", new: " << newScore << ")");
+    }
+
+    // TODO: Do we need end-of-sentence?
+    /*
+    if ( future.size() < lmOrder-1){
+      if (nextModSentNo == docSize-1){
+	if (nextModFrom == std::distance(segs[segs.size()-1].begin(), segs[segs.size()-1].end())){
+	  Float oldScore = model_->Score(remove_state,vocab.EndSentence(),out_state);
+	  remove_state = out_state;
+	  Float newScore = model_->Score(add_state,vocab.EndSentence(),out_state);
+	  add_state = out_state;
+	  s->currentScore -= oldScore;
+	  s->currentScore += newScore;
+
+	  LOG(logger_, debug, "(c) change score for EOS " << " (old: " << oldScore << ", new: " << newScore << ")");
 	}
       }
     }
+    */
+
   }
 
+  ////////////////////////////////////////////////////////
+  // DEBUG: compare with computing the score from scratch
+  ////////////////////////////////////////////////////////
+  if (logger_.loggable(debug)){
+    StateType_ in_state(model_->BeginSentenceState()), out_state;
+    const VocabularyType_ &vocab = model_->GetVocabulary();
 
-  // TODO: this is stupid: re-score the entire document!
-
-  StateType_ in_state(model_->BeginSentenceState()), out_state;
-  const VocabularyType_ &vocab = model_->GetVocabulary();
-
-  Float score;
-  for (uint i = 0; i != s->sentWords.size(); ++i){
-    for (uint j = 0; j != s->sentWords[i].size(); ++j){
-      score += model_->Score(in_state,vocab.Index(s->sentWords[i][j]),out_state);
-      // LOG(logger_, debug, "add score for " << s->sentWords[i][j] << " = " << score);
-      in_state = out_state;
+    Float score;
+    for (uint i = 0; i < s->selectedWords.size(); ++i){
+      for (uint j = 0; j < s->selectedWords[i].size(); ++j){
+	score += model_->Score(in_state,vocab.Index(s->selectedWords[i][j].trgWord),out_state);
+	in_state = out_state;
+      }
+    }
+    if (score < s->currentScore-0.001 || score > s->currentScore+0.001){
+      LOG(logger_, debug, "score difference: " << s->currentScore << " != " << score);
     }
   }
-  LOG(logger_, debug, "new LM score " << score);
-  s->currentScore = score;
+  ////////////////////////////////////////////////////////
 
+
+  LOG(logger_, debug, "new LM score " << s->currentScore);
   *sbegin = s->score();
   return s;
 }
@@ -314,7 +534,7 @@ FeatureFunction::State *SelectedWordLM<M>::applyStateModifications(FeatureFuncti
 	SelectedWordLMState *ms = dynamic_cast<SelectedWordLMState *>(modif);
 
 	os->currentScore = ms->currentScore;
-	os->sentWords.swap(ms->sentWords);
+	os->selectedWords.swap(ms->selectedWords);
 
 	return oldState;
 }
