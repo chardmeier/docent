@@ -4,3 +4,6 @@
 [submodule "external/arabica"]
 	path = external/arabica
 	url = https://github.com/jezhiggins/arabica.git
+[submodule "external/ProbingPT"]
+	path = external/ProbingPT
+	url = https://github.com/XapaJIaMnu/ProbingPT
