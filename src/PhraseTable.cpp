@@ -1,7 +1,7 @@
 /*
  *  PhraseTable.cpp
  *
- *  Copyright 2012 by Christian Hardmeier. All rights reserved.
+ *  Copyright 2014 by Christian Hardmeier. All rights reserved.
  *
  *  This file is part of Docent, a document-level decoder for phrase-based
  *  statistical machine translation.
@@ -27,7 +27,7 @@
 #include "PhraseTable.h"
 #include "SearchStep.h"
 
-#include "PhraseDictionaryTree.h" // from moses
+#include "helpers/quering.hh" // from ProbingPT
 
 #include <boost/function.hpp>
 #include <boost/iterator/transform_iterator.hpp>
@@ -44,14 +44,11 @@
 PhraseTable::PhraseTable(const Parameters &params, Random random) :
 		logger_("PhraseTable"), random_(random) {
 	filename_ = params.get<std::string>("file");
-	nscores_ = params.get<uint>("nscores", 5);
+	nscores_ = params.get<uint>("nscores", 4);
 	maxPhraseLength_ = params.get<uint>("max-phrase-length", 7);
-	loadAlignments_ = params.get<bool>("load-alignments", false);
 	annotationCount_ = params.get<uint>("annotation-count", 0);
 
-	backend_ = new Moses::PhraseDictionaryTree(nscores_);
-	backend_->UseWordAlignment(loadAlignments_);
-	backend_->Read(filename_);
+	backend_ = new QueryEngine(filename_);
 }
 
 PhraseTable::~PhraseTable() {
@@ -115,37 +112,32 @@ boost::shared_ptr<const PhrasePairCollection> PhraseTable::getPhrasesForSentence
 	uncovered.set();
 
 	for(uint i = 0; i < sentence.size(); i++) {
-		Moses::PhraseDictionaryTree::PrefixPtr ptr = backend_->GetRoot();
 		cov.reset();
 		std::vector<Word> srcphrase;
+		std::string srcphrasestr;
 		for(uint j = 0; j < maxPhraseLength_ && i + j < sentence.size(); j++) {
-			ptr = backend_->Extend(ptr, sentence[i + j]);
-			if(!ptr)
-				break;
-
+			if(j > 0)
+				srcphrasestr.append(' ');
+			srcphrasestr.append(sentence[i + j]);
 			srcphrase.push_back(sentence[i + j]);
 			cov.set(i + j);
 
-			std::vector<Moses::StringTgtCand> tgtcand;
-			std::vector<std::string> alignments;
-			if(loadAlignments_)
-				backend_->GetTargetCandidates(ptr, tgtcand, alignments);
-			else {
-				backend_->GetTargetCandidates(ptr, tgtcand);
-				alignments.resize(tgtcand.size());
-			}
+			std::pair<bool,std::vector<target_text> > res = backend_->query(srcphrasestr);
+			if(!res.first)
+				continue; // phrase not found
 			
-			if(!tgtcand.empty())
-				uncovered -= cov;
+			std::vector<std::string> alignments(res.second.size());
 
 			std::vector<std::string>::const_iterator ait = alignments.begin();
-			for(std::vector<Moses::StringTgtCand>::const_iterator it = tgtcand.begin();
-					it != tgtcand.end(); ++it, ++ait) {
-				std::vector<Word> tgtphrase(it->first.size());
+			for(std::vector<target_text>::const_iterator it = res.second.begin();
+					it != res.second.end(); ++it, ++ait) {
+				std::size_t phraselength = it->target_phrase.size();
+				std::vector<Word> tgtphrase(phraselength);
 				std::vector<std::vector<Word> > annotations(annotationCount_,
-					std::vector<Word>(it->first.size()));
-				for(uint i = 0; i < it->first.size(); i++) {
-					std::istringstream is(*it->first[i]);
+					std::vector<Word>(phraselength));
+				for(uint i = 0; i < phraselength; i++) {
+					std::istringstream is(getTargetWordFromID(it->target_phrase[i],
+						backend_->getVocab()));
 					if(!getline(is, tgtphrase[i], '|')) {
 						LOG(logger_, error, "Problem parsing target phrase: "
 							<< *it->first[i]);
@@ -164,9 +156,12 @@ boost::shared_ptr<const PhrasePairCollection> PhraseTable::getPhrasesForSentence
 					annotationPhrases.push_back(Phrase(annotations[i]));
 
 				assert(it->second.size() == nscores_);
-				Scores s;
-				std::transform(it->second.begin(), it->second.end(), std::back_inserter(s), bind(log, _1));
-				WordAlignment wa(srcphrase.size(), tgtphrase.size(), *ait);
+				Scores s(it->prob.size());
+				std::transform(it->prob.begin(), it->prob.end(), s.begin(), bind(std::log, _1));
+				WordAlignment wa(srcphrase.size(), tgtphrase.size());
+				assert(it->word_all1.size() % 2 == 0);
+				for(uint i = 0; i < it->word_all1.size(); i += 2)
+					wa.setLink(it->word_all1[i], it->word_all1[i + 1]);
 				PhrasePair pp(PhrasePairData(srcphrase, tgtphrase, annotationPhrases, wa, s));
 				ptc->addPhrasePair(cov, pp);
 			}

@@ -45,7 +45,7 @@ private:
 	uint nscores_;
 	uint maxPhraseLength_;
 	uint annotationCount_;
-	Moses::PhraseDictionaryTree *backend_;
+	const QueryEngine *backend_;
 	bool loadAlignments_;
 
 	Scores scorePhraseSegmentation(const PhraseSegmentation &ps) const;
