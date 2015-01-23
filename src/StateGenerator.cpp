@@ -534,16 +534,19 @@ FileReadStateInitialiser::FileReadStateInitialiser(const Parameters &params) : l
 	ia >> segmentations_;
 }
 
-PhraseSegmentation FileReadStateInitialiser::initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const {
-  PhraseSegmentation phraseSegmentation = segmentations_[documentNumber][sentenceNumber]; 
-  //Check that all phrases in the phraseSegmentation exist in phraseTranslations
-  if (!phraseTranslations->phrasesExist(phraseSegmentation)) {
-	  //!checkPhrases(phraseTranslations, phraseSegmentation)) {
-	  LOG(logger_, error, "ERROR: A phrase from the saved state does not exist in phrase table, make sure that the same phrase table is used as when saving the state");
-	  BOOST_THROW_EXCEPTION(ConfigurationException());
-  }
-  
-  return phraseSegmentation;
+PhraseSegmentation FileReadStateInitialiser::initSegmentation(
+		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
+		const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const {
+	PhraseSegmentation phraseSegmentation = segmentations_[documentNumber][sentenceNumber]; 
+	//Check that all phrases in the phraseSegmentation exist in phraseTranslations
+	if (!phraseTranslations->phrasesExist(phraseSegmentation)) {
+		LOG(logger_, error, "ERROR: A phrase from the saved state does not exist in "
+			"the phrase table, make sure that the same phrase table is used as "
+			"when saving the state");
+		BOOST_THROW_EXCEPTION(ConfigurationException());
+	}
+
+	return phraseSegmentation;
 }
 
 
