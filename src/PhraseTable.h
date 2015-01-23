@@ -31,11 +31,8 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
 
-namespace Moses {
-	class PhraseDictionaryTree;
-}
-
 class PhrasePairCollection;
+class QueryEngine; // from ProbingPT
 
 class PhraseTable : public FeatureFunction, boost::noncopyable {
 private:
@@ -45,7 +42,7 @@ private:
 	uint nscores_;
 	uint maxPhraseLength_;
 	uint annotationCount_;
-	const QueryEngine *backend_;
+	QueryEngine *backend_;
 	bool loadAlignments_;
 
 	Scores scorePhraseSegmentation(const PhraseSegmentation &ps) const;

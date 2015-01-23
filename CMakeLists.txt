@@ -49,11 +49,11 @@ if(DEFINED ENV{BOOST_ROOT} AND NOT DEFINED BOOST_ROOT)
 endif()
 
 if(DEFINED BOOST_ROOT)
-	set(MOSES_WITH_BOOST "--with-boost=${BOOST_ROOT}")
+	set(BJAM_WITH_BOOST "--with-boost=${BOOST_ROOT}")
 	set(Arabica_WITH_BOOST "--with-boost=${BOOST_ROOT}/include")
 else()
 	message("BOOST_ROOT isn't set. If you encounter build problems, consider setting it.")
-	set(MOSES_WITH_BOOST "")
+	set(BJAM_WITH_BOOST "")
 	set(Arabica_WITH_BOOST "")
 endif()
 
@@ -102,25 +102,11 @@ add_subdirectory(${Arabica_ROOT})
 get_property(Arabica_INCLUDE_DIRS DIRECTORY external/arabica PROPERTY INCLUDE_DIRECTORIES)
 set(Arabica_LIBRARIES arabica)
 
-### Build Moses
-
-set(MOSES_ROOT ${CMAKE_SOURCE_DIR}/external/mosesdecoder)
-set(MOSES_INSTALL_DIR ${CMAKE_BINARY_DIR}/external/Install/moses_external)
-
-ExternalProject_add(moses_external
-	SOURCE_DIR ${MOSES_ROOT}
-	CONFIGURE_COMMAND true
-	BUILD_COMMAND ./bjam --max-kenlm-order=${KENLM_MAX_ORDER} ${MOSES_WITH_BOOST}
-	INSTALL_COMMAND ./bjam --prefix=${MOSES_INSTALL_DIR} ${MOSES_WITH_BOOST} install
-	INSTALL_DIR ${MOSES_INSTALL_DIR}
-	BUILD_IN_SOURCE 1)
-
-add_library(moses STATIC IMPORTED)
-add_dependencies(moses moses_external)
-
-add_definitions(-DKENLM_MAX_ORDER=${KENLM_MAX_ORDER})
+### Build KenLM and ProbingPT
 
 find_package(ZLIB REQUIRED)
+find_package(BZip2 REQUIRED)
+
 check_library_exists(-lrt clock_gettime "" HAVE_LIBRT)
 if(HAVE_LIBRT)
 	set(LIBRT_LIBRARIES -lrt)
@@ -128,32 +114,47 @@ else()
 	set(LIBRT_LIBRARIES "")
 endif()
 
-set(MOSES_INCLUDE_DIRS
-	${MOSES_INSTALL_DIR}/include
-	${ZLIB_INCLUDE_DIRS})
-set(MOSES_LIBRARIES
-	${LD_START_GROUP}
-	${MOSES_INSTALL_DIR}/lib/libCompactPT.a
-	${MOSES_INSTALL_DIR}/lib/libCYKPlusParser.a
-	${MOSES_INSTALL_DIR}/lib/libdynsa.a
-	${MOSES_INSTALL_DIR}/lib/libfuzzy-match.a
-	${MOSES_INSTALL_DIR}/lib/libkenlm.a
-	${MOSES_INSTALL_DIR}/lib/libkenutil.a
-	${MOSES_INSTALL_DIR}/lib/libLM.a
-	${MOSES_INSTALL_DIR}/lib/libmoses.a
-	${MOSES_INSTALL_DIR}/lib/libmoses_internal.a
-	${MOSES_INSTALL_DIR}/lib/libOnDiskPt.a
-	${MOSES_INSTALL_DIR}/lib/libpcfg_common.a
-	${MOSES_INSTALL_DIR}/lib/libRuleTable.a
-	${MOSES_INSTALL_DIR}/lib/libScope3Parser.a
-	${LD_END_GROUP}
+set(KENLM_ROOT ${CMAKE_SOURCE_DIR}/external/ProbingPT/lib/kenlm)
+set(KENLM_INSTALL_DIR ${CMAKE_BINARY_DIR}/external/Install/kenlm_external)
+
+ExternalProject_add(kenlm_external
+	SOURCE_DIR ${KENLM_ROOT}
+	CONFIGURE_COMMAND true
+	BUILD_COMMAND ./bjam --max-kenlm-order=${KENLM_MAX_ORDER} ${BJAM_WITH_BOOST} link=static
+	INSTALL_COMMAND true # ./bjam --prefix=${KENLM_INSTALL_DIR} ${BJAM_WITH_BOOST} install
+	INSTALL_DIR ${KENLM_INSTALL_DIR}
+	BUILD_IN_SOURCE 1)
+
+add_library(kenlm STATIC IMPORTED)
+add_dependencies(kenlm kenlm_external)
+
+add_definitions(-DKENLM_MAX_ORDER=${KENLM_MAX_ORDER})
+
+set(KENLM_LIBRARIES
+	${ZLIB_LIBRARIES}
+	${BZIP2_LIBRARIES}
 	${LIBRT_LIBRARIES}
-	${ZLIB_LIBRARIES})
+	${KENLM_ROOT}/lib/libkenlm.a)
+set(KENLM_INCLUDE_DIRS ${KENLM_ROOT})
+
+set(PROBINGPT_ROOT ${CMAKE_SOURCE_DIR}/external/ProbingPT)
+
+add_library(probingpt STATIC
+	${PROBINGPT_ROOT}/helpers/hash.cpp
+	${PROBINGPT_ROOT}/helpers/huffmanish.cpp
+	${PROBINGPT_ROOT}/helpers/line_splitter.cpp
+	${PROBINGPT_ROOT}/helpers/probing_hash_utils.cpp
+	${PROBINGPT_ROOT}/helpers/quering.cpp
+	${PROBINGPT_ROOT}/helpers/storing.cpp
+	${PROBINGPT_ROOT}/helpers/vocabid.cpp)
+
+set(PROBINGPT_INCLUDE_DIRS ${PROBINGPT_ROOT})
+
+add_dependencies(probingpt kenlm)
 
 ### Build Docent
 
 link_directories(${Boost_LIBRARY_DIRS}
-	${MOSES_LIBRARY_DIRS}
 	${Arabica_LIBRARY_DIRS}
 	${MPI_LIBRARY_DIRS}
 )
@@ -162,7 +163,8 @@ include_directories(
 	src
 	${STEMMER_INCLUDE_DIRS}
 	${Boost_INCLUDE_DIRS}
-	${MOSES_INCLUDE_DIRS}
+	${KENLM_INCLUDE_DIRS}
+	${PROBINGPT_INCLUDE_DIRS}
 	${Arabica_INCLUDE_DIRS}
 	${MPI_INCLUDE_DIRS}
 )
@@ -170,7 +172,6 @@ include_directories(
 add_library(
 	decoder STATIC
 
-	src/BeamSearchAdapter.cpp
 	src/BleuModel.cpp
 	src/BracketingModel.cpp
 	src/ConsistencyQModelPhrase.cpp
@@ -202,13 +203,14 @@ add_library(
 )
 
 add_dependencies(decoder
-	stemmer arabica moses)
+	stemmer arabica kenlm probingpt)
 
 set(DECODER_LIBRARIES
 	decoder
 	stemmer
+	probingpt
 	${Arabica_LIBRARIES}
-	${MOSES_LIBRARIES}
+	${KENLM_LIBRARIES}
 	${Boost_LIBRARIES})
 
 add_executable(

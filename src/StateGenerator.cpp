@@ -21,7 +21,6 @@
  */
 
 #include "Docent.h"
-#include "BeamSearchAdapter.h"
 #include "DocumentState.h"
 #include "DecoderConfiguration.h"
 #include "FeatureFunction.h"
@@ -505,16 +504,6 @@ struct MonotonicStateInitialiser : public StateInitialiser {
 	virtual PhraseSegmentation initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const;
 };
 
-class BeamSearchStateInitialiser : public StateInitialiser {
-private:
-	BeamSearchAdapter *beamSearchAdapter_;
-
-public:
-	BeamSearchStateInitialiser(const Parameters &params);
-	virtual ~BeamSearchStateInitialiser();
-	virtual PhraseSegmentation initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const;
-};
-
 class FileReadStateInitialiser : public StateInitialiser {
 private:
 	Logger logger_;
@@ -528,21 +517,6 @@ public:
 PhraseSegmentation MonotonicStateInitialiser::initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const {
 	return phraseTranslations->proposeSegmentation();
 }
-
-BeamSearchStateInitialiser::BeamSearchStateInitialiser(const Parameters &params) {
-	std::string moses_ini = params.get<std::string>("ini");
-	beamSearchAdapter_ = new BeamSearchAdapter(moses_ini);
-}
-
-BeamSearchStateInitialiser::~BeamSearchStateInitialiser() {
-	delete beamSearchAdapter_;
-}
-
-PhraseSegmentation BeamSearchStateInitialiser::initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const {
-	return beamSearchAdapter_->search(phraseTranslations, sentence);
-}
-
-
 
 FileReadStateInitialiser::FileReadStateInitialiser(const Parameters &params) : logger_("StateInitialiser") {
   // get file name from params 
@@ -578,8 +552,6 @@ StateGenerator::StateGenerator(const std::string &initMethod, const Parameters &
 		logger_("StateGenerator"), random_(random) {
 	if(initMethod == "monotonic")
 		initialiser_ = new MonotonicStateInitialiser(params);
-	else if(initMethod == "beam-search")
-		initialiser_ = new BeamSearchStateInitialiser(params);
 	else if(initMethod == "saved-state")
 		initialiser_ = new FileReadStateInitialiser(params);
 	else {

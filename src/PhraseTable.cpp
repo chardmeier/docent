@@ -48,7 +48,7 @@ PhraseTable::PhraseTable(const Parameters &params, Random random) :
 	maxPhraseLength_ = params.get<uint>("max-phrase-length", 7);
 	annotationCount_ = params.get<uint>("annotation-count", 0);
 
-	backend_ = new QueryEngine(filename_);
+	backend_ = new QueryEngine(filename_.c_str());
 }
 
 PhraseTable::~PhraseTable() {
@@ -111,13 +111,16 @@ boost::shared_ptr<const PhrasePairCollection> PhraseTable::getPhrasesForSentence
 	CoverageBitmap uncovered(sentence.size());
 	uncovered.set();
 
+	typedef std::map<unsigned int, std::string> VocMap;
+	const VocMap vocmap = backend_->getVocab();
+
 	for(uint i = 0; i < sentence.size(); i++) {
 		cov.reset();
 		std::vector<Word> srcphrase;
 		std::string srcphrasestr;
 		for(uint j = 0; j < maxPhraseLength_ && i + j < sentence.size(); j++) {
 			if(j > 0)
-				srcphrasestr.append(' ');
+				srcphrasestr.push_back(' ');
 			srcphrasestr.append(sentence[i + j]);
 			srcphrase.push_back(sentence[i + j]);
 			cov.set(i + j);
@@ -136,17 +139,19 @@ boost::shared_ptr<const PhrasePairCollection> PhraseTable::getPhrasesForSentence
 				std::vector<std::vector<Word> > annotations(annotationCount_,
 					std::vector<Word>(phraselength));
 				for(uint i = 0; i < phraselength; i++) {
-					std::istringstream is(getTargetWordFromID(it->target_phrase[i],
-						backend_->getVocab()));
+					VocMap::const_iterator wit = vocmap.find(it->target_phrase[i]);
+					assert(wit != vocmap.end());
+					const std::string &token = wit->second;
+					std::istringstream is(token);
 					if(!getline(is, tgtphrase[i], '|')) {
 						LOG(logger_, error, "Problem parsing target phrase: "
-							<< *it->first[i]);
+							<< token);
 						BOOST_THROW_EXCEPTION(FileFormatException());
 					}
 					for(uint j = 0; j < annotationCount_; j++)
 						if(!getline(is, annotations[j][i], '|')) {
 							LOG(logger_, error, "Problem parsing target phrase: "
-								<< *it->first[i]);
+								<< token);
 							BOOST_THROW_EXCEPTION(FileFormatException());
 						}
 				}
@@ -155,9 +160,10 @@ boost::shared_ptr<const PhrasePairCollection> PhraseTable::getPhrasesForSentence
 				for(uint i = 0; i < annotationCount_; i++)
 					annotationPhrases.push_back(Phrase(annotations[i]));
 
-				assert(it->second.size() == nscores_);
+				assert(it->prob.size() == nscores_);
 				Scores s(it->prob.size());
-				std::transform(it->prob.begin(), it->prob.end(), s.begin(), bind(std::log, _1));
+				std::transform(it->prob.begin(), it->prob.end(), s.begin(),
+					bind(static_cast<Float(*)(Float)>(std::log), _1));
 				WordAlignment wa(srcphrase.size(), tgtphrase.size());
 				assert(it->word_all1.size() % 2 == 0);
 				for(uint i = 0; i < it->word_all1.size(); i += 2)
