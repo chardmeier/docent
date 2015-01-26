@@ -549,7 +549,146 @@ PhraseSegmentation FileReadStateInitialiser::initSegmentation(
 	return phraseSegmentation;
 }
 
+MosesStateInitialiser::MosesStateInitialiser(const Parameters &params) : logger_("StateInitialiser") {}
 
+PhraseSegmentation MosesStateInitialiser::initSegmentation(
+		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
+		const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const {
+	PhraseSegmentation seg;
+
+	typedef std::vector<AnchoredPhrasePair> PPVector;
+	PPVector ppvec;
+	ppairs->copyPhrasePairs(std::back_inserter(ppvec));
+	std::sort(ppvec.begin(), ppvec.end(), CompareAnchoredPhrasePairs());
+
+	const std::string &mosesOut = translations_[documentNumber][sentenceNumber];
+	CoverageBitmap totalcov(sentence.size()), cov(sentence.size());
+	std::istringstream is(mosesOut);
+	std::string word;
+	std::vector<Word> tgtpd;
+	std::vector<PhraseData> annotationPhrases(phraseTranslations.getAnnotationCount());
+	while(getline(is, word, ' ')) {
+		if(word.size() == 0) {
+			LOG(logger_, error, "Empty token in moses output: " + mosesOut);
+			BOOST_THROW_EXCEPTION(FileFormatException());
+		}
+
+		if(word[0] == '|') {
+			if(tgtpd.empty()) {
+				LOG(logger_, error, "Empty phrase in moses output: " + mosesOut);
+				BOOST_THROW_EXCEPTION(FileFormatException());
+			}
+
+			std::istringstream is2(word);
+			is2.get(); // discard '|', already checked
+			uint from, to;
+			is2 << from;
+			if(is2.get() != '-') {
+				LOG(logger_, error, "Error parsing range " + word +
+					" in moses output: " + mosesOut);
+				BOOST_THROW_EXCEPTION(FileFormatException());
+			}
+			is2 << to;
+			if(is2.get() != '|' || is2.get() != EOF) {
+				LOG(logger_, error, "Error parsing range " + word +
+					" in moses output: " + mosesOut);
+				BOOST_THROW_EXCEPTION(FileFormatException());
+			}
+			to++; // convert to half-open interval
+
+			if(from >= to || to >= sentence.size()) {
+				LOG(logger_, error, "Invalid range " << word <<
+					" in moses output: " << mosesOut);
+				BOOST_THROW_EXCEPTION(FileFormatException());
+			}
+
+			cov.clear();
+			for(uint i = from; i < to; i++)
+				cov.set(i);
+			if(cov.intersects(totalcov)) {
+				LOG(logger_, error, "Conflicting coverage ranges in moses output: " << mosesOut);
+				BOOST_THROW_EXCEPTION(FileFormatException());
+			}
+
+			std::vector<Word> srcpd(sentence.begin() + from, sentence.begin() + to);
+			
+			CompareAnchoredPhrasePairs compareAPP;
+			CompareAnchoredPhrasePairs::PhrasePairKey key(cov, srcpd, tgtpd);
+			// find range of anchored phrase pairs with matching src and tgt phrases,
+			// but possibly different annotations
+			PPVector::const_iterator it = std::lower_bound(ppvec.begin(), ppvec.end(),
+				key, compareAPP);
+			using namespace boost::lambda;
+			PPVector::const_iterator eit = std::find_if(it, ppvec.end(), bind(compareAPP, key, _1));
+
+			if(it == eit) {
+				LOG(logger_, error, "No matching phrase pair in phrase table: " <<
+					srcpd << " ||| " << tgtpd);
+				BOOST_THROW_EXCEPTION(FileFormatException());
+			}
+
+			class CheckAnnotations_ {
+			private:
+				const std::vector<PhraseData> &annotationPhrases_;
+
+			public:
+				CheckAnnotations_(const std::vector<PhraseData> &annotationPhrases) :
+					annotationPhrases_(annotationPhrases) {}
+
+				bool operator()(const AnchoredPhrasePair &app) const {
+					const PhrasePairData &pp = app.second.get();
+					if(pp.getAnnotationCount() != annotationPhrases_.size())
+						return false;
+					for(uint i = 0; i < annotationPhrases_.size(); i++)
+						if(pp.getTargetAnnotation(i) != annotationPhrases_[i])
+							return false;
+					return true;
+				}
+			};
+
+			PPVector found_it = std::find_if(it, eit, CheckAnnotations_(annotationPhrases));
+			if(found_it == eit) {
+				LOG(logger_, error, "No phrase pair with matching annotations in phrase table: " <<
+					srcpd << " ||| " << tgtpd);
+				BOOST_THROW_EXCEPTION(FileFormatException());
+			}
+
+			seg.push_back(*found_it);
+
+			tgtpd.clear();
+			std::for_each(annotationPhrases.begin(), annotationPhrases.end(),
+				bind(&PhraseData::clear, _1));
+		} else {
+			std::istringstream is2(word);
+			std::string part;
+			getline(is2, part, '|');
+			tgtpd.push_back(part);
+			for(uint i = 0; i < phraseTranslations.getAnnotationCount(); i++) {
+				if(!getline(is2, part, '|')) {
+					LOG(logger_, error, "Too few annotations (expected " <<
+						phraseTranslations.getAnnotationCount() <<
+						"): " << word);
+					BOOST_THROW_EXCEPTION(FileFormatException());
+				}
+				annotationPhrases[i].push_back(part);
+			}
+			is2.get();
+			if(!is2.eof()) {
+				LOG(logger_, error, "Too many annotations (expected " << 
+					phraseTranslations.getAnnotationCount() <<
+					"): " << word);
+				BOOST_THROW_EXCEPTION(FileFormatException());
+			}
+		}
+	}
+
+	if(!tgtpd.empty()) {
+		LOG(logger_, error, "Incomplete line: " << mosesOut);
+		BOOST_THROW_EXCEPTION(FileFormatException());
+	}
+
+	return seg;
+}
 
 StateGenerator::StateGenerator(const std::string &initMethod, const Parameters &params, Random(random)) :
 		logger_("StateGenerator"), random_(random) {
@@ -557,6 +696,8 @@ StateGenerator::StateGenerator(const std::string &initMethod, const Parameters &
 		initialiser_ = new MonotonicStateInitialiser(params);
 	else if(initMethod == "saved-state")
 		initialiser_ = new FileReadStateInitialiser(params);
+	else if(initMethod == "moses")
+		initialiser_ = new MosesStateInitialiser(params);
 	else {
 		LOG(logger_, error, "Unknown initialisation method: " << initMethod);
 		BOOST_THROW_EXCEPTION(ConfigurationException());

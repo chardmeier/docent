@@ -195,6 +195,10 @@ public:
 		return targetPhrase_;
 	}
 
+	uint getAnnotationCount() const {
+		return targetAnnotations_.size();
+	}
+
 	Phrase getTargetAnnotations(uint level) const {
 		static Phrase EMPTY_PHRASE(std::vector<Word>(1, ""));
 		if(oovFlag_)

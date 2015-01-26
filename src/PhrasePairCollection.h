@@ -40,10 +40,12 @@ private:
 	Random random_;
 
 	uint sentenceLength_;
+	uint annotationCount_;
 	typedef std::list<AnchoredPhrasePair> PhrasePairList_;
 	PhrasePairList_ phrasePairList_;
 
-	PhrasePairCollection(const PhraseTable &phraseTable, uint sentenceLength, Random random);
+	PhrasePairCollection(const PhraseTable &phraseTable, uint sentenceLength,
+		uint annotationCount, Random random);
 	void addPhrasePair(CoverageBitmap cov, PhrasePair phrasePair);
 
 	bool proposeSegmentationLeftRight(const CoverageBitmap &range,
@@ -54,6 +56,10 @@ private:
 public:
 	uint getSentenceLength() const {
 		return sentenceLength_;
+	}
+
+	uint getAnnotationCount() const {
+		return annotationCount_;
 	}
 
 	template<class Iterator>

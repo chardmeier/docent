@@ -105,7 +105,7 @@ FeatureFunction::StateModifications *PhraseTable::updateScore(const DocumentStat
 boost::shared_ptr<const PhrasePairCollection> PhraseTable::getPhrasesForSentence(const std::vector<Word> &sentence) const {
 	using namespace boost::lambda;
 	LOG(logger_, verbose, "getPhrasesForSentence " << sentence);
-	boost::shared_ptr<PhrasePairCollection> ptc(new PhrasePairCollection(*this, sentence.size(), random_));	
+	boost::shared_ptr<PhrasePairCollection> ptc(new PhrasePairCollection(*this, sentence.size(), annotationCount_, random_));	
 	CoverageBitmap cov(sentence.size());
 
 	CoverageBitmap uncovered(sentence.size());
