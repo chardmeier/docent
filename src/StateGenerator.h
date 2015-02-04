@@ -57,7 +57,13 @@ struct StateInitialiser {
 	virtual ~StateInitialiser() {}
 	virtual PhraseSegmentation initSegmentation(
 		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
-		const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const = 0;
+		const std::vector<Word> &sentence, int sentenceNumber) const = 0;
+};
+
+struct StateInitialiserFactory {
+	virtual ~StateInitialiserFactory() {}
+        virtual const StateInitialiser *createDocumentInitialiser(uint docNumber,
+                const boost::shared_ptr<MMAXDocument> &inputdoc) = 0;
 };
 
 class StateGenerator {
@@ -66,19 +72,18 @@ private:
 	Random random_;
 	boost::ptr_vector<StateOperation> operations_;
 	std::vector<Float> cumulativeOperationDistribution_;
-	StateInitialiser *initialiser_;
+	StateInitialiserFactory *initialiser_;
 
 public:
 	StateGenerator(const std::string &initMethod, const Parameters &params, Random random);
 	~StateGenerator();
 	void addOperation(Float weight, const std::string &type, const Parameters &params);
 	
-	PhraseSegmentation initSegmentation(
-			boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
-			const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const {
-		return initialiser_->initSegmentation(phraseTranslations, sentence, documentNumber, sentenceNumber);
+	const StateInitialiser *createDocumentInitialiser(uint docNumber,
+			const boost::shared_ptr<MMAXDocument> &inputdoc) {
+		return initialiser->createDocumentInitialiser(docNumber, inputdoc);
 	}
-	
+
 	SearchStep *createSearchStep(const DocumentState &doc) const;
 };
 

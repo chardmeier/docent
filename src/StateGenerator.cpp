@@ -499,27 +499,59 @@ SearchStep *ResegmentOperation::createSearchStep(const DocumentState &doc) const
 	return step;
 }
 
-struct MonotonicStateInitialiser : public StateInitialiser {
-	MonotonicStateInitialiser(const Parameters &params) {}
-	virtual PhraseSegmentation initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const;
+struct MonotonicStateInitialiserFactory : public StateInitialiserFactory {
+	MonotonicStateInitialiserFactory(const Parameters &params) {}
+	const StateInitialiser *createDocumentInitialiser(
+		uint docNumber, const boost::shared_ptr<MMAXDocument> &inputdoc);
 };
 
-class FileReadStateInitialiser : public StateInitialiser {
+struct MonotonicStateInitialiser : public StateInitialiser {
+	virtual PhraseSegmentation initSegmentation(
+		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
+		const std::vector<Word> &sentence, int sentenceNumber) const;
+};
+
+MonotonicStateInitialiserFactory::MonotonicStateInitialiserFactory(const Parameters &params) {}
+
+StateInitialiser MonotonicStateInitialiserFactory::createDocumentInitialiser(uint docNumber,
+		const boost::shared_ptr<MMAXDocument> &inputdoc) {
+	return new MonotonicStateInitialiser();
+}
+
+PhraseSegmentation MonotonicStateInitialiser::initSegmentation(
+		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
+		const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const {
+	return phraseTranslations->proposeSegmentation();
+}
+
+class FileReadStateInitialiserFactory : public StateInitialiserFactory {
 private:
 	Logger logger_;
 	std::vector<std::vector<PhraseSegmentation> > segmentations_;
 public:
-  FileReadStateInitialiser(const Parameters &params);
-  virtual PhraseSegmentation initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const;
+	FileReadStateInitialiserFactory(const Parameters &params);
+	const StateInitialiser *createDocumentInitialiser(
+		uint docNumber, const boost::shared_ptr<MMAXDocument> &inputdoc);
 };
 
+class FileReadStateInitialiser : public StateInitialiser {
+	friend class FileReadStateInitialiserFactory;
+private:
+	const std::vector<std::vector<PhraseSegmentation> > &segmentations_;
+	uint documentNumber_;
 
-PhraseSegmentation MonotonicStateInitialiser::initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const {
-	return phraseTranslations->proposeSegmentation();
-}
+	FileReadStateInitialiser(const std::vector<std::vector<PhraseSegmentation> > &segmentations,
+		uint docNumber);
 
-FileReadStateInitialiser::FileReadStateInitialiser(const Parameters &params) : logger_("StateInitialiser") {
-  // get file name from params 
+public:
+	virtual PhraseSegmentation initSegmentation(
+		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
+		const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const;
+};
+
+FileReadStateInitialiserFactory::FileReadStateInitialiserFactory(const Parameters &params)
+		: logger_("StateInitialiser") {
+	// get file name from params 
 	std::string filename = params.get<std::string>("file");
 
 	// open the archive
@@ -534,10 +566,21 @@ FileReadStateInitialiser::FileReadStateInitialiser(const Parameters &params) : l
 	ia >> segmentations_;
 }
 
+StateInitialiser FileReadStateInitialiserFactory::createDocumentInitialiser(uint docNumber,
+		const boost::shared_ptr<MMAXDocument> &inputdoc) {
+	return new FileReadStateInitialiser(segmentations_, docNumber_);
+}
+
+FileReadStateInitialiser::FileReadStateInitialiser(
+	const std::vector<std::vector<PhraseSegmentation> > &segmentations,
+	uint docNumber)
+		: segmentations_(segmentations), documentNumber_(docNumber) {}
+
+
 PhraseSegmentation FileReadStateInitialiser::initSegmentation(
 		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
-		const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const {
-	PhraseSegmentation phraseSegmentation = segmentations_[documentNumber][sentenceNumber]; 
+		const std::vector<Word> &sentence, int sentenceNumber) const {
+	PhraseSegmentation phraseSegmentation = segmentations_[documentNumber_][sentenceNumber]; 
 	//Check that all phrases in the phraseSegmentation exist in phraseTranslations
 	if (!phraseTranslations->phrasesExist(phraseSegmentation)) {
 		LOG(logger_, error, "ERROR: A phrase from the saved state does not exist in "
@@ -549,24 +592,85 @@ PhraseSegmentation FileReadStateInitialiser::initSegmentation(
 	return phraseSegmentation;
 }
 
-MosesStateInitialiser::MosesStateInitialiser(const Parameters &params) : logger_("StateInitialiser") {}
+class MosesStateInitialiserFactory : public StateInitialiserFactory {
+private:
+	Logger logger_;
+	std::vector<std::string> translations_;
+	uint lastDocNumber_;
+
+public:
+	MosesStateInitialiserFactory(const Parameters &params);
+	const StateInitialiser *createDocumentInitialiser(uint docNumber,
+		const boost::shared_ptr<MMAXDocument> &inputdoc);
+};
+
+class MosesStateInitialiser : public StateInitialiser {
+	friend class MosesStateInitialiserFactory;
+private:
+	Logger logger_;
+	uint docNumber_;
+
+	MosesStateInitialiser::MosesStateInitialiser(uint docNumber,
+		const boost::shared_ptr<MMAXDocument> &inputdoc,
+		std::ifstream &input);
+
+public:
+	virtual PhraseSegmentation initSegmentation(
+		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
+		const std::vector<Word> &sentence, int sentenceNumber) const;
+};
+
+MosesStateInitialiserFactory::MosesStateInitialiserFactory(const Parameters &params)
+		: logger_("StateInitialiser"),
+		  input_(params.get<std::string>("input-file").c_str()),
+		  lastDocNumber_(-1) {
+	if(!input_.good()) {
+		LOG(logger_, error, "Error opening file: " << params.get<std::string>("input-file"));
+		BOOST_THROW_EXCEPTION(FileFormatException());
+	}
+}
+
+StateInitialiser MosesStateInitialiserFactory::createDocumentInitialiser(uint docNumber,
+		const boost::shared_ptr<MMAXDocument> &inputdoc) {
+	if(lastDocNumber_ != docNumber - 1) {
+		LOG(logger_, error, "Documents must be initialised in order for MosesStateInitialiser");
+		BOOST_THROW_EXCEPTION(ConfigurationException());
+	}
+	lastDocNumber_ = docNumber;
+
+	return new MosesStateInitialiser(docNumber, inputdoc);
+}
+
+void MosesStateInitialiser::MosesStateInitialiser(uint docNumber,
+	const boost::shared_ptr<MMAXDocument> &inputdoc,
+	std::ifstream &input)
+		: docNumber_(docNumber) {
+	for(uint i = 0; i < inputdoc.getNumberOfSentences(); i++)
+		if(getline(input, line))
+			translations_.push_back(line);
+		else {
+			LOG(logger_, error, "Not enough lines in moses state input file.");
+			BOOST_THROW_EXCEPTION(FileFormatException());
+		}
+}
 
 PhraseSegmentation MosesStateInitialiser::initSegmentation(
 		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
-		const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const {
+		const std::vector<Word> &sentence, int sentenceNumber) const {
 	PhraseSegmentation seg;
 
 	typedef std::vector<AnchoredPhrasePair> PPVector;
 	PPVector ppvec;
-	ppairs->copyPhrasePairs(std::back_inserter(ppvec));
+	phraseTranslations->copyPhrasePairs(std::back_inserter(ppvec));
 	std::sort(ppvec.begin(), ppvec.end(), CompareAnchoredPhrasePairs());
 
-	const std::string &mosesOut = translations_[documentNumber][sentenceNumber];
+	const std::string &mosesOut = translations_[sentenceNumber];
+
 	CoverageBitmap totalcov(sentence.size()), cov(sentence.size());
 	std::istringstream is(mosesOut);
 	std::string word;
 	std::vector<Word> tgtpd;
-	std::vector<PhraseData> annotationPhrases(phraseTranslations.getAnnotationCount());
+	std::vector<PhraseData> annotationPhrases(phraseTranslations->getAnnotationCount());
 	while(getline(is, word, ' ')) {
 		if(word.size() == 0) {
 			LOG(logger_, error, "Empty token in moses output: " + mosesOut);
@@ -582,13 +686,13 @@ PhraseSegmentation MosesStateInitialiser::initSegmentation(
 			std::istringstream is2(word);
 			is2.get(); // discard '|', already checked
 			uint from, to;
-			is2 << from;
+			is2 >> from;
 			if(is2.get() != '-') {
 				LOG(logger_, error, "Error parsing range " + word +
 					" in moses output: " + mosesOut);
 				BOOST_THROW_EXCEPTION(FileFormatException());
 			}
-			is2 << to;
+			is2 >> to;
 			if(is2.get() != '|' || is2.get() != EOF) {
 				LOG(logger_, error, "Error parsing range " + word +
 					" in moses output: " + mosesOut);
@@ -663,10 +767,10 @@ PhraseSegmentation MosesStateInitialiser::initSegmentation(
 			std::string part;
 			getline(is2, part, '|');
 			tgtpd.push_back(part);
-			for(uint i = 0; i < phraseTranslations.getAnnotationCount(); i++) {
+			for(uint i = 0; i < phraseTranslations->getAnnotationCount(); i++) {
 				if(!getline(is2, part, '|')) {
 					LOG(logger_, error, "Too few annotations (expected " <<
-						phraseTranslations.getAnnotationCount() <<
+						phraseTranslations->getAnnotationCount() <<
 						"): " << word);
 					BOOST_THROW_EXCEPTION(FileFormatException());
 				}
@@ -675,7 +779,7 @@ PhraseSegmentation MosesStateInitialiser::initSegmentation(
 			is2.get();
 			if(!is2.eof()) {
 				LOG(logger_, error, "Too many annotations (expected " << 
-					phraseTranslations.getAnnotationCount() <<
+					phraseTranslations->getAnnotationCount() <<
 					"): " << word);
 				BOOST_THROW_EXCEPTION(FileFormatException());
 			}
@@ -693,11 +797,11 @@ PhraseSegmentation MosesStateInitialiser::initSegmentation(
 StateGenerator::StateGenerator(const std::string &initMethod, const Parameters &params, Random(random)) :
 		logger_("StateGenerator"), random_(random) {
 	if(initMethod == "monotonic")
-		initialiser_ = new MonotonicStateInitialiser(params);
+		initialiser_ = new MonotonicStateInitialiserFactory(params);
 	else if(initMethod == "saved-state")
-		initialiser_ = new FileReadStateInitialiser(params);
+		initialiser_ = new FileReadStateInitialiserFactory(params);
 	else if(initMethod == "moses")
-		initialiser_ = new MosesStateInitialiser(params);
+		initialiser_ = new MosesStateInitialiserFactory(params);
 	else {
 		LOG(logger_, error, "Unknown initialisation method: " << initMethod);
 		BOOST_THROW_EXCEPTION(ConfigurationException());

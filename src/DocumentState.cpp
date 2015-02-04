@@ -41,6 +41,7 @@
 #include <boost/lambda/bind.hpp>
 #include <boost/lambda/construct.hpp>
 #include <boost/lambda/if.hpp>
+#include <boost/scoped_ptr.hpp>
 
 DocumentState::DocumentState(const DecoderConfiguration &config, const boost::shared_ptr<const MMAXDocument> &inputdoc, int docNumber) :
 		logger_("DocumentState"),
@@ -64,10 +65,12 @@ void DocumentState::init() {
 	Float cumlength = Float(0);
 	const PhraseTable &ttable = configuration_->getPhraseTable();
 	const StateGenerator &generator = configuration_->getStateGenerator();
+	boost::scoped_ptr<const StateInitialiser> initialiser(
+		generator.createDocumentInitialiser(docNumber_, inputdoc_));
 	for(uint i = 0; i < inputdoc_->getNumberOfSentences(); i++) {
 		std::vector<Word> snt(inputdoc_->sentence_begin(i), inputdoc_->sentence_end(i));
 		phraseTranslations_.push_back(ttable.getPhrasesForSentence(snt));
-		PhraseSegmentation ps = generator.initSegmentation(phraseTranslations_[i], snt, docNumber_, i);
+		PhraseSegmentation ps = initialiser->initSegmentation(phraseTranslations_[i], snt, i);
 		sentences_.push_back(ps);
 		cumlength += snt.size();
 		sntlen->push_back(cumlength);
