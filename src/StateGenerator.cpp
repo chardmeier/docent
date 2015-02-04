@@ -502,7 +502,7 @@ SearchStep *ResegmentOperation::createSearchStep(const DocumentState &doc) const
 struct MonotonicStateInitialiserFactory : public StateInitialiserFactory {
 	MonotonicStateInitialiserFactory(const Parameters &params) {}
 	const StateInitialiser *createDocumentInitialiser(
-		uint docNumber, const boost::shared_ptr<MMAXDocument> &inputdoc);
+		uint docNumber, const boost::shared_ptr<const MMAXDocument> &inputdoc);
 };
 
 struct MonotonicStateInitialiser : public StateInitialiser {
@@ -514,7 +514,7 @@ struct MonotonicStateInitialiser : public StateInitialiser {
 MonotonicStateInitialiserFactory::MonotonicStateInitialiserFactory(const Parameters &params) {}
 
 StateInitialiser MonotonicStateInitialiserFactory::createDocumentInitialiser(uint docNumber,
-		const boost::shared_ptr<MMAXDocument> &inputdoc) {
+		const boost::shared_ptr<const MMAXDocument> &inputdoc) {
 	return new MonotonicStateInitialiser();
 }
 
@@ -531,7 +531,7 @@ private:
 public:
 	FileReadStateInitialiserFactory(const Parameters &params);
 	const StateInitialiser *createDocumentInitialiser(
-		uint docNumber, const boost::shared_ptr<MMAXDocument> &inputdoc);
+		uint docNumber, const boost::shared_ptr<const MMAXDocument> &inputdoc);
 };
 
 class FileReadStateInitialiser : public StateInitialiser {
@@ -567,7 +567,7 @@ FileReadStateInitialiserFactory::FileReadStateInitialiserFactory(const Parameter
 }
 
 StateInitialiser FileReadStateInitialiserFactory::createDocumentInitialiser(uint docNumber,
-		const boost::shared_ptr<MMAXDocument> &inputdoc) {
+		const boost::shared_ptr<const MMAXDocument> &inputdoc) {
 	return new FileReadStateInitialiser(segmentations_, docNumber_);
 }
 
@@ -601,7 +601,7 @@ private:
 public:
 	MosesStateInitialiserFactory(const Parameters &params);
 	const StateInitialiser *createDocumentInitialiser(uint docNumber,
-		const boost::shared_ptr<MMAXDocument> &inputdoc);
+		const boost::shared_ptr<const MMAXDocument> &inputdoc);
 };
 
 class MosesStateInitialiser : public StateInitialiser {
@@ -611,7 +611,7 @@ private:
 	uint docNumber_;
 
 	MosesStateInitialiser::MosesStateInitialiser(uint docNumber,
-		const boost::shared_ptr<MMAXDocument> &inputdoc,
+		const boost::shared_ptr<const MMAXDocument> &inputdoc,
 		std::ifstream &input);
 
 public:
@@ -631,7 +631,7 @@ MosesStateInitialiserFactory::MosesStateInitialiserFactory(const Parameters &par
 }
 
 StateInitialiser MosesStateInitialiserFactory::createDocumentInitialiser(uint docNumber,
-		const boost::shared_ptr<MMAXDocument> &inputdoc) {
+		const boost::shared_ptr<const MMAXDocument> &inputdoc) {
 	if(lastDocNumber_ != docNumber - 1) {
 		LOG(logger_, error, "Documents must be initialised in order for MosesStateInitialiser");
 		BOOST_THROW_EXCEPTION(ConfigurationException());
@@ -642,7 +642,7 @@ StateInitialiser MosesStateInitialiserFactory::createDocumentInitialiser(uint do
 }
 
 void MosesStateInitialiser::MosesStateInitialiser(uint docNumber,
-	const boost::shared_ptr<MMAXDocument> &inputdoc,
+	const boost::shared_ptr<const MMAXDocument> &inputdoc,
 	std::ifstream &input)
 		: docNumber_(docNumber) {
 	for(uint i = 0; i < inputdoc.getNumberOfSentences(); i++)
