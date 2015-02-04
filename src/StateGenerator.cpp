@@ -653,6 +653,25 @@ MosesStateInitialiser::MosesStateInitialiser(uint docNumber,
 		}
 }
 
+class CheckAnnotations {
+private:
+	const std::vector<PhraseData> &annotationPhrases_;
+
+public:
+	CheckAnnotations(const std::vector<PhraseData> &annotationPhrases) :
+		annotationPhrases_(annotationPhrases) {}
+
+	bool operator()(const AnchoredPhrasePair &app) const {
+		const PhrasePairData &pp = app.second.get();
+		if(pp.getAnnotationCount() != annotationPhrases_.size())
+			return false;
+		for(uint i = 0; i < annotationPhrases_.size(); i++)
+			if(pp.getTargetAnnotations(i) != annotationPhrases_[i])
+				return false;
+		return true;
+	}
+};
+
 PhraseSegmentation MosesStateInitialiser::initSegmentation(
 		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
 		const std::vector<Word> &sentence, int sentenceNumber) const {
@@ -722,7 +741,9 @@ PhraseSegmentation MosesStateInitialiser::initSegmentation(
 			PPVector::const_iterator it = std::lower_bound(ppvec.begin(), ppvec.end(),
 				key, compareAPP);
 			using namespace boost::lambda;
-			PPVector::const_iterator eit = std::find_if(it, ppvec.end(), bind(compareAPP, key, _1));
+			PPVector::const_iterator eit = std::find_if(it,
+				static_cast<PPVector::const_iterator>(ppvec.end()),
+				bind(compareAPP, key, _1));
 
 			if(it == eit) {
 				LOG(logger_, error, "No matching phrase pair in phrase table: " <<
@@ -730,26 +751,7 @@ PhraseSegmentation MosesStateInitialiser::initSegmentation(
 				BOOST_THROW_EXCEPTION(FileFormatException());
 			}
 
-			class CheckAnnotations_ {
-			private:
-				const std::vector<PhraseData> &annotationPhrases_;
-
-			public:
-				CheckAnnotations_(const std::vector<PhraseData> &annotationPhrases) :
-					annotationPhrases_(annotationPhrases) {}
-
-				bool operator()(const AnchoredPhrasePair &app) const {
-					const PhrasePairData &pp = app.second.get();
-					if(pp.getAnnotationCount() != annotationPhrases_.size())
-						return false;
-					for(uint i = 0; i < annotationPhrases_.size(); i++)
-						if(pp.getTargetAnnotation(i) != annotationPhrases_[i])
-							return false;
-					return true;
-				}
-			};
-
-			PPVector found_it = std::find_if(it, eit, CheckAnnotations_(annotationPhrases));
+			PPVector::const_iterator found_it = std::find_if(it, eit, CheckAnnotations(annotationPhrases));
 			if(found_it == eit) {
 				LOG(logger_, error, "No phrase pair with matching annotations in phrase table: " <<
 					srcpd << " ||| " << tgtpd);
