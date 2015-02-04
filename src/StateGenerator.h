@@ -81,7 +81,7 @@ public:
 	
 	const StateInitialiser *createDocumentInitialiser(uint docNumber,
 			const boost::shared_ptr<MMAXDocument> &inputdoc) {
-		return initialiser->createDocumentInitialiser(docNumber, inputdoc);
+		return initialiser_->createDocumentInitialiser(docNumber, inputdoc);
 	}
 
 	SearchStep *createSearchStep(const DocumentState &doc) const;
