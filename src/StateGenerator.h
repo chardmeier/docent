@@ -63,7 +63,7 @@ struct StateInitialiser {
 struct StateInitialiserFactory {
 	virtual ~StateInitialiserFactory() {}
         virtual const StateInitialiser *createDocumentInitialiser(uint docNumber,
-                const boost::shared_ptr<const MMAXDocument> &inputdoc) = 0;
+                const boost::shared_ptr<const MMAXDocument> &inputdoc) const = 0;
 };
 
 class StateGenerator {
@@ -80,7 +80,7 @@ public:
 	void addOperation(Float weight, const std::string &type, const Parameters &params);
 	
 	const StateInitialiser *createDocumentInitialiser(uint docNumber,
-			const boost::shared_ptr<const MMAXDocument> &inputdoc) {
+			const boost::shared_ptr<const MMAXDocument> &inputdoc) const {
 		return initialiser_->createDocumentInitialiser(docNumber, inputdoc);
 	}
 
