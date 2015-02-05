@@ -6,4 +6,4 @@
 	url = https://github.com/chardmeier/arabica.git
 [submodule "external/ProbingPT"]
 	path = external/ProbingPT
-	url = https://github.com/XapaJIaMnu/ProbingPT
+	url = https://github.com/chardmeier/ProbingPT
