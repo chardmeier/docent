@@ -416,8 +416,11 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 		ff = new BracketingModel(params);	
 	else if(type == "well-formedness-model")
 		ff = new WellFormednessModel(params);
-	else 
+	else {
+		Logger logger("FeatureFunctionFactory");
+		LOG(logger, error, "Unknown feature function type: " << type);
 		BOOST_THROW_EXCEPTION(ConfigurationException());
+	}
 
 	return boost::shared_ptr<FeatureFunction>(ff);
 }
