@@ -112,7 +112,7 @@ boost::shared_ptr<const PhrasePairCollection> PhraseTable::getPhrasesForSentence
 	uncovered.set();
 
 	typedef std::map<unsigned int, std::string> VocMap;
-	const VocMap vocmap = backend_->getVocab();
+	const VocMap &vocmap = backend_->getVocab();
 
 	for(uint i = 0; i < sentence.size(); i++) {
 		cov.reset();
