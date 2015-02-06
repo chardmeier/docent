@@ -161,9 +161,15 @@ boost::shared_ptr<const PhrasePairCollection> PhraseTable::getPhrasesForSentence
 					annotationPhrases.push_back(Phrase(annotations[i]));
 
 				assert(it->prob.size() == nscores_);
-				Scores s(it->prob.size());
-				std::transform(it->prob.begin(), it->prob.end(), s.begin(),
-					bind(static_cast<Float(*)(Float)>(std::log), _1));
+				Scores s(nscores_);
+				for(uint i = 0; i < nscores_; i++) {
+					s[i] = std::max(std::log(it->prob[i]), IMPOSSIBLE_SCORE);
+					if(!std::isfinite(s[i])) {
+						LOG(logger_, error, "Infinite ttable score: " <<
+							srcphrasestr << " ||| " << tgtphrase << " ||| " <<
+							it->prob << ' ' << s);
+					}
+				}
 				WordAlignment wa(srcphrase.size(), tgtphrase.size());
 				assert(it->word_all1.size() % 2 == 0);
 				for(uint i = 0; i < it->word_all1.size(); i += 2)
