@@ -148,7 +148,7 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset, const
 			boost::shared_ptr<DocumentState> doc =
 				boost::make_shared<DocumentState>(config, inputdoc, docNum);
 			states.push_back(algo.createState(doc));
-			std::cerr << "* " << docNum << "\t0\t" << doc->getScore() << std::endl;
+			std::cerr << "* " << docNum << "\t0\t" << doc->getScore() << '\t' << doc->getScores() << std::endl;
 
 			PlainTextDocument ptout = doc->asPlainTextDocument();
 			for(uint j = 0; j < ptout.getNumberOfSentences(); j++) {
