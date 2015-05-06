@@ -123,6 +123,12 @@ public:
 	virtual void computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const;
 };
 
+struct PhrasePenaltyCounter : public std::unary_function<const AnchoredPhrasePair &,Float> {
+	Float operator()(const AnchoredPhrasePair &ppair) const {
+		return Float(1);
+	};
+};
+
 struct WordPenaltyCounter : public std::unary_function<const AnchoredPhrasePair &,Float> {
 	Float operator()(const AnchoredPhrasePair &ppair) const {
 		return -Float(ppair.second.get().getTargetPhrase().get().size());
@@ -386,6 +392,8 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 		ff = new GeometricDistortionModel(params);
 	else if(type == "sentence-length-model")
 		ff = new SentenceLengthModel(params);
+	else if(type == "phrase-penalty")
+		ff = createCountingFeatureFunction(PhrasePenaltyCounter());
 	else if(type == "word-penalty")
 		ff = createCountingFeatureFunction(WordPenaltyCounter());
 	else if(type == "oov-penalty")
