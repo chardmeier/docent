@@ -34,6 +34,7 @@
 #include <boost/make_shared.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/unordered_map.hpp>
+#include <boost/utility.hpp>
 #include <boost/archive/tmpdir.hpp>
 #include <boost/archive/text_oarchive.hpp>
 
@@ -49,7 +50,56 @@
 void usage();
 
 template<class Testset>
+class SingleDocumentTestset {
+private:
+	Testset &backend_;
+
+public:
+	SingleDocumentTestset(Testset &backend) : backend_(backend) {}
+
+	typedef typename Testset::value_type value_type;
+	typedef typename Testset::const_value_type const_value_type;
+
+	typedef typename Testset::iterator iterator;
+	typedef typename Testset::const_iterator const_iterator;
+
+	iterator begin() {
+		return backend_.begin();
+	}
+
+	iterator end() {
+		if(backend_.size() > 0)
+			return boost::next(backend_.begin());
+		else
+			return backend_.end();
+	}
+
+	const_iterator begin() const {
+		return backend_.begin();
+	}
+
+	const_iterator end() const {
+		if(backend_.size() > 0)
+			return boost::next(backend_.begin());
+		else
+			return backend_.end();
+	}
+
+	uint size() const {
+		if(backend_.size() > 0)
+			return 1;
+		else
+			return 0;
+	}
+
+	void outputTranslation(std::ostream &os) const {
+		backend_.outputTranslation(os);
+	}
+};
+
+template<class Testset>
 void processTestset(const ConfigurationFile &configFile, Testset &testset, const std::string &outstem, bool dumpStates, const std::string& firstStateFilename, const std::string& lastStateFilename);
+std::string formatWordAlignment(const PhraseSegmentation &snt);
 
 void printState(const std::string& filename, const std::vector<std::vector<PhraseSegmentation> >& state);
 
@@ -59,6 +109,7 @@ int main(int argc, char **argv) {
 	std::vector<ModificationPair> xpset;
 	std::vector<std::string> xpremove;
 	std::string mmax, nistxml;
+	bool translateSingleDocument = false;
 	bool dumpstates = false;
 	std::string firstStateFilename, lastStateFilename;
 
@@ -82,7 +133,15 @@ int main(int argc, char **argv) {
 				usage();
 			xpremove.push_back(argv[++i]);
 		} else if(strcmp(argv[i], "-d") == 0) {
+			if(i >= argc - 1)
+				usage();
 			Logger::setLogLevel(argv[++i], debug);
+		} else if(strcmp(argv[i], "-v") == 0) {
+			if(i >= argc - 1)
+				usage();
+			Logger::setLogLevel(argv[++i], verbose);
+		} else if(strcmp(argv[i], "-1") == 0) {
+			translateSingleDocument = true;
 		} else if(strcmp(argv[i], "-pf") == 0) {
 			if(i >= argc - 1)
 				usage();
@@ -112,10 +171,18 @@ int main(int argc, char **argv) {
 
 	if(!mmax.empty()) {
 		MMAXTestset testset(mmax, nistxml);
-		processTestset(config, testset, outstem, dumpstates, firstStateFilename, lastStateFilename);
+		if(translateSingleDocument) {
+			SingleDocumentTestset<MMAXTestset> single(testset);
+			processTestset(config, single, outstem, dumpstates, firstStateFilename, lastStateFilename);
+		} else
+			processTestset(config, testset, outstem, dumpstates, firstStateFilename, lastStateFilename);
 	} else {
 		NistXmlTestset testset(nistxml);
-		processTestset(config, testset, outstem, dumpstates, firstStateFilename, lastStateFilename);
+		if(translateSingleDocument) {
+			SingleDocumentTestset<NistXmlTestset> single(testset);
+			processTestset(config, single, outstem, dumpstates, firstStateFilename, lastStateFilename);
+		} else
+			processTestset(config, testset, outstem, dumpstates, firstStateFilename, lastStateFilename);
 	}
 
 	return 0;
@@ -156,7 +223,8 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset, const
 				Scores sntscores = doc->computeSentenceScores(j);
 				os << std::inner_product(sntscores.begin(), sntscores.end(),
 					config.getFeatureWeights().begin(), Float(0))
-					<< " - " << sntscores;
+					<< " - " << sntscores
+					<< " - " << formatWordAlignment(doc->getPhraseSegmentation(j));
 				inputdocs[docNum]->annotateSentence(j, os.str());
 			}
 			std::ostringstream tos;
@@ -199,7 +267,9 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset, const
 					Scores sntscores = out[0]->computeSentenceScores(j);
 					os << std::inner_product(sntscores.begin(), sntscores.end(),
 						config.getFeatureWeights().begin(), Float(0))
-						<< " - " << sntscores;
+						<< " - " << sntscores
+						<< " - " << formatWordAlignment(
+						out[0]->getPhraseSegmentation(j));
 					inputdocs[i]->annotateSentence(j, os.str());
 				}
 				std::ostringstream tos;
@@ -234,6 +304,23 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset, const
 		std::cerr << boost::diagnostic_information(e);
 		abort();
 	}
+}
+
+std::string formatWordAlignment(const PhraseSegmentation &snt) {
+	std::ostringstream out;
+	uint tgtoffset = 0;
+	BOOST_FOREACH(const AnchoredPhrasePair &app, snt) {
+		uint srcoffset = app.first.find_first();
+		const WordAlignment &wa = app.second.get().getWordAlignment();
+		for(uint t = 0; t < app.second.get().getTargetPhrase().get().size(); t++)
+			for(WordAlignment::const_iterator it = wa.begin_for_target(t);
+					it != wa.end_for_target(t); ++it)
+				out << (srcoffset + *it) << '-' << (tgtoffset + t) << ' ';
+		tgtoffset += app.second.get().getTargetPhrase().get().size();
+	}
+	std::string retstr = out.str();
+	retstr.erase(retstr.size() - 1);
+	return retstr;
 }
 
 std::ostream &operator<<(std::ostream &os, const std::vector<Word> &phrase) {
