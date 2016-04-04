@@ -63,7 +63,7 @@ while (<ST>){
     ## extract all words that are linked to a word that fulfills the condition
     ## (right now: only min-string-length is checked!)
 
-    my @selected = select_words(\@trgwords,\@srcwords,\%trg2src,min_length => $MinWordLength);
+    my @selected = select_words(\@srcwords,\@trgwords,\%src2trg,min_length => $MinWordLength);
     my @ids = split(/\s+/,$trgids);
 
     print join(' ',@selected);

@@ -36,7 +36,7 @@
 	</model>
 </models>
 <weights>
-	<weight model="swlm">1</weight>
+	<weight model="swlm">0.1</weight>
 	<weight model="d" score="0">0.113695</weight>
 	<weight model="d" score="1">1e30</weight>
 	<weight model="w">-0.29083</weight>
