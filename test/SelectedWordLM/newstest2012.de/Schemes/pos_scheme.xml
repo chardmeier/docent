@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- Mark-Christoph Mueller, European Media Lab, Heidelberg, Germany (mueller@eml.org) -->
+<annotationscheme>
+
+	<attribute id="level_pos" name="tag" text="POS-tag assigned by external tagger"  type="freetext">
+		<value id="value_1000" name="tag"/>
+	</attribute>
+
+</annotationscheme>

@@ -1,9 +1,18 @@
 #!/usr/bin/perl
 
 use strict;
+use Getopt::Std;
 
-my $MinWordLength = 4;
-my $DocTag = 'SPEAKER';
+our ($opt_d,$opt_p,$opt_l);
+getopts('d:p:l:');
+
+
+# my $MinWordLength = $opt_l || 4;
+# my $PosTag = $opt_p || 'NOUN';
+
+my $MinWordLength = $opt_l;
+my $PosTag = $opt_p;
+my $DocTag = $opt_d || 'SPEAKER';
 
 
 my ($srctxtfile,$trgtxtfile,$algfile,$idfile,$xmldir) = @ARGV;
@@ -31,6 +40,7 @@ while (<ST>){
     my $idstr = <I>;
 
     chomp($_,$trgsent,$algstr,$idstr);
+    s/^\s*//;$trgsent=~s/^\s*//;
 
     my @srcwords = split(/\s+/,$_);
     my @trgwords = split(/\s+/,$trgsent);
@@ -63,7 +73,9 @@ while (<ST>){
     ## extract all words that are linked to a word that fulfills the condition
     ## (right now: only min-string-length is checked!)
 
-    my @selected = select_words(\@srcwords,\@trgwords,\%src2trg,min_length => $MinWordLength);
+    my @selected = select_words(\@srcwords,\@trgwords,\%src2trg,
+                                min_length => $MinWordLength,
+                                pos_tag => $PosTag);
     my @ids = split(/\s+/,$trgids);
 
     print join(' ',@selected);
@@ -105,8 +117,11 @@ sub select_words{
 
     my %selected=();
     foreach my $i (0..$#{$words1}){
-	next if (exists $conditions{min_length} && length($$words1[$i]) < $conditions{min_length});
-
+	next if (defined $conditions{min_length} && length($$words1[$i]) < $conditions{min_length});
+        if (defined $conditions{pos_tag}){
+            my ($w,$p) = split(/\//,$$words1[$i]);
+            next unless ($p eq $conditions{pos_tag});
+        }
 	for my $j (keys %{$$links{$i}}){
 	    $selected{$j} = $$words2[$j];
 #	    push(@selected,$$words2[$j]) if ($j <= $#{$words2});

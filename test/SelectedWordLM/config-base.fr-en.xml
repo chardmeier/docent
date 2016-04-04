@@ -1,0 +1,48 @@
+<?xml version="1.0" ?>
+<docent>
+<random>185952804</random>
+<state-generator>
+	<initial-state type="monotonic"/>  
+<!--	<initial-state type="beam-search">
+          <p name="ini">config-moses.fr-en.ini</p>
+        </initial-state> -->
+	<operation type="change-phrase-translation" weight=".8"/>
+	<operation type="swap-phrases" weight=".1">
+		<p name="swap-distance-decay">.5</p>
+	</operation>
+	<operation type="resegment" weight=".1">
+		<p name="phrase-resegmentation-decay">.1</p>
+	</operation>
+</state-generator>
+<search algorithm="simulated-annealing">
+	<p name="max-steps">100000</p>
+	<p name="schedule">hill-climbing</p>
+	<p name="hill-climbing:max-rejected">10000</p>
+</search>
+<models>
+	<model type="geometric-distortion-model" id="d">
+		<p name="distortion-limit">20</p>
+	</model>
+	<model type="word-penalty" id="w"/>
+	<model type="oov-penalty" id="oov"/>
+	<model type="ngram-model" id="lm">
+		<p name="lm-file">Europarl/Europarl.en.kenlm</p>
+	</model>
+	<model type="phrase-table" id="tm">
+		<p name="file">Europarl/fr-en/phrase-table</p>
+		<p name="load-alignments">true</p>
+	</model>
+</models>
+<weights>
+	<weight model="d" score="0">0.149838</weight>
+	<weight model="d" score="1">1e30</weight>
+	<weight model="w">-0.250972</weight>
+	<weight model="oov">100.0</weight>
+	<weight model="lm">0.184687</weight>
+	<weight model="tm" score="0">0.073291</weight>
+	<weight model="tm" score="1">0.140994</weight>
+	<weight model="tm" score="2">0.0952746</weight>
+	<weight model="tm" score="3">0.0894438</weight>
+	<weight model="tm" score="4">-0.0154991</weight>
+</weights>
+</docent>

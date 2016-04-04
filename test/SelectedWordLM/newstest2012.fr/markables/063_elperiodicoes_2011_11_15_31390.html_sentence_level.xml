@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE markables SYSTEM "markables.dtd">
+<markables xmlns="www.eml.org/NameSpaces/sentence">
+<markable mmax_level="sentence" orderid="0" id="markable_0" span="word_1..word_10" />
+<markable mmax_level="sentence" orderid="1" id="markable_1" span="word_11..word_28" />
+<markable mmax_level="sentence" orderid="2" id="markable_2" span="word_29..word_41" />
+<markable mmax_level="sentence" orderid="3" id="markable_3" span="word_42..word_61" />
+<markable mmax_level="sentence" orderid="4" id="markable_4" span="word_62..word_99" />
+<markable mmax_level="sentence" orderid="5" id="markable_5" span="word_100..word_122" />
+<markable mmax_level="sentence" orderid="6" id="markable_6" span="word_123..word_142" />
+<markable mmax_level="sentence" orderid="7" id="markable_7" span="word_143..word_198" />
+<markable mmax_level="sentence" orderid="8" id="markable_8" span="word_199..word_220" />
+<markable mmax_level="sentence" orderid="9" id="markable_9" span="word_221..word_240" />
+<markable mmax_level="sentence" orderid="10" id="markable_10" span="word_241..word_265" />
+<markable mmax_level="sentence" orderid="11" id="markable_11" span="word_266..word_303" />
+<markable mmax_level="sentence" orderid="12" id="markable_12" span="word_304..word_377" />
+<markable mmax_level="sentence" orderid="13" id="markable_13" span="word_378..word_418" />
+<markable mmax_level="sentence" orderid="14" id="markable_14" span="word_419..word_447" />
+<markable mmax_level="sentence" orderid="15" id="markable_15" span="word_448..word_498" />
+<markable mmax_level="sentence" orderid="16" id="markable_16" span="word_499..word_548" />
+<markable mmax_level="sentence" orderid="17" id="markable_17" span="word_549..word_579" />
+<markable mmax_level="sentence" orderid="18" id="markable_18" span="word_580..word_598" />
+<markable mmax_level="sentence" orderid="19" id="markable_19" span="word_599..word_633" />
+<markable mmax_level="sentence" orderid="20" id="markable_20" span="word_634..word_640" />
+</markables>

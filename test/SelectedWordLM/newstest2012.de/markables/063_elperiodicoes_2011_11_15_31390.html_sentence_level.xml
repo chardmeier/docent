@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE markables SYSTEM "markables.dtd">
+<markables xmlns="www.eml.org/NameSpaces/sentence">
+<markable mmax_level="sentence" orderid="0" id="markable_0" span="word_1..word_11" />
+<markable mmax_level="sentence" orderid="1" id="markable_1" span="word_12..word_32" />
+<markable mmax_level="sentence" orderid="2" id="markable_2" span="word_33..word_46" />
+<markable mmax_level="sentence" orderid="3" id="markable_3" span="word_47..word_69" />
+<markable mmax_level="sentence" orderid="4" id="markable_4" span="word_70..word_111" />
+<markable mmax_level="sentence" orderid="5" id="markable_5" span="word_112..word_126" />
+<markable mmax_level="sentence" orderid="6" id="markable_6" span="word_127..word_140" />
+<markable mmax_level="sentence" orderid="7" id="markable_7" span="word_141..word_189" />
+<markable mmax_level="sentence" orderid="8" id="markable_8" span="word_190..word_212" />
+<markable mmax_level="sentence" orderid="9" id="markable_9" span="word_213..word_229" />
+<markable mmax_level="sentence" orderid="10" id="markable_10" span="word_230..word_251" />
+<markable mmax_level="sentence" orderid="11" id="markable_11" span="word_252..word_285" />
+<markable mmax_level="sentence" orderid="12" id="markable_12" span="word_286..word_347" />
+<markable mmax_level="sentence" orderid="13" id="markable_13" span="word_348..word_382" />
+<markable mmax_level="sentence" orderid="14" id="markable_14" span="word_383..word_407" />
+<markable mmax_level="sentence" orderid="15" id="markable_15" span="word_408..word_452" />
+<markable mmax_level="sentence" orderid="16" id="markable_16" span="word_453..word_497" />
+<markable mmax_level="sentence" orderid="17" id="markable_17" span="word_498..word_527" />
+<markable mmax_level="sentence" orderid="18" id="markable_18" span="word_528..word_543" />
+<markable mmax_level="sentence" orderid="19" id="markable_19" span="word_544..word_579" />
+<markable mmax_level="sentence" orderid="20" id="markable_20" span="word_580..word_585" />
+</markables>

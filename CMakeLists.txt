@@ -170,7 +170,8 @@ include_directories(
 add_library(
 	decoder STATIC
 
-	src/SelectedWordLM.cpp
+	src/SemanticSimilarityModel.cpp
+	src/SelectedPOSLM.cpp
 	src/BeamSearchAdapter.cpp
 	src/BleuModel.cpp
 	src/BracketingModel.cpp
@@ -194,6 +195,7 @@ add_library(
 	src/Random.cpp
 	src/SearchAlgorithm.cpp
 	src/SearchStep.cpp
+	src/SelectedWordLM.cpp
 	src/SemanticSpaceLanguageModel.cpp
 	src/SentenceParityModel.cpp
 	src/SimulatedAnnealing.cpp
@@ -212,25 +214,25 @@ set(DECODER_LIBRARIES
 	${MOSES_LIBRARIES}
 	${Boost_LIBRARIES})
 
-add_executable(
-	docent
-	src/docent.cpp
-)
+#add_executable(
+#	docent
+#	src/docent.cpp
+#)
 
-target_link_libraries(
-	docent
-	${DECODER_LIBRARIES}
-)
+#target_link_libraries(
+#	docent
+#	${DECODER_LIBRARIES}
+#)
 
-add_executable(
-	detailed-docent
-	src/detailed-docent.cpp
-)
+#add_executable(
+#	detailed-docent
+#	src/detailed-docent.cpp
+#)
 
-target_link_libraries(
-	detailed-docent
-	${DECODER_LIBRARIES}
-)
+#target_link_libraries(
+#	detailed-docent
+#	${DECODER_LIBRARIES}
+#)
 
 add_executable(
 	lcurve-docent

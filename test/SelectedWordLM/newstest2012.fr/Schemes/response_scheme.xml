@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- Mark-Christoph Mueller, European Media Lab, Heidelberg, Germany (mueller@eml.org) -->
+<annotationscheme>
+	<attribute id="level_response_member" name="coref_set" text="" color="red" type="markable_set">
+		<value id="value_1" name="response_set"/>
+	</attribute>
+	<attribute id="level_response_ante" name="dir_antecedent" text="" type="markable_pointer" style="smartcurve" 
+		   color="blue" width="1" max_size="1" satellite_domain="response">
+		<value id="value_2" name="empty"/>
+		<value id="value_8" name="non_empty"/>
+	</attribute>
+
+</annotationscheme>

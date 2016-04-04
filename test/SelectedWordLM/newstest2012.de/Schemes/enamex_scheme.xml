@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- Mark-Christoph Mueller, European Media Lab, Heidelberg, Germany (mueller@eml.org) -->
+<annotationscheme>
+
+	<attribute id="level_enamex" name="tag" text="Enamex tag assigned by external tagger" type="nominal_list">
+		<value id="value_1" name="date"/>
+		<value id="value_2" name="location"/>
+		<value id="value_3" name="money"/>
+		<value id="value_4" name="organization"/>
+		<value id="value_5" name="percent"/>
+		<value id="value_6" name="person"/>
+		<value id="value_7" name="time"/>
+	</attribute>
+
+</annotationscheme>

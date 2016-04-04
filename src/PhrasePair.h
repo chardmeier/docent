@@ -77,7 +77,7 @@ public:
 				base_ = from_ + nelems_ * stride_;
 		}
 
-		const uint dereference() const {
+		uint dereference() const {
 			return (base_ - from_) / stride_;
 		}
 
@@ -179,8 +179,8 @@ public:
 	}
 
 	//Needed for serialization
-	PhrasePairData() :alignment_(1, 1) {
-	  alignment_.setLink(0, 0);
+	PhrasePairData() : alignment_(1, 1) {
+		alignment_.setLink(0, 0);
 	}
 
 	const std::vector<uint> &getCoverage() const {
@@ -195,6 +195,11 @@ public:
 		return targetPhrase_;
 	}
 
+	const std::vector<Phrase> &getAllTargetAnnotations() const {
+		assert(!oovFlag_); // caller should make sure we're not OOV
+		return targetAnnotations_;
+	}
+
 	Phrase getTargetAnnotations(uint level) const {
 		static Phrase EMPTY_PHRASE(std::vector<Word>(1, ""));
 		if(oovFlag_)
@@ -204,7 +209,7 @@ public:
 	}
 	
 	Phrase getTargetPhraseOrAnnotations(int annotationLevel, bool tokenFlag) const {
-		if(annotationLevel==-1||(oovFlag_&& tokenFlag))
+		if(annotationLevel == -1 || (oovFlag_ && tokenFlag))
 			return getTargetPhrase();
 		else
 			return getTargetAnnotations(annotationLevel);

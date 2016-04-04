@@ -39,6 +39,9 @@
 #include "BracketingModel.h"
 #include "WellFormednessModel.h"
 #include "SelectedWordLM.h"
+#include "SelectedPOSLM.h"
+#include "SemanticSimilarityModel.h"
+
 
 
 #include <algorithm>
@@ -122,6 +125,12 @@ public:
 	}
 
 	virtual void computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const;
+};
+
+struct PhrasePenaltyCounter : public std::unary_function<const AnchoredPhrasePair &,Float> {
+	Float operator()(const AnchoredPhrasePair &ppair) const {
+		return Float(1);
+	};
 };
 
 struct WordPenaltyCounter : public std::unary_function<const AnchoredPhrasePair &,Float> {
@@ -387,6 +396,8 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 		ff = new GeometricDistortionModel(params);
 	else if(type == "sentence-length-model")
 		ff = new SentenceLengthModel(params);
+	else if(type == "phrase-penalty")
+		ff = createCountingFeatureFunction(PhrasePenaltyCounter());
 	else if(type == "word-penalty")
 		ff = createCountingFeatureFunction(WordPenaltyCounter());
 	else if(type == "oov-penalty")
@@ -419,6 +430,10 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 		ff = new WellFormednessModel(params);
 	else if(type == "selected-word-lm")
 		ff = SelectedWordLMFactory::createNgramModel(params);
+	else if(type == "selected-pos-lm")
+		ff = SelectedPOSLMFactory::createNgramModel(params);
+	else if(type == "semantic-similarity-model")
+		ff = new SemanticSimilarityModel(params);
 	else 
 		BOOST_THROW_EXCEPTION(ConfigurationException());
 

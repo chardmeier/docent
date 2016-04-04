@@ -49,7 +49,7 @@
 void usage();
 
 template<class Testset>
-void processTestset(const ConfigurationFile &configFile, Testset &testset, const std::string &outstem, bool dumpStates, uint burnIn, uint sampleInterval, uint maxSteps, const std::string& firstStateFilename, const std::string& lastStateFilename);
+void processTestset(const ConfigurationFile &configFile, Testset &testset, const std::string &outstem, bool dumpStates, uint burnIn, uint sampleInterval, uint maxSteps, uint maxAccepted, const std::string& firstStateFilename, const std::string& lastStateFilename);
 
 
 void printState(const std::string& filename, const std::vector<std::vector<PhraseSegmentation> >& state);
@@ -64,6 +64,7 @@ int main(int argc, char **argv) {
 	uint sampleInterval = 100; //default
 	uint burnIn = 1000; //default
 	uint maxSteps = 100000; //134217728; //default
+	uint maxAccepted = 10000;
 
 	std::string firstStateFilename, lastStateFilename;
 
@@ -105,6 +106,11 @@ int main(int argc, char **argv) {
 				usage();
 			maxSteps = boost::lexical_cast<uint>(argv[++i]);
 			std::cerr << "Max steps: " << maxSteps << std::endl;
+		} else if(strcmp(argv[i], "-a") == 0) {
+			if(i >= argc - 1)
+				usage();
+			maxAccepted = boost::lexical_cast<uint>(argv[++i]);
+			std::cerr << "Max accepted steps: " << maxSteps << std::endl;
 		} else if(strcmp(argv[i], "-pf") == 0) {
 			if(i >= argc - 1)
 				usage();
@@ -133,10 +139,10 @@ int main(int argc, char **argv) {
 	
 	if(!mmax.empty()) {
 		MMAXTestset testset(mmax, nistxml);
-		processTestset(config, testset, outstem, dumpstates, burnIn, sampleInterval, maxSteps, firstStateFilename, lastStateFilename);
+		processTestset(config, testset, outstem, dumpstates, burnIn, sampleInterval, maxSteps, maxAccepted, firstStateFilename, lastStateFilename);
 	} else {
 		NistXmlTestset testset(nistxml);
-		processTestset(config, testset, outstem, dumpstates, burnIn, sampleInterval, maxSteps, firstStateFilename, lastStateFilename);
+		processTestset(config, testset, outstem, dumpstates, burnIn, sampleInterval, maxSteps, maxAccepted, firstStateFilename, lastStateFilename);
 	}
 
 	return 0;
@@ -154,7 +160,7 @@ void usage() {
 template<class Testset>
 void processTestset(const ConfigurationFile &configFile, Testset &testset,
 					const std::string &outstem, bool dumpStates, 
-					uint burnIn, uint sampleInterval, uint maxSteps,
+					uint burnIn, uint sampleInterval, uint maxSteps, uint maxAccepted,
 					const std::string &firstStateFilename, const std::string &lastStateFilename) {
 	try {
 		//Random::initGenerator(3525497962);
@@ -203,7 +209,7 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset,
 		
 		if (burnIn <= 0) {
 		  std::ostringstream outname;
-		  outname << outstem << '.' << std::setfill('0') << std::setw(log10(maxSteps)+1) << 0 << ".xml";
+		  outname << outstem << '.' << std::setfill('0') << std::setw(std::log10(maxAccepted)+1) << 0 << ".xml";
 		  std::ofstream of(outname.str().c_str());
 		  of.exceptions(std::ofstream::failbit | std::ofstream::badbit);
 		  testset.outputTranslation(of);
@@ -216,11 +222,11 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset,
 		uint steps_done = 0;
 		std::vector<NbestStorage> nbest(inputdocs.size(), NbestStorage(1));
 		
-		for(uint steps = burnIn; steps <= maxSteps; steps += sampleInterval) {
+		for(uint steps = burnIn; steps <= maxAccepted; steps += sampleInterval) {
 			for(uint i = 0; i < inputdocs.size(); i++) {
 				std::cerr << "Document " << i << ", approaching " << steps << " steps." << std::endl;
 				//std::cerr << "Initial score: " << docs[i]->getScore() << std::endl;
-				algo.search(states[i], nbest[i], steps - steps_done, std::numeric_limits<uint>::max());
+				algo.search(states[i], nbest[i], maxSteps, steps - steps_done);
 				std::vector<boost::shared_ptr<const DocumentState> > out(1);
 				nbest[i].copyNbestList(out);
 				std::cerr << "Final score: " << out[0]->getScore() << std::endl;
@@ -244,7 +250,7 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset,
 			steps_done = steps;
 			std::ostringstream outname;
 			std::ostringstream outnameState;
-			outname << outstem << '.' << std::setfill('0') << std::setw(log10(maxSteps)) << steps << ".xml";
+			outname << outstem << '.' << std::setfill('0') << std::setw(std::log10(maxAccepted)) << steps << ".xml";
 			std::ofstream of(outname.str().c_str());
 			of.exceptions(std::ofstream::failbit | std::ofstream::badbit);
 			testset.outputTranslation(of);

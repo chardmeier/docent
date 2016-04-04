@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- Mark-Christoph Mueller, European Media Lab, Heidelberg, Germany (mueller@eml.org) -->
+<annotationscheme>
+        <attribute id="level_sentence_orderid" name="orderID" text="Numeric identifier for the oocurrence order of the sentence in text" type="freetext">
+                <value id="value_3" name="orderid"/>
+        </attribute>
+	<attribute id="level_sentence_imported" name="imported" text=""  type="nominal_button">
+		<value id="value_1" name="false"/>
+		<value id="value_2" name="true"/>
+	</attribute>
+</annotationscheme>

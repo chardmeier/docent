@@ -113,8 +113,8 @@ FeatureFunction *NgramModelFactory::createNgramModel(const Parameters &params) {
 			mtype = lm::ngram::TRIE_SORTED;
 		//else if(smtype == "irstlm")
 			//return new NgramModelIrstlm(params);
-		//else if(smtype == "quant-trie-sorted")
-			//mtype = lm::ngram::QUANT_TRIE_SORTED;
+		else if(smtype == "quant-trie-sorted")
+			mtype = lm::ngram::QUANT_TRIE_SORTED;
 		else {
 			LOG(logger, error, "Unsupported LM type " << smtype <<
 				" for file " << file);
@@ -135,14 +135,20 @@ FeatureFunction *NgramModelFactory::createNgramModel(const Parameters &params) {
 				"for file " << file);
 		return new NgramModel<lm::ngram::TrieModel>(file,annotationLevel,tokenFlag);
 
-/*
 	case lm::ngram::QUANT_TRIE_SORTED:
 		if(!smtype.empty() && smtype != "quant-trie-sorted")
 			LOG(logger, error, "Incorrect LM type in configuration "
 				"for file " << file);
 
 		return new NgramModel<lm::ngram::QuantTrieModel>(file,annotationLevel,tokenFlag);
-*/
+
+	case lm::ngram::QUANT_ARRAY_TRIE:
+		if(!smtype.empty() && smtype != "quant-trie-sorted")
+			LOG(logger, error, "Incorrect LM type in configuration "
+				"for file " << file);
+
+		return new NgramModel<lm::ngram::QuantArrayTrieModel>(file,annotationLevel,tokenFlag);
+
 	default:
 		LOG(logger, error, "Unsupported LM type for file " << file);
 		BOOST_THROW_EXCEPTION(FileFormatException());

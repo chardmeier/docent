@@ -32,7 +32,8 @@
 bool PhrasePairData::operator==(const PhrasePairData &o) const {
 	return	coverage_ == o.coverage_ &&
 			sourcePhrase_ == o.sourcePhrase_ &&
-			targetPhrase_ == o.targetPhrase_;
+			targetPhrase_ == o.targetPhrase_ &&
+			targetAnnotations_ == o.targetAnnotations_;
 }
 
 std::size_t hash_value(const PhrasePairData &p) {

@@ -93,6 +93,10 @@ public:
 	const_iterator end() const {
 		return nbest_.end();
 	}
+
+	bool empty() const {
+		return nbest_.empty();
+	}
 };
 
 #endif
