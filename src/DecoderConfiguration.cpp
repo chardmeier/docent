@@ -40,8 +40,10 @@
 #include <SAX/helpers/CatchErrorHandler.hpp>
 #include <XPath/XPath.hpp>
 
-ConfigurationFile::ConfigurationFile(const std::string &file) :
-		logger_("DecoderConfiguration") {
+ConfigurationFile::ConfigurationFile(
+	const std::string &file
+) : logger_("DecoderConfiguration")
+{
 	Arabica::SAX2DOM::Parser<std::string> domParser;
 	Arabica::SAX::InputSource<std::string> is(file);
 	Arabica::SAX::CatchErrorHandler<std::string> errh;
@@ -55,9 +57,10 @@ ConfigurationFile::ConfigurationFile(const std::string &file) :
 		LOG(logger_, error, "Error parsing configuration file: " << file);
 		BOOST_THROW_EXCEPTION(ConfigurationException());
 	}
-	
+
 	doc_.getDocumentElement().normalize();
 }
+
 
 Parameters
 ConfigurationFile::getParametersForModule(
@@ -77,7 +80,12 @@ ConfigurationFile::getParametersForModule(
 	return Parameters(logger_, node);
 }
 
-void ConfigurationFile::modifyNodes(const std::string &xpath, const std::string &value) {
+
+void
+ConfigurationFile::modifyNodes(
+	const std::string &xpath,
+	const std::string &value
+) {
 	Arabica::XPath::XPath<std::string> xp;
 	Arabica::XPath::NodeSet<std::string> nodes =
 		xp.compile(xpath).evaluateAsNodeSet(doc_.getDocumentElement());
@@ -101,7 +109,11 @@ void ConfigurationFile::modifyNodes(const std::string &xpath, const std::string 
 	doc_.getDocumentElement().normalize();
 }
 
-void ConfigurationFile::removeNodes(const std::string &xpath) {
+
+void
+ConfigurationFile::removeNodes(
+	const std::string &xpath
+) {
 	Arabica::XPath::XPath<std::string> xp;
 	Arabica::XPath::NodeSet<std::string> nodes =
 		xp.compile(xpath).evaluateAsNodeSet(doc_.getDocumentElement());
@@ -112,15 +124,21 @@ void ConfigurationFile::removeNodes(const std::string &xpath) {
 	doc_.getDocumentElement().normalize();
 }
 
+
 Arabica::DOM::Document<std::string> ConfigurationFile::getXMLDocument() const {
 	return doc_;
 }
 
-DecoderConfiguration::DecoderConfiguration(const ConfigurationFile &file) :
-		logger_("DecoderConfiguration"), random_(Random::create()) {
+
+DecoderConfiguration::DecoderConfiguration(
+	const ConfigurationFile &file
+) : logger_("DecoderConfiguration"), random_(Random::create())
+{
 	uint step = 0;
 	for(Arabica::DOM::Node<std::string> n = file.getXMLDocument().getDocumentElement().getFirstChild();
-			n != 0; n = n.getNextSibling()) {
+		n != 0;
+		n = n.getNextSibling()
+	) {
 		if(n.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE)
 			continue;
 
@@ -202,7 +220,7 @@ void DecoderConfiguration::setupStateGenerator(Arabica::DOM::Node<std::string> n
 			LOG(logger_, error, "Lacking required attribute on operation element.");
 			BOOST_THROW_EXCEPTION(ConfigurationException());
 		}
-		
+
 		stateGenerator_->addOperation(boost::lexical_cast<Float>(weight), type, Parameters(logger_, onode));
 	}
 }
@@ -220,7 +238,7 @@ void DecoderConfiguration::setupModels(Arabica::DOM::Node<std::string> n) {
 	for(Arabica::DOM::Node<std::string> c = n.getFirstChild(); c != 0; c = c.getNextSibling()) {
 		if(c.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE || c.getNodeName() != "model")
 			continue;
-		
+
 		Arabica::DOM::Element<std::string> mnode = static_cast<Arabica::DOM::Element<std::string> >(c);
 		std::string type = mnode.getAttribute("type");
 		std::string id = mnode.getAttribute("id");
@@ -236,7 +254,7 @@ void DecoderConfiguration::setupModels(Arabica::DOM::Node<std::string> n) {
 		FeatureFunctionInstantiation *ff = new FeatureFunctionInstantiation(id, scoreIndex, ff_impl);
 		featureFunctions_.push_back(ff);
 		scoreIndex += ff->getNumberOfScores();
-		
+
 		// TODO: This is messy.
 		if(type == "phrase-table" && !phraseTable_) {
 			phraseTable_ = boost::dynamic_pointer_cast<const PhraseTable>(ff_impl);

@@ -68,9 +68,9 @@ public:
 private:
 	Logger logger_;
 	Random random_;
-	
+
 	boost::shared_ptr<const PhraseTable> phraseTable_;
-	
+
 	FeatureFunctionList featureFunctions_;
 	std::vector<Float> featureWeights_;
 	uint nscores_;
@@ -91,23 +91,23 @@ public:
 	Random getRandom() const {
 		return random_;
 	}
-	
+
 	const PhraseTable &getPhraseTable() const {
 		return *phraseTable_;
 	}
-	
+
 	const FeatureFunctionList &getFeatureFunctions() const {
 		return featureFunctions_;
 	}
-	
+
 	const std::vector<Float> &getFeatureWeights() const {
 		return featureWeights_;
 	}
-	
+
 	uint getTotalNumberOfScores() const {
 		return nscores_;
 	}
-	
+
 	const StateGenerator &getStateGenerator() const {
 		return *stateGenerator_;
 	}
@@ -116,6 +116,7 @@ public:
 		return *search_;
 	}
 };
+
 
 class Parameters {
 private:
@@ -186,7 +187,6 @@ public:
 		else
 			return defaultValue;
 	}
-
 };
 
 template<>
