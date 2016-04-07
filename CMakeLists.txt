@@ -209,33 +209,32 @@ set(DECODER_LIBRARIES
 	stemmer
 	${Arabica_LIBRARIES}
 	${MOSES_LIBRARIES}
-	${Boost_LIBRARIES})
+	${Boost_LIBRARIES}
+)
 
 add_executable(
 	docent
 	src/docent.cpp
 )
-
 target_link_libraries(
 	docent
 	${DECODER_LIBRARIES}
 )
 
-add_executable(
-	detailed-docent
-	src/detailed-docent.cpp
-)
-
-target_link_libraries(
-	detailed-docent
-	${DECODER_LIBRARIES}
-)
+## Disabled for now because debugging << operator definitions collide with centralized definitions
+#add_executable(
+#	detailed-docent
+#	src/detailed-docent.cpp
+#)
+#target_link_libraries(
+#	detailed-docent
+#	${DECODER_LIBRARIES}
+#)
 
 add_executable(
 	lcurve-docent
 	src/lcurve-docent.cpp
 )
-
 target_link_libraries(
 	lcurve-docent
 	${DECODER_LIBRARIES}
