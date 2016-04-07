@@ -194,23 +194,23 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset,
 
 		// Print the state after initialization 
 		if (!firstStateFilename.empty()) {
-		  std::vector<std::vector<PhraseSegmentation> > state;
-		  for(uint i = 0; i < states.size(); i++) {
-			  state.push_back(states[i]->getLastDocumentState()->getPhraseSegmentations());
-		  }
-		  printState(firstStateFilename, state);
+			std::vector<std::vector<PhraseSegmentation> > state;
+			for(uint i = 0; i < states.size(); i++) {
+				state.push_back(states[i]->getLastDocumentState()->getPhraseSegmentations());
+			}
+			printState(firstStateFilename, state);
 		}
 		
 		if (burnIn <= 0) {
-		  std::ostringstream outname;
-		  outname << outstem << '.' << std::setfill('0') << std::setw(log10(maxSteps)+1) << 0 << ".xml";
-		  std::ofstream of(outname.str().c_str());
-		  of.exceptions(std::ofstream::failbit | std::ofstream::badbit);
-		  testset.outputTranslation(of);
-		  of.close();
+			std::ostringstream outname;
+			outname << outstem << '.' << std::setfill('0') << std::setw(log10(maxSteps)+1) << 0 << ".xml";
+			std::ofstream of(outname.str().c_str());
+			of.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+			testset.outputTranslation(of);
+			of.close();
 
-		  // print the next iteration after sampleInterval
-		  burnIn = sampleInterval;
+			// print the next iteration after sampleInterval
+			burnIn = sampleInterval;
 		}
 
 		uint steps_done = 0;
@@ -253,15 +253,14 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset,
 
 		// Print the final best state
 		if (!lastStateFilename.empty()) {
-		  std::vector<std::vector<PhraseSegmentation> > state;
-		  for(uint i = 0; i < nbest.size(); i++) {
-			  //std::cerr << "getting state for final printing, sentence " << i << std::endl;
-			  state.push_back(nbest[i].getBestDocumentState()->getPhraseSegmentations());
-		  }
-		  printState(lastStateFilename, state);
+			std::vector<std::vector<PhraseSegmentation> > state;
+			for(uint i = 0; i < nbest.size(); i++) {
+				//std::cerr << "getting state for final printing, sentence " << i << std::endl;
+				state.push_back(nbest[i].getBestDocumentState()->getPhraseSegmentations());
+			}
+			printState(lastStateFilename, state);
 		}
 
-		
 		BOOST_FOREACH(SearchState *state, states)
 			delete state;
 	} catch(DocentException &e) {
@@ -270,6 +269,12 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset,
 	}
 }
 
+
+// WARNING: The definitions of the below operators have been from the other *docent.cpp program code files
+// (where they were shared) to PhrasePair.cpp. In principle "overriding" them here should work, as the other
+// def.s end up in the decoder library, but still they cause compilation errors. The target for this binary
+// has therefore been disabled for the time being, and you'll have to find a workaround (such as moving the
+// below "&operator<<(...)" and "getIndices()" definitions to PhrasePair.cpp).
 std::ostream &operator<<(std::ostream &os, const std::vector<Word> &phrase) {
 	bool first = true;
 	BOOST_FOREACH(const Word &w, phrase) {
@@ -285,36 +290,36 @@ std::ostream &operator<<(std::ostream &os, const std::vector<Word> &phrase) {
 
 std::ostream &operator<<(std::ostream &os, const PhraseSegmentation &seg) {
 	std::copy(seg.begin(), seg.end(), std::ostream_iterator<AnchoredPhrasePair>(os, "\t"));
-	//os << std::endl;
 	return os;
 }
 
-std::string  getIndeces(CoverageBitmap bitmap) {
-  // int found = -1;  //Change to find_first!!!
-  // std::string res = "";
+std::string  getIndices(CoverageBitmap bitmap) {
+	// int found = -1;  //Change to find_first!!!
+	// std::string res = "";
 
-  std::ostringstream os;
+	std::ostringstream os;
 
-  CoverageBitmap::size_type i = bitmap.find_first();
-  CoverageBitmap::size_type prev;
-  
-  os << i;
-  prev= i;
-  i = bitmap.find_next(i);
-  while (i != CoverageBitmap::npos) {
-    os << "-" <<  i;
-    prev = i;
-    i = bitmap.find_next(i);
-  }
-  //os << " " << prev;
+	CoverageBitmap::size_type i = bitmap.find_first();
+	CoverageBitmap::size_type prev;
 
-  os << ": " << bitmap.size();
-  return os.str();
+	os << i;
+	prev= i;
+	i = bitmap.find_next(i);
+	while (i != CoverageBitmap::npos) {
+		os << "-" <<  i;
+		prev = i;
+		i = bitmap.find_next(i);
+	}
+	//os << " " << prev;
+
+	os << ": " << bitmap.size();
+	return os.str();
 }
 
 std::ostream &operator<<(std::ostream &os, const AnchoredPhrasePair &ppair) {
-  //	os << ppair.first << "\t[" << ppair.second.get().getSourcePhrase().get() << "] -\t[" << ppair.second.get().getTargetPhrase().get() << ']';
-  os << ppair.second.get().getSourcePhrase().get() << "\\" << ppair.second.get().getTargetPhrase().get() << "\\" << getIndeces(ppair.first);
+	os  << ppair.second.get().getSourcePhrase().get() << "\\"
+	    << ppair.second.get().getTargetPhrase().get() << "\\"
+	    << getIndices(ppair.first);
 	return os;
 }
 
@@ -323,5 +328,3 @@ void printState(const std::string& filename, const std::vector<std::vector<Phras
 	boost::archive::text_oarchive oa(ofs);
 	oa << state;
 }
-
-
