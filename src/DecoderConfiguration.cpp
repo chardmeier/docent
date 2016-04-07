@@ -59,6 +59,24 @@ ConfigurationFile::ConfigurationFile(const std::string &file) :
 	doc_.getDocumentElement().normalize();
 }
 
+Parameters
+ConfigurationFile::getParametersForModule(
+	const std::string &xpath
+) const
+{
+	Arabica::XPath::XPath<std::string> xp;
+	Arabica::XPath::NodeSet<std::string> nodes =
+		xp.compile(xpath).evaluateAsNodeSet(doc_.getDocumentElement());
+
+	if(nodes.empty())
+		LOG(logger_, error, "XPath expression " << xpath << " returns empty node set.");
+
+	Arabica::DOM::Element<std::string> node = static_cast<
+		Arabica::DOM::Element<std::string>
+	>(nodes[0]);
+	return Parameters(logger_, node);
+}
+
 void ConfigurationFile::modifyNodes(const std::string &xpath, const std::string &value) {
 	Arabica::XPath::XPath<std::string> xp;
 	Arabica::XPath::NodeSet<std::string> nodes =

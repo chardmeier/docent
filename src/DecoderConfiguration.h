@@ -40,6 +40,7 @@
 
 class BeamSearchAdapter;
 class FeatureFunctionInstantiation;
+class Parameters;
 class PhraseTable;
 class SearchAlgorithm;
 class StateGenerator;
@@ -53,6 +54,7 @@ private:
 public:
 	ConfigurationFile(const std::string &file);
 
+	Parameters  getParametersForModule(const std::string &xpath) const;
 	void modifyNodes(const std::string &xpath, const std::string &value);
 	void removeNodes(const std::string &xpath);
 
@@ -164,7 +166,7 @@ private:
 	}
 
 public:
-	Parameters(Logger &logger, const Arabica::DOM::Node<std::string> parent) :
+	Parameters(const Logger &logger, const Arabica::DOM::Node<std::string> parent) :
 		logger_(logger), parentNode_(parent) {}
 
 	template<typename T>
