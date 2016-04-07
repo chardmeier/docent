@@ -126,27 +126,3 @@ void processTestset(const DecoderConfiguration &config, Testset &testset) {
 	}
 	testset.outputTranslation(std::cout);
 }
-
-std::ostream &operator<<(std::ostream &os, const std::vector<Word> &phrase) {
-	bool first = true;
-	BOOST_FOREACH(const Word &w, phrase) {
-		if(!first)
-			os << ' ';
-		else
-			first = false;
-		os << w;
-	}
-
-	return os;
-}
-
-std::ostream &operator<<(std::ostream &os, const PhraseSegmentation &seg) {
-	std::copy(seg.begin(), seg.end(), std::ostream_iterator<AnchoredPhrasePair>(os, "\n"));
-	return os;
-}
-
-std::ostream &operator<<(std::ostream &os, const AnchoredPhrasePair &ppair) {
-	os << ppair.first << "\t[" << ppair.second.get().getSourcePhrase().get() << "] -\t[" << ppair.second.get().getTargetPhrase().get() << ']';
-	return os;
-}
-
