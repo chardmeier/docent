@@ -1,4 +1,20 @@
 #! /bin/bash
+#
+# convert conllu format to mmax
+#
+# USAGE: mmax-conll-import.sh mmaxdir < treebank.conllu
+#
+#------------------------------------------------------------------
+# This script requires additional document markup!
+# add lines in the following format to specify document boundaries:
+#
+#   ###C:begin document <docname>
+#   ###C:end document
+#
+# other lines that start with '#' will be ignored
+#------------------------------------------------------------------
+#
+
 
 if [ $# -ne 1 ]
 then
@@ -7,7 +23,11 @@ then
 fi
 dir=$1
 
-mmax_skeleton=/opt/nobackup/ch/FBK/coherence/mmax-import/mmax-skeleton
+# this gives the directory where the script is located
+mmax_scriptdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+
+mmax_skeleton=${mmax_scriptdir}/mmax-skeleton
 
 if [ -e $dir ]
 then
@@ -21,7 +41,7 @@ transform='
 		firstword = -1;
 	}
 
-	/^#begin document/ {
+	/^###C:begin document/ {
 		docname = $3;
 
 		if(WORDS) {
@@ -46,10 +66,75 @@ transform='
 			print "</markables>" >ENTITIES;
 			close(ENTITIES);
 		}
+		if(LEMMA) {
+			print "</markables>" >LEMMA;
+			close(LEMMA);
+		}
+		if(UPOS) {
+			print "</markables>" >UPOS;
+			close(UPOS);
+		}
+		if(XPOS) {
+			print "</markables>" >XPOS;
+			close(XPOS);
+		}
+		if(FEATS) {
+			print "</markables>" >FEATS;
+			close(FEATS);
+		}
+		if(HEAD) {
+			print "</markables>" >HEAD;
+			close(HEAD);
+		}
+		if(DEPREL) {
+			print "</markables>" >DEPREL;
+			close(DEPREL);
+		}
+		if(DEPS) {
+			print "</markables>" >DEPS;
+			close(DEPS);
+		}
+		if(MISC) {
+			print "</markables>" >MISC;
+			close(MISC);
+		}
+
 		ENTITIES = sprintf(ENTITIES_FORMAT, docnr, docname);
 		print "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>" >ENTITIES;
 		print "<!DOCTYPE markables SYSTEM \"markables.dtd\">" >ENTITIES;
 		print "<markables xmlns=\"www.eml.org/NameSpaces/entity\">" >ENTITIES;
+		LEMMA = sprintf(LEMMA_FORMAT, docnr, docname);
+		print "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>" >LEMMA;
+		print "<!DOCTYPE markables SYSTEM \"markables.dtd\">" >LEMMA;
+		print "<markables xmlns=\"www.eml.org/NameSpaces/lemma\">" >LEMMA;
+		UPOS = sprintf(UPOS_FORMAT, docnr, docname);
+		print "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>" >UPOS;
+		print "<!DOCTYPE markables SYSTEM \"markables.dtd\">" >UPOS;
+		print "<markables xmlns=\"www.eml.org/NameSpaces/pos\">" >UPOS;
+		XPOS = sprintf(XPOS_FORMAT, docnr, docname);
+		print "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>" >XPOS;
+		print "<!DOCTYPE markables SYSTEM \"markables.dtd\">" >XPOS;
+		print "<markables xmlns=\"www.eml.org/NameSpaces/xpos\">" >XPOS;
+		FEATS = sprintf(FEATS_FORMAT, docnr, docname);
+		print "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>" >FEATS;
+		print "<!DOCTYPE markables SYSTEM \"markables.dtd\">" >FEATS;
+		print "<markables xmlns=\"www.eml.org/NameSpaces/feat\">" >FEATS;
+		HEAD = sprintf(HEAD_FORMAT, docnr, docname);
+		print "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>" >HEAD;
+		print "<!DOCTYPE markables SYSTEM \"markables.dtd\">" >HEAD;
+		print "<markables xmlns=\"www.eml.org/NameSpaces/head\">" >HEAD;
+		DEPREL = sprintf(DEPREL_FORMAT, docnr, docname);
+		print "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>" >DEPREL;
+		print "<!DOCTYPE markables SYSTEM \"markables.dtd\">" >DEPREL;
+		print "<markables xmlns=\"www.eml.org/NameSpaces/deprel\">" >DEPREL;
+		DEPS = sprintf(DEPS_FORMAT, docnr, docname);
+		print "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>" >DEPS;
+		print "<!DOCTYPE markables SYSTEM \"markables.dtd\">" >DEPS;
+		print "<markables xmlns=\"www.eml.org/NameSpaces/deps\">" >DEPS;
+                MISC = sprintf(MISC_FORMAT, docnr, docname);
+		print "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>" >MISC;
+		print "<!DOCTYPE markables SYSTEM \"markables.dtd\">" >MISC;
+		print "<markables xmlns=\"www.eml.org/NameSpaces/misc\">" >MISC;
 
 		wordsfile = WORDS;
 		sub(/.*\//, "", wordsfile);
@@ -69,11 +154,16 @@ transform='
 		next;
 	}
 
-	/^#end document/ {
+	/^###C:end document/ {
 		end_sentence();
 		docnr++;
 		next;
 	}
+
+        ## ignore all other lines starting with #
+	/^#/ {
+                next;
+        }
 
 	/^$/ {
 		end_sentence();
@@ -84,6 +174,15 @@ transform='
 		in_sentence();
 		printf "<word id=\"word_%d\">%s</word> <!-- %s -->\n", widx, escape($2), $NF >WORDS;
 		printf "<markable level=\"entity\" id=\"markable_%d\" span=\"word_%d\" tags=\"%s\"/>\n", widx-1, widx, $NF >ENTITIES;
+		printf "<markable level=\"lemma\" id=\"markable_%d\" span=\"word_%d\" tags=\"%s\"/>\n", widx-1, widx, escape($3) >LEMMA;
+		printf "<markable level=\"pos\" id=\"markable_%d\" span=\"word_%d\" tags=\"%s\"/>\n", widx-1, widx, escape($4) >UPOS;
+		printf "<markable level=\"xpos\" id=\"markable_%d\" span=\"word_%d\" tags=\"%s\"/>\n", widx-1, widx, escape($5) >XPOS;
+		printf "<markable level=\"feat\" id=\"markable_%d\" span=\"word_%d\" tags=\"%s\"/>\n", widx-1, widx, escape($6) >FEATS;
+		printf "<markable level=\"head\" id=\"markable_%d\" span=\"word_%d\" tags=\"%s\"/>\n", widx-1, widx, escape($7) >HEAD;
+		printf "<markable level=\"deprel\" id=\"markable_%d\" span=\"word_%d\" tags=\"%s\"/>\n", widx-1, widx, escape($8) >DEPREL;
+		printf "<markable level=\"deps\" id=\"markable_%d\" span=\"word_%d\" tags=\"%s\"/>\n", widx-1, widx, escape($9) >DEPS;
+		printf "<markable level=\"misc\" id=\"markable_%d\" span=\"word_%d\" tags=\"%s\"/>\n", widx-1, widx, escape($10) >MISC;
+
 		widx++;
 	}
 
@@ -91,6 +190,14 @@ transform='
 		print "</words>" >WORDS;
 		print "</markables>" >SENTENCES;
 		print "</markables>" >ENTITIES;
+		print "</markables>" >LEMMA;
+		print "</markables>" >UPOS;
+		print "</markables>" >XPOS;
+		print "</markables>" >FEATS;
+		print "</markables>" >HEAD;
+		print "</markables>" >DEPREL;
+		print "</markables>" >DEPS;
+		print "</markables>" >MISC;
 	}
 
 	function in_sentence() {
@@ -113,10 +220,21 @@ transform='
 		return s;
 	}'
 
+
+cp -r $mmax_skeleton $dir
 mkdir -p $dir/Basedata $dir/markables
 
 gawk -v WORDS_FORMAT="$dir/Basedata/%03d_%s_words.xml" \
 	-v SENTENCES_FORMAT="$dir/markables/%03d_%s_sentence_level.xml" \
 	-v ENTITIES_FORMAT="$dir/markables/%03d_%s_entity_level.xml" \
+	-v LEMMA_FORMAT="$dir/markables/%03d_%s_lemma_level.xml" \
+	-v UPOS_FORMAT="$dir/markables/%03d_%s_pos_level.xml" \
+	-v XPOS_FORMAT="$dir/markables/%03d_%s_xpos_level.xml" \
+	-v FEATS_FORMAT="$dir/markables/%03d_%s_feats_level.xml" \
+	-v HEAD_FORMAT="$dir/markables/%03d_%s_head_level.xml" \
+	-v DEPREL_FORMAT="$dir/markables/%03d_%s_deprel_level.xml" \
+	-v DEPS_FORMAT="$dir/markables/%03d_%s_deps_level.xml" \
+	-v MISC_FORMAT="$dir/markables/%03d_%s_misc_level.xml" \
+	-v ENTITY_FORMAT="$dir/markables/%03d_%s_entity_level.xml" \
 	-v MMAX_FORMAT="$dir/%03d_%s.mmax" "$transform"
 

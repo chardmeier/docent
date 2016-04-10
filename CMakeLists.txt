@@ -8,7 +8,7 @@ set_directory_properties(PROPERTY EP_BASE external)
 
 ### Configurable section
 
-set(CMAKE_CXX_FLAGS "-g -Wall")
+set(CMAKE_CXX_FLAGS "-g -Wall -pthread")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 set(KENLM_MAX_ORDER 7)

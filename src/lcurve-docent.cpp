@@ -319,7 +319,8 @@ std::string formatWordAlignment(const PhraseSegmentation &snt) {
 		tgtoffset += app.second.get().getTargetPhrase().get().size();
 	}
 	std::string retstr = out.str();
-	retstr.erase(retstr.size() - 1);
+	if(!retstr.empty())
+		retstr.erase(retstr.size() - 1);
 	return retstr;
 }
 

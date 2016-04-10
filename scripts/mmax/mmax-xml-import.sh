@@ -19,6 +19,17 @@ mmax_scriptdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 mmax_skeleton=${mmax_scriptdir}/mmax-skeleton
 xml=`which xmlstarlet`
+if [ ! -e "$xml" ]
+then
+    xml=`which xml`
+fi
+if [ ! -e "$xml" ]
+then
+    echo "cannot find xml starlet"
+    exit 1
+fi
+
+
 #tokeniser="/usit/abel/u1/chm/WMT2013.en-fr/tokeniser/tokenizer.perl -l en"
 tokeniser=cat
 
