@@ -9,6 +9,7 @@ set_directory_properties(PROPERTY EP_BASE external)
 ### Configurable section
 
 set(CMAKE_CXX_FLAGS "-g -Wall -pthread")
+# set(CMAKE_CXX_FLAGS "-g -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 set(KENLM_MAX_ORDER 7)
@@ -171,7 +172,6 @@ add_library(
 	decoder STATIC
 
 	src/SemanticSimilarityModel.cpp
-	src/SelectedPOSLM.cpp
 	src/BeamSearchAdapter.cpp
 	src/BleuModel.cpp
 	src/BracketingModel.cpp
@@ -195,13 +195,14 @@ add_library(
 	src/Random.cpp
 	src/SearchAlgorithm.cpp
 	src/SearchStep.cpp
-	src/SelectedWordLM.cpp
 	src/SemanticSpaceLanguageModel.cpp
 	src/SentenceParityModel.cpp
 	src/SimulatedAnnealing.cpp
 	src/StateGenerator.cpp
 	src/TypeTokenRateModel.cpp
 	src/WellFormednessModel.cpp
+	src/SelectedWordLM.cpp
+	src/GappyLanguageModel.cpp
 )
 
 add_dependencies(decoder
@@ -214,15 +215,15 @@ set(DECODER_LIBRARIES
 	${MOSES_LIBRARIES}
 	${Boost_LIBRARIES})
 
-#add_executable(
-#	docent
-#	src/docent.cpp
-#)
+add_executable(
+	docent
+	src/docent.cpp
+)
 
-#target_link_libraries(
-#	docent
-#	${DECODER_LIBRARIES}
-#)
+target_link_libraries(
+	docent
+	${DECODER_LIBRARIES}
+)
 
 #add_executable(
 #	detailed-docent

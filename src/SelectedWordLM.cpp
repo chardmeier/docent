@@ -221,6 +221,8 @@ FeatureFunction *SelectedWordLMFactory::createNgramModel(const Parameters &param
 			mtype = lm::ngram::HASH_PROBING;
 		else if(smtype == "trie-sorted")
 			mtype = lm::ngram::TRIE_SORTED;
+		else if(smtype == "quant-trie-sorted")
+			mtype = lm::ngram::QUANT_TRIE_SORTED;
 		else {
 			LOG(logger, error, "Unsupported LM type " << smtype <<
 				" for file " << file);
@@ -239,6 +241,12 @@ FeatureFunction *SelectedWordLMFactory::createNgramModel(const Parameters &param
 			LOG(logger, error, "Incorrect LM type in configuration "
 				"for file " << file);
 		return new SelectedWordLM<lm::ngram::TrieModel>(file,params);
+	case lm::ngram::QUANT_ARRAY_TRIE:
+		if(!smtype.empty() && smtype != "quant-trie-sorted")
+			LOG(logger, error, "Incorrect LM type in configuration "
+				"for file " << file);
+
+		return new SelectedWordLM<lm::ngram::QuantArrayTrieModel>(file,params);
 	default:
 		LOG(logger, error, "Unsupported LM type for file " << file);
 		BOOST_THROW_EXCEPTION(FileFormatException());
@@ -368,6 +376,11 @@ FeatureFunction::StateModifications *SelectedWordLM<M>::estimateScoreUpdate(cons
 	StateType_ begin_state(model_->BeginSentenceState());
 	add_state = begin_state;
       }
+      else{
+	StateType_ begin_state(model_->NullContextState());
+	add_state = begin_state;
+      }
+
 
       while (!history.empty()){
 	// TODO: change state without scoring

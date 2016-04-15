@@ -1,5 +1,5 @@
 /*
- *  SelectedPOSLM.cpp
+ *  GappyLanguageModel.cpp
  *
  *  Copyright 2012 by Joerg Tiedemann. All rights reserved.
  *
@@ -24,7 +24,7 @@
 #include "DocumentState.h"
 #include "FeatureFunction.h"
 #include "SearchStep.h"
-#include "SelectedPOSLM.h"
+#include "GappyLanguageModel.h"
 #include "MMAXDocument.h"
 
 #include <boost/unordered_map.hpp>
@@ -46,8 +46,8 @@ using namespace boost::xpressive;
 
 
 template<class Model>
-class SelectedPOSLM : public FeatureFunction {
-  friend class SelectedPOSLMFactory;
+class GappyLanguageModel : public FeatureFunction {
+  friend class GappyLanguageModelFactory;
 
 private:
 
@@ -60,17 +60,21 @@ private:
 
   mutable Logger logger_;
   Model *model_;
-  std::string selectedPOS;
+  std::string selectedLabel;
+  std::string selectedAnnotation;
 
-  bool useRegExPOS;
-  sregex selectedPOSRegEx;
+  bool useRegExLabel;
+  sregex selectedLabelRegEx;
 
-  SelectedPOSLM(const std::string &file,const Parameters &params);
+  bool withinSentence;
+  bool bilingual;
+
+  GappyLanguageModel(const std::string &file,const Parameters &params);
   Float scoreNgram(const StateType_ &old_state, lm::WordIndex word, WordState_ &out_state) const;
 
 public:
 
-	virtual ~SelectedPOSLM();
+	virtual ~GappyLanguageModel();
 	virtual State *initDocument(const DocumentState &doc, Scores::iterator sbegin) const;
 	virtual StateModifications *estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
 		Scores::const_iterator psbegin, Scores::iterator sbegin) const;
@@ -91,33 +95,36 @@ public:
   - wordNo = position of word in current phrase
   - srcWord = source language word
   - trgWord = target language word
+  - wordPair = concatenated source and target language word (for bilingual LMs)
   - srcNo = position or source language word in source sentence
 */
 
-struct SelectedWord {
-  SelectedWord(uint pn, uint wn, std::string s, std::string t, uint sn)  : 
-    srcWord(""), trgWord(""), phrNo(0), wordNo(0), srcNo(0) 
+struct GappyLanguageModelSelectedWord {
+  GappyLanguageModelSelectedWord(uint pn, uint wn, std::string s, std::string t, uint sn)  : 
+    srcWord(""), trgWord(""), wordPair(""), phrNo(0), wordNo(0), srcNo(0) 
   {
     phrNo = pn;
     wordNo = wn;
     srcWord = s;
     trgWord = t;
+    wordPair = s + "|" + t;
     srcNo = sn;
   };
 
-  std::string srcWord, trgWord;
+  std::string srcWord, trgWord, wordPair;
   uint phrNo, wordNo, srcNo;
+
 };
 
 
-struct SelectedPOSLMState : public FeatureFunction::State, public FeatureFunction::StateModifications {
-  SelectedPOSLMState(uint nsents)  : logger_("SelectedPOSLM"), currentScore(0) {
+struct GappyLanguageModelState : public FeatureFunction::State, public FeatureFunction::StateModifications {
+  GappyLanguageModelState(uint nsents)  : logger_("GappyLanguageModel"), currentScore(0) {
     selectedWords.resize(nsents);
-    posTags.resize(nsents);
+    selectedLabels.resize(nsents);
   };
 
-  std::vector< std::vector< SelectedWord > > selectedWords;
-  std::vector< std::vector< std::string > > posTags;
+  std::vector< std::vector< GappyLanguageModelSelectedWord > > selectedWords;
+  std::vector< std::vector< std::string > > selectedLabels;
 
   mutable Logger logger_;
   Float currentScore;
@@ -134,32 +141,54 @@ struct SelectedPOSLMState : public FeatureFunction::State, public FeatureFunctio
     return words;
   }
 
-  void GetHistory(std::vector<std::string>& history,uint sentNo, const uint size){
+  std::string GetWord(uint sentno,uint wordno,const bool bilingual) const{
+    if (bilingual){
+      return selectedWords[sentno][wordno].wordPair;
+    }
+    return selectedWords[sentno][wordno].trgWord;
+  }
+
+  void GetHistory(std::vector<std::string>& history,uint sentNo, const uint size, 
+		  const bool withinSent, const bool bilingual){
     while ( history.size() < size ){
-      std::vector<SelectedWord>::const_iterator it=selectedWords[sentNo].end();
+      std::vector<GappyLanguageModelSelectedWord>::const_iterator it=selectedWords[sentNo].end();
       while (it!=selectedWords[sentNo].begin()){
 	it--;
-	history.push_back(it->trgWord);
+	if (bilingual){
+	  history.push_back(it->wordPair);
+	}
+	else {
+	  history.push_back(it->trgWord);
+	}
 	if (history.size() == size) return;
       }
-      if (sentNo == 0) break;
-      sentNo--;
+      if (sentNo == 0) return;   // stop at document boundary
+      if (withinSent) return;    // stop at sentence boundary
+      sentNo--;                  // continue with previous sentence
+      // LOG(logger_, debug, "continue with sentence " << sentNo);
     }
   }
 
   void GetFuture(std::vector<std::string>& future,
 		 uint sentNo, const uint idx, const uint size,
-		 const uint stopSentNo, const uint stopPhrNo){
+		 const uint stopSentNo, const uint stopPhrNo, 
+		 const bool withinSent, const bool bilingual){
 
-    std::vector<SelectedWord>::const_iterator it=selectedWords[sentNo].begin()+idx;
+    std::vector<GappyLanguageModelSelectedWord>::const_iterator it=selectedWords[sentNo].begin()+idx;
 
     while ( future.size() < size ){
       while (it!=selectedWords[sentNo].end()){
 	if ( sentNo == stopSentNo && it->phrNo == stopPhrNo ) return;
-	future.push_back((*it).trgWord);
+	if (bilingual){
+	  future.push_back((*it).wordPair);
+	}
+	else {
+	  future.push_back((*it).trgWord);
+	}
 	if (future.size() == size) return;
 	it++;
       }
+      if (withinSent) return;
       sentNo++;
       if (sentNo >= selectedWords.size()) return;
       if (sentNo > stopSentNo) return;
@@ -172,7 +201,7 @@ struct SelectedPOSLMState : public FeatureFunction::State, public FeatureFunctio
     selectedWords[sentNo].clear();
   };
 
-  void CopyWords(const SelectedPOSLMState& state, const uint sentno, 
+  void CopyWords(const GappyLanguageModelState& state, const uint sentno, 
 		 const uint start, const uint end, const int diff){
     for (uint i=0; i<state.selectedWords[sentno].size(); i++){
       if (state.selectedWords[sentno][i].phrNo >= start){
@@ -186,12 +215,22 @@ struct SelectedPOSLMState : public FeatureFunction::State, public FeatureFunctio
     }
   };
 
-  void AddPosTag(const uint sentno, const uint wordno, const std::string& pos){
-    posTags[sentno].push_back(pos);
+  void AddLabel(const uint sentno, const uint wordno, const std::string& label){
+    selectedLabels[sentno].push_back(label);
   }
 
+  /*
+    TODO: 
+    - is this the best place to test seelction criteria?
+    - selection should be more flexible (different types of conditions, combinations, ...)
+    - allow selection criteria on target language side? 
+      --> better to loop over target phrases directly than to 
+          run through srcphrases and use word alignment
+      (But how do we handle bilingual LMs in that case? --> still need word alignment)
+   */
+
   uint AddWord(const uint sentno, const uint phrno, const AnchoredPhrasePair &app, 
-               const std::string pos, const bool useRE, const sregex posRE){
+               const std::string label, const bool useRE, const sregex labelRE){
     WordAlignment wa = app.second.get().getWordAlignment();
     PhraseData sd = app.second.get().getSourcePhrase().get();
     PhraseData td = app.second.get().getTargetPhrase().get();
@@ -202,14 +241,16 @@ struct SelectedPOSLMState : public FeatureFunction::State, public FeatureFunctio
     uint addCount=0;
     for (uint j=0; j<sd.size(); ++j) {
       // TODO: we could support other conditions here as well!
-      if ( posTags[sentno][wordno] == pos ||
-           ( useRE && regex_match(posTags[sentno][wordno],what,posRE) ) ){
+      // (maybe this should be moved to GappyLanguageModel class)
+      if ( selectedLabels[sentno][wordno] == label ||
+           ( useRE && regex_match(selectedLabels[sentno][wordno],what,labelRE) ) ){
 	for (WordAlignment::const_iterator wit = wa.begin_for_source(j);
 	     wit != wa.end_for_source(j); ++wit) {
-	  SelectedWord word(phrno,*wit,sd[j],td[*wit],wordno);
+	  GappyLanguageModelSelectedWord word(phrno,*wit,sd[j],td[*wit],wordno);
 	  selectedWords[sentno].push_back(word);
 	  addCount++;
-	  LOG(logger_, debug, "add word " << td[*wit] << " aligned to " << sd[j]);
+	  LOG(logger_, debug, "add word " << td[*wit] << " aligned to " << sd[j] 
+	      << " with label " << selectedLabels[sentno][wordno]);
 	}
       }
       wordno++;
@@ -218,8 +259,8 @@ struct SelectedPOSLMState : public FeatureFunction::State, public FeatureFunctio
   };
 
 
-  virtual SelectedPOSLMState *clone() const {
-    return new SelectedPOSLMState(*this);
+  virtual GappyLanguageModelState *clone() const {
+    return new GappyLanguageModelState(*this);
   }
 };
 
@@ -227,13 +268,13 @@ struct SelectedPOSLMState : public FeatureFunction::State, public FeatureFunctio
 
 
 
-FeatureFunction *SelectedPOSLMFactory::createNgramModel(const Parameters &params) {
+FeatureFunction *GappyLanguageModelFactory::createNgramModel(const Parameters &params) {
 	std::string file = params.get<std::string>("lm-file");
 	lm::ngram::ModelType mtype;
 
 	std::string smtype = params.get<std::string>("model-type", "");
 
-	Logger logger("SelectedPOSLM");
+	Logger logger("GappyLanguageModel");
 
 	if(!lm::ngram::RecognizeBinary(file.c_str(), mtype)) {
 		if(smtype.empty() || smtype == "hash-probing")
@@ -254,18 +295,18 @@ FeatureFunction *SelectedPOSLMFactory::createNgramModel(const Parameters &params
 			LOG(logger, error, "Incorrect LM type in configuration "
 				"for file " << file);
 
-		return new SelectedPOSLM<lm::ngram::ProbingModel>(file,params);
+		return new GappyLanguageModel<lm::ngram::ProbingModel>(file,params);
 	case lm::ngram::TRIE_SORTED:
 		if(!smtype.empty() && smtype != "trie-sorted")
 			LOG(logger, error, "Incorrect LM type in configuration "
 				"for file " << file);
-		return new SelectedPOSLM<lm::ngram::TrieModel>(file,params);
+		return new GappyLanguageModel<lm::ngram::TrieModel>(file,params);
 	case lm::ngram::QUANT_ARRAY_TRIE:
 		if(!smtype.empty() && smtype != "quant-trie-sorted")
 			LOG(logger, error, "Incorrect LM type in configuration "
 				"for file " << file);
 
-		return new SelectedPOSLM<lm::ngram::QuantArrayTrieModel>(file,params);
+		return new GappyLanguageModel<lm::ngram::QuantArrayTrieModel>(file,params);
 	default:
 		LOG(logger, error, "Unsupported LM type for file " << file);
 		BOOST_THROW_EXCEPTION(FileFormatException());
@@ -276,24 +317,27 @@ FeatureFunction *SelectedPOSLMFactory::createNgramModel(const Parameters &params
 
 
 template<class Model>
-SelectedPOSLM<Model>::SelectedPOSLM(const std::string &file,const Parameters &params) : logger_("SelectedPOSLM") {
+GappyLanguageModel<Model>::GappyLanguageModel(const std::string &file,const Parameters &params) : logger_("GappyLanguageModel") {
   model_ = new Model(file.c_str());
-  selectedPOS = params.get<std::string>("selected-pos","");
-  useRegExPOS = false;
-  if (selectedPOS.empty()){
-    selectedPOS = params.get<std::string>("selected-pos-regex","");
-    useRegExPOS = true;
-    selectedPOSRegEx = sregex::compile(selectedPOS);
+  selectedAnnotation = params.get<std::string>("selected-annotation","");
+  selectedLabel = params.get<std::string>("selected-label","");
+  useRegExLabel = false;
+  if (selectedLabel.empty()){
+    selectedLabel = params.get<std::string>("selected-label-regex","");
+    useRegExLabel = true;
+    selectedLabelRegEx = sregex::compile(selectedLabel);
   }
+  withinSentence = params.get<bool>("sentence-internal-only", false);
+  bilingual = params.get<bool>("bilingual", false);
 }
 
 template<class M>
-SelectedPOSLM<M>::~SelectedPOSLM() {
+GappyLanguageModel<M>::~GappyLanguageModel() {
   delete model_;
 }
 
 template<class M>
-inline Float SelectedPOSLM<M>::scoreNgram(const StateType_ &state,
+inline Float GappyLanguageModel<M>::scoreNgram(const StateType_ &state,
 		lm::WordIndex word, WordState_ &out_state) const {
 	Float s = model_->Score(state, word, out_state.first);
 	s *= Float(2.30258509299405); // log10 -> ln
@@ -305,28 +349,30 @@ inline Float SelectedPOSLM<M>::scoreNgram(const StateType_ &state,
 
 
 template<class M>
-FeatureFunction::State *SelectedPOSLM<M>::initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
+FeatureFunction::State *GappyLanguageModel<M>::initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
   const std::vector<PhraseSegmentation> &segs = doc.getPhraseSegmentations();
 
+  LOG(logger_, debug, "annotation " << selectedAnnotation);
+
   boost::shared_ptr<const MMAXDocument> mmax = doc.getInputDocument();
-  const MarkableLevel &posLevel = mmax->getMarkableLevel("pos");
+  const MarkableLevel &annotationLevel = mmax->getMarkableLevel(selectedAnnotation);
 
-  SelectedPOSLMState *s = new SelectedPOSLMState(segs.size());
+  GappyLanguageModelState *s = new GappyLanguageModelState(segs.size());
 
-  // save all POS tags in the document state
-  BOOST_FOREACH(const Markable &m, posLevel) {
+  // save all labels in the document state
+  BOOST_FOREACH(const Markable &m, annotationLevel) {
     uint snt = m.getSentence();
-    const std::string &postag = m.getAttribute("tag");
+    const std::string &label = m.getAttribute("tag");
     const CoverageBitmap &cov = m.getCoverage();
     uint wordno = cov.find_first();
-    s->AddPosTag(snt,wordno,postag);
-    LOG(logger_, debug, "POS tag for " << wordno << " in sent " << snt << " = " << postag);
+    s->AddLabel(snt,wordno,label);
+    LOG(logger_, debug, "Label of " << wordno << " in sent " << snt << " = " << label);
   }
 
   for(uint i = 0; i < segs.size(); i++) {
     uint phrCount=0;
     BOOST_FOREACH(const AnchoredPhrasePair &app, segs[i]) {
-      s->AddWord(i,phrCount,app,selectedPOS,useRegExPOS,selectedPOSRegEx);
+      s->AddWord(i,phrCount,app,selectedLabel,useRegExLabel,selectedLabelRegEx);
       phrCount++;
     }
   }
@@ -340,12 +386,11 @@ FeatureFunction::State *SelectedPOSLM<M>::initDocument(const DocumentState &doc,
   Float score;
   for (uint i = 0; i != s->selectedWords.size(); ++i){
     for (uint j = 0; j != s->selectedWords[i].size(); ++j){
-      score += model_->Score(state,vocab.Index(s->selectedWords[i][j].trgWord),out_state);
+      score += model_->Score(state,vocab.Index(s->GetWord(i,j,bilingual)),out_state);
       // LOG(logger_, debug, "add score for " << s->selectedWords[i][j].trgWord << " = " << score);
       state = out_state;
     }
   }
-  // TODO: Do we need end-of-sentence?
 
   s->currentScore = score;
   *sbegin = score;
@@ -354,7 +399,7 @@ FeatureFunction::State *SelectedPOSLM<M>::initDocument(const DocumentState &doc,
 
 
 template<class M>
-void SelectedPOSLM<M>::computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const {
+void GappyLanguageModel<M>::computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const {
 	*sbegin = Float(0);
 }
 
@@ -362,11 +407,11 @@ void SelectedPOSLM<M>::computeSentenceScores(const DocumentState &doc, uint sent
 // TODO: avoid recomputing scores if nothing actually changes (in the list of selected words)
 
 template<class M>
-FeatureFunction::StateModifications *SelectedPOSLM<M>::estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
+FeatureFunction::StateModifications *GappyLanguageModel<M>::estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
 		Scores::const_iterator psbegin, Scores::iterator sbegin) const {
 
-  const SelectedPOSLMState *prevstate = dynamic_cast<const SelectedPOSLMState *>(state);
-  SelectedPOSLMState *s = prevstate->clone();
+  const GappyLanguageModelState *prevstate = dynamic_cast<const GappyLanguageModelState *>(state);
+  GappyLanguageModelState *s = prevstate->clone();
 
   bool firstSent = true;
   uint sentNo = 0;
@@ -409,10 +454,9 @@ FeatureFunction::StateModifications *SelectedPOSLM<M>::estimateScoreUpdate(const
 
       // get the LM history before the modification (initialize LM states)
       std::vector<std::string> history;
-      s->GetHistory(history,sentNo,lmOrder-1);
+      s->GetHistory(history,sentNo,lmOrder-1,withinSentence,bilingual);
 
       if ( history.size() < lmOrder-1 ){
-	// TODO: Do we need begin-of-sentence?
 	StateType_ begin_state(model_->BeginSentenceState());
 	add_state = begin_state;
       }
@@ -422,7 +466,6 @@ FeatureFunction::StateModifications *SelectedPOSLM<M>::estimateScoreUpdate(const
       }
 
       while (!history.empty()){
-	// TODO: change state without scoring
 	model_->Score(add_state,vocab.Index(history.back()),out_state);
 	add_state = out_state;
 	history.pop_back();
@@ -444,7 +487,7 @@ FeatureFunction::StateModifications *SelectedPOSLM<M>::estimateScoreUpdate(const
 	  if (prevstate->selectedWords[sentNo][i].phrNo > phr) break;
 	  if ( prevstate->selectedWords[sentNo][i].phrNo == phr ){
 	    Float score = model_->Score(remove_state,
-					vocab.Index(prevstate->selectedWords[sentNo][i].trgWord),
+					vocab.Index(prevstate->GetWord(sentNo,i,bilingual)),
 					out_state);
 	    s->currentScore -= score;
 	    remove_state = out_state;
@@ -464,10 +507,10 @@ FeatureFunction::StateModifications *SelectedPOSLM<M>::estimateScoreUpdate(const
     uint modLength = 0;
     BOOST_FOREACH(const AnchoredPhrasePair &app, it->proposal) {
       uint newPhrNo = phrNo+modLength+phrNoDiff;
-      uint added = s->AddWord(sentNo,newPhrNo,app,selectedPOS,useRegExPOS,selectedPOSRegEx);
+      uint added = s->AddWord(sentNo,newPhrNo,app,selectedLabel,useRegExLabel,selectedLabelRegEx);
       for (uint j = s->selectedWords[sentNo].size() - added; j < s->selectedWords[sentNo].size(); ++j){
 	Float score = model_->Score(add_state,
-				    vocab.Index(s->selectedWords[sentNo][j].trgWord),
+				    vocab.Index(s->GetWord(sentNo,j,bilingual)),
 				    out_state);
 	s->currentScore += score;
 	add_state = out_state;
@@ -495,6 +538,8 @@ FeatureFunction::StateModifications *SelectedPOSLM<M>::estimateScoreUpdate(const
       nextModFrom = std::distance(next.begin(), it->from_it);
     }
 
+    LOG(logger_, debug, " word list now: " << s->GetWords(currentSentNo));
+
     // don't forget to copy remaining selected words in currentSentNo!
     phrNo = std::distance(current.begin(), to_it);
     uint wordIdx = s->selectedWords[sentNo].size();
@@ -504,6 +549,7 @@ FeatureFunction::StateModifications *SelectedPOSLM<M>::estimateScoreUpdate(const
 	s->CopyWords(*prevstate,currentSentNo,phrNo,nextModFrom,phrNoDiff);
       }
       else{
+	// LOG(logger_, debug, " phrNo: " << phrNo << " size " << current.size());
 	s->CopyWords(*prevstate,currentSentNo,phrNo,current.size(),phrNoDiff);
       }
     }
@@ -513,7 +559,7 @@ FeatureFunction::StateModifications *SelectedPOSLM<M>::estimateScoreUpdate(const
     // run through more context words as needed by LM until next modification point or end of document
 
     std::vector<std::string> future;
-    s->GetFuture(future,sentNo,wordIdx,lmOrder-1,nextModSentNo,nextModFrom);
+    s->GetFuture(future,sentNo,wordIdx,lmOrder-1,nextModSentNo,nextModFrom,withinSentence,bilingual);
 
     for (std::vector<std::string>::const_iterator it = future.begin(); it != future.end(); it++){
       Float oldScore = model_->Score(remove_state,vocab.Index(*it),out_state);
@@ -557,7 +603,7 @@ FeatureFunction::StateModifications *SelectedPOSLM<M>::estimateScoreUpdate(const
     Float score;
     for (uint i = 0; i < s->selectedWords.size(); ++i){
       for (uint j = 0; j < s->selectedWords[i].size(); ++j){
-	score += model_->Score(in_state,vocab.Index(s->selectedWords[i][j].trgWord),out_state);
+	score += model_->Score(in_state,vocab.Index(s->GetWord(i,j,bilingual)),out_state);
 	in_state = out_state;
       }
     }
@@ -575,15 +621,15 @@ FeatureFunction::StateModifications *SelectedPOSLM<M>::estimateScoreUpdate(const
 
 
 template<class M>
-FeatureFunction::StateModifications *SelectedPOSLM<M>::updateScore(const DocumentState &doc, const SearchStep &step, const State *state,
+FeatureFunction::StateModifications *GappyLanguageModel<M>::updateScore(const DocumentState &doc, const SearchStep &step, const State *state,
 		FeatureFunction::StateModifications *estmods, Scores::const_iterator psbegin, Scores::iterator estbegin) const {
 	return estmods;
 }
 
 template<class M>
-FeatureFunction::State *SelectedPOSLM<M>::applyStateModifications(FeatureFunction::State *oldState, FeatureFunction::StateModifications *modif) const {
-	SelectedPOSLMState *os = dynamic_cast<SelectedPOSLMState *>(oldState);
-	SelectedPOSLMState *ms = dynamic_cast<SelectedPOSLMState *>(modif);
+FeatureFunction::State *GappyLanguageModel<M>::applyStateModifications(FeatureFunction::State *oldState, FeatureFunction::StateModifications *modif) const {
+	GappyLanguageModelState *os = dynamic_cast<GappyLanguageModelState *>(oldState);
+	GappyLanguageModelState *ms = dynamic_cast<GappyLanguageModelState *>(modif);
 
 	os->currentScore = ms->currentScore;
 	os->selectedWords.swap(ms->selectedWords);

@@ -39,7 +39,9 @@
 #include "BracketingModel.h"
 #include "WellFormednessModel.h"
 #include "SelectedWordLM.h"
-#include "SelectedPOSLM.h"
+// #include "SelectedPOSLM.h"
+// #include "SelectedAnnotationLM.h"
+#include "GappyLanguageModel.h"
 #include "SemanticSimilarityModel.h"
 
 
@@ -430,8 +432,14 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 		ff = new WellFormednessModel(params);
 	else if(type == "selected-word-lm")
 		ff = SelectedWordLMFactory::createNgramModel(params);
+	/*
 	else if(type == "selected-pos-lm")
 		ff = SelectedPOSLMFactory::createNgramModel(params);
+	else if(type == "selected-annotation-lm")
+		ff = SelectedAnnotationLMFactory::createNgramModel(params);
+	*/
+	else if(type == "gappy-lm")
+		ff = GappyLanguageModelFactory::createNgramModel(params);
 	else if(type == "semantic-similarity-model")
 		ff = new SemanticSimilarityModel(params);
 	else 

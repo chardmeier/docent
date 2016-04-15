@@ -82,6 +82,7 @@ while (<>){
     # open new documents
     #--------------------------------------------------------------
     if (exists $doc{$count}){
+	print STDERR "process document $doc{$count}\n";
 	$sid = 0;
 	$wid = 0;
 	%mid = ();
@@ -101,45 +102,66 @@ while (<>){
 	open $bh,">$destdir/Basedata/$doc{$count}_words.xml" 
 	    || die "cannot write to $destdir/Basedata/$doc{$count}_words.xml";
 	binmode($bh, ":utf8");
-	print $bh '<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE words SYSTEM "words.dtd">
-<words>
-';
+	print $bh '<?xml version="1.0" encoding="UTF-8" ?>',"\n";
+	print $bh '<!DOCTYPE words SYSTEM "words.dtd">',"\n";
+	print $bh '<words>',"\n";
+
 	open $sh,">$destdir/markables/$doc{$count}_sentence_level.xml" 
 	    || die "cannot write to $destdir/markables/$doc{$count}_sentence_level.xml";
-	print $sh '<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE markables SYSTEM "markables.dtd">
-<markables xmlns="www.eml.org/NameSpaces/sentence">
-';
+	print $sh '<?xml version="1.0" encoding="UTF-8" ?>',"\n";
+	print $sh '<!DOCTYPE markables SYSTEM "markables.dtd">',"\n";
+	print $sh '<markables xmlns="www.eml.org/NameSpaces/sentence">',"\n";
+
+	my @newLevels = ();
 	foreach (1..$#factors){
 	    my $f = $factors[$_];
 	    open $fh{$f},">$destdir/markables/$doc{$count}_${f}_level.xml" 
 		|| die "cannot open factor markable";
 	    my $h = $fh{$f};
 	    binmode($h, ":utf8");
-	    print $h '<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE markables SYSTEM "markables.dtd">
-<markables xmlns="www.eml.org/NameSpaces/';
+	    print $h '<?xml version="1.0" encoding="UTF-8" ?>',"\n";
+	    print $h '<!DOCTYPE markables SYSTEM "markables.dtd">',"\n";
+	    print $h '<markables xmlns="www.eml.org/NameSpaces/';
 	    print $h $f,'">',"\n";
 
 	    unless (-e "$destdir/Schemes/${f}_scheme.xml"){
+		push (@newLevels,$f);
 		open S,">$destdir/Schemes/${f}_scheme.xml";
-		print S '<?xml version="1.0" encoding="ISO-8859-1"?>
-<annotationscheme>
-        <attribute id="level_',$f,'" name="tag" text="factor"  type="freetext">
-                <value id="value_1000" name="tag"/>
-        </attribute>
-</annotationscheme>';
+		print S '<?xml version="1.0" encoding="ISO-8859-1"?>',"\n";
+		print S '<annotationscheme>',"\n";
+		print S '<attribute id="level_',$f,'" name="tag" text="factor"  type="freetext">',"\n";
+                print S '<value id="value_1000" name="tag"/>',"\n";
+		print S '</attribute>',"\n";
+		print S '</annotationscheme>',"\n";
 		close S;
 	    }
 	    unless (-e "$destdir/Customizations/${f}_customization.xml"){
 		open S,">$destdir/Customizations/${f}_customization.xml";
-		print S '<?xml version="1.0" encoding="UTF-8"?>
-<customization>
-</customization>
-';
+		print S '<?xml version="1.0" encoding="UTF-8"?>',"\n";
+		print S '<customization>',"\n";
+		print S '</customization>',"\n";
 		close S;
 	    }
+	}
+	if (@newLevels){
+	    open I,"<$destdir/common_paths.xml" 
+		|| die 'cannot read common paths file';
+	    open O,">$destdir/common_paths_new.xml" 
+		|| die 'cannot write common paths file';
+	    while (<I>){
+		if (/\<\/annotations\>/){
+		    foreach (@newLevels){
+			print O '<level name="',$_,'" schemefile="',$_,'_scheme.xml"';
+			print O '" customization_file="',$_,'_customization.xml">$_';
+			print O $_,'_level.xml</level>',"\n";
+		    }
+		}
+		else{
+		    print O $_;
+		}
+	    }
+	    close I;
+	    close O;
 	}
     }
 
@@ -187,6 +209,10 @@ if (defined $sh){
     print $sh "</markables>\n";
     close $sh;
 }
+foreach my $f (values %fh){
+    print $f "</markables>\n";
+    close $f;
+}
 
 
 
@@ -205,9 +231,11 @@ sub get_document_boundaries{
     my ($xmlfile,$doc) = @_; 
     open F,"<$xmlfile" || die "cannot read from $xmlfile";
     my $count=0;
+    my $dcount=0;
     while (<F>){
 	if (/docid=\"([^\"]+)\"/){
-	    my $docname = sprintf "%03d_%s",$count,$1;
+	    $dcount++;
+	    my $docname = sprintf "%03d_%s",$dcount,$1;
 	    $$doc{$count} = $docname;
 	    next;
 	}
