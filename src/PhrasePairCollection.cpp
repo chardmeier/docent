@@ -31,9 +31,9 @@
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>
 
-PhrasePairCollection::PhrasePairCollection(const PhraseTable &phraseTable, uint sentenceLength, Random random)
+PhrasePairCollection::PhrasePairCollection(uint sentenceLength, Random random)
 	: logger_("PhrasePairCollection"),
-	  phraseTable_(phraseTable), random_(random), sentenceLength_(sentenceLength) {}
+	  random_(random), sentenceLength_(sentenceLength) {}
 
 void PhrasePairCollection::addPhrasePair(CoverageBitmap cov, PhrasePair phrasePair) {
 	LOG(logger_, verbose, "addPhrasePair " << cov << " " <<

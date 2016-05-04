@@ -30,20 +30,21 @@
 #include <iterator>
 #include <list>
 
+class PhraseTable;
+
 class PhrasePairCollection {
 	friend class PhraseTable;
 
 private:
 	Logger logger_;
 
-	const PhraseTable &phraseTable_;
 	Random random_;
 
 	uint sentenceLength_;
 	typedef std::list<AnchoredPhrasePair> PhrasePairList_;
 	PhrasePairList_ phrasePairList_;
 
-	PhrasePairCollection(const PhraseTable &phraseTable, uint sentenceLength, Random random);
+	PhrasePairCollection(uint sentenceLength, Random random);
 	void addPhrasePair(CoverageBitmap cov, PhrasePair phrasePair);
 
 	bool proposeSegmentationLeftRight(const CoverageBitmap &range,
@@ -61,10 +62,6 @@ public:
 		std::copy(phrasePairList_.begin(), phrasePairList_.end(), to_it);
 	}
 
-	const PhraseTable &getPhraseTable() const {
-		return phraseTable_;
-	}
-
 	PhraseSegmentation proposeSegmentation() const;
 	PhraseSegmentation proposeSegmentation(const CoverageBitmap &range) const;
 	const AnchoredPhrasePair &proposeAlternativeTranslation(const AnchoredPhrasePair &old) const;
@@ -72,4 +69,3 @@ public:
 };
 
 #endif
-
