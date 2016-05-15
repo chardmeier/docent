@@ -1,4 +1,8 @@
 #!/usr/bin/perl
+#
+# convert Moses configuration files from version 2 to version 1
+# (this is not complete and quite ad-hoc!)
+#
 
 use strict;
 
@@ -46,6 +50,8 @@ foreach (keys %config){
 }
 
 $section = undef;
+my $useAlgInfo = 0;
+
 foreach my $f (sort keys %features){
     if ($f=~/KENLM/){
 	unless ($section eq 'lm'){
@@ -67,6 +73,14 @@ foreach my $f (sort keys %features){
 	    my %l = %{$features{$f}{$n}};	    
 	    print "1 $l{'input-factor'} $l{'output-factor'} ";
 	    print $l{'num-features'}+1," $l{path}\n";
+
+	    ## set word alignment flag for the phrase table
+	    ## if the .wa files exist 
+	    ## (TODO: do we need this for each ttable?)
+	    if (-e $l{path}.'.binphr.srctree.wa'){
+		$useAlgInfo++;
+	    }
+
 	}
 	print "\n";
     }
@@ -86,6 +100,7 @@ foreach my $f (sort keys %features){
 
 
 $section = undef;
+my $nrPt = 0;
 foreach my $f (sort keys %features){
     if ($f=~/KENLM/){
 	unless ($section eq 'lm'){
@@ -103,6 +118,7 @@ foreach my $f (sort keys %features){
 	    $section = 'pt';
 	}
 	foreach my $n (sort keys %{$features{$f}}){
+	    $nrPt++;
 	    print join("\n", @{$weights{$n}});
 	    print "\n";
 	    print $weights{'PhrasePenalty0'}[0],"\n";
@@ -122,5 +138,16 @@ foreach my $f (sort keys %features){
     }
 }
 
+if ($useAlgInfo){
+    print "[use-alignment-info]\n1\n\n";
+}
+
 print "[weight-w]\n";
-print $weights{'WordPenalty0'}[0],"\n";
+print $weights{'WordPenalty0'}[0],"\n\n";
+
+print "[distortion-limit]\n6\n\n";
+
+print "[ttable-limit]\n";
+foreach (1..$nrPt){
+    print "20\n";
+}

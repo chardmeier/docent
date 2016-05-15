@@ -18,7 +18,18 @@
  *
  *  You should have received a copy of the GNU General Public License along with
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
+ *
+ ********************************************************************************
+ * parameters (in config file):
+ *
+ *   name               values        default    description
+ * ------------------------------------------------------------------------------
+ *   bilingual          true/false    false      use bilingual LM (or not)
+ *   skip-unaligned     true/false    false      skip unaligned words (no token)
+ *   merge-aligned      true/false    true       merge all aligned trg tokens
+ *                                               otherwise: separate token for each link
  */
+
 
 #include "Docent.h"
 #include "DocumentState.h"
@@ -32,11 +43,16 @@
 #include <boost/lambda/bind.hpp>
 #include <boost/regex.hpp>
 #include <boost/xpressive/xpressive.hpp>
+#include <boost/algorithm/string.hpp>
 
+
+#include <set>
 #include <cmath>
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <iostream>
+// #include <string>
 
 // from kenlm
 #include "lm/binary_format.hh"
@@ -57,17 +73,34 @@ private:
   typedef std::pair<StateType_,Float> WordState_;
   typedef std::vector<WordState_> SentenceState_;
 
+  // MatchConditions_ = conjunction of matching conditions over annotation layers
+  // DiscjunctiveMatchConditions_ = disjunction of MatchConditions
+
+  typedef boost::unordered_map< std::string, std::string > SrcMatchCond_;
+  typedef boost::unordered_map< uint, std::string > TrgMatchCond_;
+  typedef std::vector< SrcMatchCond_ > AltSrcMatchCond_;
+  typedef std::vector< TrgMatchCond_ > AltTrgMatchCond_;
+
 
   mutable Logger logger_;
   Model *model_;
-  std::string selectedLabel;
-  std::string selectedAnnotation;
 
-  bool useRegExLabel;
-  sregex selectedLabelRegEx;
+  //std::string selectedLabel;
+  //std::string selectedAnnotation;
+
+  AltSrcMatchCond_ srcMatchConditions;
+  AltTrgMatchCond_ trgMatchConditions;
+
+  std::set<std::string> requiredAnnotation;
+  std::set<uint> requiredFactors;
+
+  // bool useRegExLabel;
+  // sregex selectedLabelRegEx;
 
   bool withinSentence;
   bool bilingual;
+  bool skipUnaligned;
+  bool mergeAligned;
 
   GappyLanguageModel(const std::string &file,const Parameters &params);
   Float scoreNgram(const StateType_ &old_state, lm::WordIndex word, WordState_ &out_state) const;
@@ -83,7 +116,7 @@ public:
 	virtual FeatureFunction::State *applyStateModifications(FeatureFunction::State *oldState, FeatureFunction::StateModifications *modif) const;
 	
 	virtual uint getNumberOfScores() const {
-		return 1;
+		return 2;
 	}
 
 	virtual void computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const;
@@ -92,46 +125,80 @@ public:
 /*
   selected words:
   - phrNo = position of phrase in target language
-  - wordNo = position of word in current phrase
   - srcWord = source language word
-  - trgWord = target language word
+  - trgWord = aligned target language words
   - wordPair = concatenated source and target language word (for bilingual LMs)
   - srcNo = position or source language word in source sentence
 */
 
+
+// constructor for merging aligned words
 struct GappyLanguageModelSelectedWord {
-  GappyLanguageModelSelectedWord(uint pn, uint wn, std::string s, std::string t, uint sn)  : 
-    srcWord(""), trgWord(""), wordPair(""), phrNo(0), wordNo(0), srcNo(0) 
+  GappyLanguageModelSelectedWord(uint sentno, uint pn, uint sn,
+				 PhraseData &sd, PhraseData &td, 
+				 WordAlignment &wa, uint j)  : 
+    srcWord(""), trgWord(""), wordPair(""), sentNo(0), phrNo(0), srcNo(0), nrLinks(0) 
   {
+    sentNo = sentno;
+    phrNo = pn;
+    srcNo = sn;
+    nrLinks = 0;
+
+    srcWord = sd[j];
+    trgWord = "TRG";    // to make sure that even empty alignments have non-empty string
+    for (WordAlignment::const_iterator wit = wa.begin_for_source(j);
+	 wit != wa.end_for_source(j); ++wit) {
+      trgWord += "+" + td[*wit];
+      nrLinks++;
+    }
+
+    wordPair = srcWord + "=" + trgWord;
+  };
+
+  // constructor for given word pair
+  GappyLanguageModelSelectedWord(uint sentno, uint pn, uint wn, std::string s, std::string t, uint sn)  : 
+    srcWord(""), trgWord(""), wordPair(""), sentNo(0), phrNo(0), wordNo(0), srcNo(0), nrLinks(0) 
+  {
+    sentNo = sentno;
     phrNo = pn;
     wordNo = wn;
     srcWord = s;
     trgWord = t;
-    wordPair = s + "|" + t;
+    wordPair = s + "=TRG+" + t;
     srcNo = sn;
+    nrLinks = 1;
   };
 
   std::string srcWord, trgWord, wordPair;
-  uint phrNo, wordNo, srcNo;
+  uint sentNo, phrNo, wordNo, srcNo, nrLinks;
 
 };
 
 
 struct GappyLanguageModelState : public FeatureFunction::State, public FeatureFunction::StateModifications {
-  GappyLanguageModelState(uint nsents)  : logger_("GappyLanguageModel"), currentScore(0) {
+  GappyLanguageModelState(uint nsents)  : logger_("GappyLanguageModel"), currentScore(0), nrSelected(0) {
     selectedWords.resize(nsents);
-    selectedLabels.resize(nsents);
   };
 
+  typedef boost::unordered_map< std::string, std::string > SrcMatchCond_;
+  typedef boost::unordered_map< uint, std::string > TrgMatchCond_;
+  typedef std::vector< SrcMatchCond_ > AltSrcMatchCond_;
+  typedef std::vector< TrgMatchCond_ > AltTrgMatchCond_;
+
   std::vector< std::vector< GappyLanguageModelSelectedWord > > selectedWords;
-  std::vector< std::vector< std::string > > selectedLabels;
+  boost::unordered_map<std::string, std::vector< std::vector< std::string > > > selectedLabels;
 
   mutable Logger logger_;
   Float currentScore;
+  uint nrSelected;
 
   Float score() {
     return currentScore;
   };
+
+  uint GetNrOfWords(uint sentno){
+    return selectedWords[sentno].size();
+  }
 
   std::string GetWords(uint sentno){
     std::string words = "";
@@ -215,22 +282,55 @@ struct GappyLanguageModelState : public FeatureFunction::State, public FeatureFu
     }
   };
 
-  void AddLabel(const uint sentno, const uint wordno, const std::string& label){
-    selectedLabels[sentno].push_back(label);
+  void AddLabel(const uint sentno, const uint wordno, const std::string& type, const std::string& label){
+    selectedLabels[type][sentno].push_back(label);
   }
 
-  /*
-    TODO: 
-    - is this the best place to test seelction criteria?
-    - selection should be more flexible (different types of conditions, combinations, ...)
-    - allow selection criteria on target language side? 
-      --> better to loop over target phrases directly than to 
-          run through srcphrases and use word alignment
-      (But how do we handle bilingual LMs in that case? --> still need word alignment)
-   */
+
+  bool MatchingSrcWord(const uint &sentno, PhraseData &pd, uint &wordno, const AltSrcMatchCond_ &cond){
+    if (cond.size() == 0) return true;
+    for (uint i=0; i<cond.size(); ++i) {
+      bool match = true;
+      SrcMatchCond_::const_iterator mit;
+      for (mit=cond[i].begin();mit!=cond[i].end();++mit){
+	std::string annot = mit->first;
+	std::string value = mit->second;
+	if ( selectedLabels[annot][sentno][wordno] != value ){
+	  match = false;
+	  break;
+	}
+      }
+      if (match) return match;
+    }
+    return false;
+  }
+
+  bool MatchingTrgWord(const AnchoredPhrasePair &app,uint wordno, 
+		       const AltTrgMatchCond_ &cond){
+    if (cond.size() == 0) return true;
+    for (uint i=0; i<cond.size(); ++i) {
+      bool match = true;
+      TrgMatchCond_::const_iterator mit;
+      for (mit=cond[i].begin();mit!=cond[i].end();++mit){
+	uint factor = mit->first;
+	std::string value = mit->second;
+	// TODO: is this efficient enough to always look up annotation here?
+	PhraseData td = app.second.get().getTargetPhraseOrAnnotations(factor-1,false).get();
+	// LOG(logger_, debug, "target " << wordno << " = " << td[wordno] );
+	if ( td[wordno] != value ){
+	  match = false;
+	  break;
+	}
+      }
+      if (match) return match;
+    }
+    return false;
+  }
 
   uint AddWord(const uint sentno, const uint phrno, const AnchoredPhrasePair &app, 
-               const std::string label, const bool useRE, const sregex labelRE){
+	       const AltSrcMatchCond_ &srcCond, const AltTrgMatchCond_ &trgCond, 
+	       const bool bilingual,const bool skipUnaligned, const bool mergeAligned){
+
     WordAlignment wa = app.second.get().getWordAlignment();
     PhraseData sd = app.second.get().getSourcePhrase().get();
     PhraseData td = app.second.get().getTargetPhrase().get();
@@ -239,21 +339,49 @@ struct GappyLanguageModelState : public FeatureFunction::State, public FeatureFu
     smatch what;
 
     uint addCount=0;
-    for (uint j=0; j<sd.size(); ++j) {
-      // TODO: we could support other conditions here as well!
-      // (maybe this should be moved to GappyLanguageModel class)
-      if ( selectedLabels[sentno][wordno] == label ||
-           ( useRE && regex_match(selectedLabels[sentno][wordno],what,labelRE) ) ){
-	for (WordAlignment::const_iterator wit = wa.begin_for_source(j);
-	     wit != wa.end_for_source(j); ++wit) {
-	  GappyLanguageModelSelectedWord word(phrno,*wit,sd[j],td[*wit],wordno);
-	  selectedWords[sentno].push_back(word);
-	  addCount++;
-	  LOG(logger_, debug, "add word " << td[*wit] << " aligned to " << sd[j] 
-	      << " with label " << selectedLabels[sentno][wordno]);
+
+    // if there are conditions over the source language
+    // or the LM is bilingual: --> run over source words
+    if (srcCond.size() || bilingual){
+      for (uint j=0; j<sd.size(); ++j) {
+	if (MatchingSrcWord(sentno, sd, wordno, srcCond)){
+	  if (mergeAligned && trgCond.size() == 0 ){
+	    GappyLanguageModelSelectedWord word(sentno,phrno,wordno,sd,td,wa,j);
+	    if ( (!skipUnaligned) || word.nrLinks > 0){
+	      selectedWords[sentno].push_back(word);
+	      LOG(logger_, debug, "add word '" << word.trgWord << "' aligned to '" << word.srcWord);
+	      addCount++;
+	      wordno++;
+	    }
+	  }
+	  else{
+	    // create separate tokens for each alignment
+	    for (WordAlignment::const_iterator wit = wa.begin_for_source(j);
+		 wit != wa.end_for_source(j); ++wit) {
+	      if (MatchingTrgWord(app, *wit, trgCond)){
+		GappyLanguageModelSelectedWord word(sentno,phrno,*wit,sd[j],td[*wit],wordno);
+		selectedWords[sentno].push_back(word);
+		LOG(logger_, debug, "add word '" << word.trgWord << "' aligned to '" << word.srcWord);
+		addCount++;
+		wordno++;
+	      }
+	    }
+	  }
 	}
       }
-      wordno++;
+    }
+    // only run through target words that match
+    // (does not work for bilingual --> just take arbitrary source word)
+    else{
+      for (uint j=0; j<td.size(); ++j) {
+	if (MatchingTrgWord(app, j, trgCond)){
+	  GappyLanguageModelSelectedWord word(sentno,phrno,j,sd[0],td[j],wordno);
+	  selectedWords[sentno].push_back(word);
+	  LOG(logger_, debug, "add word '" << word.trgWord );
+	  addCount++;
+	  wordno++;
+	}
+      }
     }
     return addCount;
   };
@@ -319,16 +447,86 @@ FeatureFunction *GappyLanguageModelFactory::createNgramModel(const Parameters &p
 template<class Model>
 GappyLanguageModel<Model>::GappyLanguageModel(const std::string &file,const Parameters &params) : logger_("GappyLanguageModel") {
   model_ = new Model(file.c_str());
-  selectedAnnotation = params.get<std::string>("selected-annotation","");
-  selectedLabel = params.get<std::string>("selected-label","");
+
+  // selectedAnnotation = params.get<std::string>("selected-annotation","");
+  // selectedLabel = params.get<std::string>("selected-label","");
+
+  // parse source matching conditions ................................
+
+  LOG(logger_, debug, "-------------- match source ----------------");
+  std::string cond = params.get<std::string>("source-match","");
+  if (cond.length() > 0){
+    std::vector<std::string> disj;
+    boost::split(disj, cond, boost::is_any_of("|"));
+    for(uint i = 0; i < disj.size(); ++i){
+      std::vector<std::string> conj;
+      boost::split(conj, disj[i], boost::is_any_of(" "));
+      SrcMatchCond_ srcMatch;
+      for(uint j = 0; j < conj.size(); ++j){
+	std::vector<std::string> keyval;
+	boost::split(keyval, conj[j], boost::is_any_of("="));
+	if (keyval.size()!=2){
+	  LOG(logger_, error, "Wrong format for matching condition " << conj[j]);
+	}
+	else{
+	  srcMatch[keyval[0]] = keyval[1];
+	  requiredAnnotation.insert(keyval[0]);
+	  LOG(logger_, debug, "add matching condition " << keyval[0] << " = " << keyval[1]);
+	}
+      }
+      srcMatchConditions.push_back(srcMatch);
+      LOG(logger_, debug, "-------------- or ----------------");
+    }
+  }
+
+  // parse target matching conditions ................................
+
+  LOG(logger_, debug, "-------------- match target ----------------");
+  cond = params.get<std::string>("target-match","");
+  if (cond.length() > 0){
+    std::vector<std::string> disj;
+    boost::split(disj, cond, boost::is_any_of("|"));
+    for(uint i = 0; i < disj.size(); ++i){
+      std::vector<std::string> conj;
+      boost::split(conj, disj[i], boost::is_any_of(" "));
+      TrgMatchCond_ trgMatch;
+      for(uint j = 0; j < conj.size(); ++j){
+	std::vector<std::string> keyval;
+	boost::split(keyval, conj[j], boost::is_any_of("="));
+	if (keyval.size()!=2){
+	  LOG(logger_, error, "Wrong format for matching condition " << conj[j]);
+	}
+	else{
+	  uint factor = atoi(keyval[0].c_str());
+	  requiredFactors.insert(factor);
+	  trgMatch[factor] = keyval[1];
+	  LOG(logger_, debug, "add matching condition " << factor << " = " << keyval[1]);
+	}
+      }
+      trgMatchConditions.push_back(trgMatch);
+      LOG(logger_, debug, "-------------- or ----------------");
+    }
+  }
+
+
+  /*
   useRegExLabel = false;
+  // LOG(logger_, debug, "label " << selectedLabel);
   if (selectedLabel.empty()){
     selectedLabel = params.get<std::string>("selected-label-regex","");
     useRegExLabel = true;
     selectedLabelRegEx = sregex::compile(selectedLabel);
+    // LOG(logger_, debug, "labelRE " << selectedLabelRegEx );
   }
+  */
+
+
   withinSentence = params.get<bool>("sentence-internal-only", false);
   bilingual = params.get<bool>("bilingual", false);
+  skipUnaligned = params.get<bool>("skip-unaligned", false);
+  mergeAligned = params.get<bool>("merge-aligned", true);
+  // LOG(logger_, debug, " bilingual " << bilingual << " withinSent " << withinSentence);
+
 }
 
 template<class M>
@@ -343,38 +541,45 @@ inline Float GappyLanguageModel<M>::scoreNgram(const StateType_ &state,
 	s *= Float(2.30258509299405); // log10 -> ln
 	out_state.second = s;
 	return s;
+
 }
-
-
-
 
 template<class M>
 FeatureFunction::State *GappyLanguageModel<M>::initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
   const std::vector<PhraseSegmentation> &segs = doc.getPhraseSegmentations();
 
-  LOG(logger_, debug, "annotation " << selectedAnnotation);
 
   boost::shared_ptr<const MMAXDocument> mmax = doc.getInputDocument();
-  const MarkableLevel &annotationLevel = mmax->getMarkableLevel(selectedAnnotation);
+  // const MarkableLevel &annotationLevel = mmax->getMarkableLevel(selectedAnnotation);
 
-  GappyLanguageModelState *s = new GappyLanguageModelState(segs.size());
+  uint nsents = segs.size();
+  GappyLanguageModelState *s = new GappyLanguageModelState(nsents);
 
-  // save all labels in the document state
-  BOOST_FOREACH(const Markable &m, annotationLevel) {
-    uint snt = m.getSentence();
-    const std::string &label = m.getAttribute("tag");
-    const CoverageBitmap &cov = m.getCoverage();
-    uint wordno = cov.find_first();
-    s->AddLabel(snt,wordno,label);
-    LOG(logger_, debug, "Label of " << wordno << " in sent " << snt << " = " << label);
+  // store all necessary token-level annotation in the document state
+  for (std::set<std::string>::iterator it=requiredAnnotation.begin(); it!=requiredAnnotation.end(); ++it){
+    LOG(logger_, debug, "annotation " << *it);
+    const MarkableLevel &annotationLevel = mmax->getMarkableLevel(*it);
+    s->selectedLabels[*it].resize(nsents);
+    BOOST_FOREACH(const Markable &m, annotationLevel) {
+      uint snt = m.getSentence();
+      const std::string &label = m.getAttribute("tag");
+      const CoverageBitmap &cov = m.getCoverage();
+      uint wordno = cov.find_first();
+      s->AddLabel(snt,wordno,*it,label);
+      LOG(logger_, debug, "Label of " << wordno << " in sent " << snt << " = " << label);
+    }
   }
 
   for(uint i = 0; i < segs.size(); i++) {
     uint phrCount=0;
     BOOST_FOREACH(const AnchoredPhrasePair &app, segs[i]) {
-      s->AddWord(i,phrCount,app,selectedLabel,useRegExLabel,selectedLabelRegEx);
+      s->AddWord(i,phrCount,app,
+		 srcMatchConditions, trgMatchConditions,
+		 bilingual,skipUnaligned,mergeAligned);
       phrCount++;
     }
+    // update selected word counter for this sentence
+    s->nrSelected += s->GetNrOfWords(i);
   }
 
   StateType_ state(model_->BeginSentenceState()), out_state;
@@ -383,17 +588,37 @@ FeatureFunction::State *GappyLanguageModel<M>::initDocument(const DocumentState 
   // TODO: should we only score one aligned word per source word?
   // (we could use srcNo in selectedWord - would that be sound?)
   // --> this would make the code much more complicated, especially down in score-update functions!
-  Float score;
+  Float score = 0;
+  uint sentno = 999;
   for (uint i = 0; i != s->selectedWords.size(); ++i){
     for (uint j = 0; j != s->selectedWords[i].size(); ++j){
+      // sentence-internal models: check if we start a new sentence
+      if (withinSentence){
+	if (sentno != s->selectedWords[i][j].sentNo){
+	  // TODO: do we need end of sentence?
+	  // score += model_->Score(state,vocab.EndSentence()),out_state);
+	  state = model_->BeginSentenceState();
+	  sentno = s->selectedWords[i][j].sentNo;
+	}
+      }
+
       score += model_->Score(state,vocab.Index(s->GetWord(i,j,bilingual)),out_state);
-      // LOG(logger_, debug, "add score for " << s->selectedWords[i][j].trgWord << " = " << score);
+
+      if (logger_.loggable(debug)){
+	std::string word = s->GetWord(i,j,bilingual);
+	LOG(logger_, debug, "add score for " << word << " (index=" << vocab.Index(word) << "):" << score);
+      }
+
       state = out_state;
     }
   }
 
   s->currentScore = score;
+  // LOG(logger_, debug, "initial doc score = " << s->currentScore);
+
   *sbegin = score;
+  (*(sbegin + 1)) = Float(s->nrSelected);
+
   return s;
 }
 
@@ -401,6 +626,7 @@ FeatureFunction::State *GappyLanguageModel<M>::initDocument(const DocumentState 
 template<class M>
 void GappyLanguageModel<M>::computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const {
 	*sbegin = Float(0);
+	(*(sbegin + 1)) = Float(0);
 }
 
 // TODO: do something smart to estimateScoreUpdate and move the code below to updateScore
@@ -439,12 +665,14 @@ FeatureFunction::StateModifications *GappyLanguageModel<M>::estimateScoreUpdate(
     const PhraseSegmentation &current = doc.getPhraseSegmentation(it->sentno);
     phrNo = std::distance(current.begin(), from_it);
 
+    // reset selected word counter for this sentence
+    s->nrSelected -= s->GetNrOfWords(it->sentno);
+
     if ( firstSent || (sentNo != it->sentno) ){
       sentNo = it->sentno;
       firstSent = false;
 
-      LOG(logger_, debug, "word list before: " << s->GetWords(sentNo));
-
+      // LOG(logger_, debug, "word list before: " << s->GetWords(sentNo));
       phrNoDiff = 0;
 
       // start from scratch:
@@ -492,7 +720,7 @@ FeatureFunction::StateModifications *GappyLanguageModel<M>::estimateScoreUpdate(
 	    s->currentScore -= score;
 	    remove_state = out_state;
 	    LOG(logger_, debug, "(a) remove score for " <<  
-		prevstate->selectedWords[sentNo][i].trgWord << " (" << score << ")");
+		prevstate->GetWord(sentNo,i,bilingual) << " (" << score << ")");
 	  }
 	}
       }
@@ -507,7 +735,9 @@ FeatureFunction::StateModifications *GappyLanguageModel<M>::estimateScoreUpdate(
     uint modLength = 0;
     BOOST_FOREACH(const AnchoredPhrasePair &app, it->proposal) {
       uint newPhrNo = phrNo+modLength+phrNoDiff;
-      uint added = s->AddWord(sentNo,newPhrNo,app,selectedLabel,useRegExLabel,selectedLabelRegEx);
+      uint added = s->AddWord(sentNo,newPhrNo,app,
+			      srcMatchConditions, trgMatchConditions,
+			      bilingual,skipUnaligned,mergeAligned);
       for (uint j = s->selectedWords[sentNo].size() - added; j < s->selectedWords[sentNo].size(); ++j){
 	Float score = model_->Score(add_state,
 				    vocab.Index(s->GetWord(sentNo,j,bilingual)),
@@ -515,7 +745,7 @@ FeatureFunction::StateModifications *GappyLanguageModel<M>::estimateScoreUpdate(
 	s->currentScore += score;
 	add_state = out_state;
 	LOG(logger_, debug, "(b) add score for " 
-	    <<  s->selectedWords[sentNo][j].trgWord << " (" << score << ")");
+	    << s->GetWord(sentNo,j,bilingual) << " (" << score << ")");
       }
       modLength++;
     }
@@ -538,8 +768,6 @@ FeatureFunction::StateModifications *GappyLanguageModel<M>::estimateScoreUpdate(
       nextModFrom = std::distance(next.begin(), it->from_it);
     }
 
-    LOG(logger_, debug, " word list now: " << s->GetWords(currentSentNo));
-
     // don't forget to copy remaining selected words in currentSentNo!
     phrNo = std::distance(current.begin(), to_it);
     uint wordIdx = s->selectedWords[sentNo].size();
@@ -549,12 +777,11 @@ FeatureFunction::StateModifications *GappyLanguageModel<M>::estimateScoreUpdate(
 	s->CopyWords(*prevstate,currentSentNo,phrNo,nextModFrom,phrNoDiff);
       }
       else{
-	// LOG(logger_, debug, " phrNo: " << phrNo << " size " << current.size());
 	s->CopyWords(*prevstate,currentSentNo,phrNo,current.size(),phrNoDiff);
       }
     }
 
-    LOG(logger_, debug, " word list after: " << s->GetWords(currentSentNo));
+    // LOG(logger_, debug, " word list after: " << s->GetWords(currentSentNo));
 
     // run through more context words as needed by LM until next modification point or end of document
 
@@ -569,8 +796,12 @@ FeatureFunction::StateModifications *GappyLanguageModel<M>::estimateScoreUpdate(
       s->currentScore -= oldScore;
       s->currentScore += newScore;
 
-      LOG(logger_, debug, "(c) change score for " <<  *it 
-	  << " (old: " << oldScore << ", new: " << newScore << ")");
+      if (logger_.loggable(debug)){
+	if (newScore != oldScore){
+	  LOG(logger_, debug, "(c) change score for " <<  *it 
+	      << " (old: " << oldScore << ", new: " << newScore << ")");
+	}
+      }
     }
 
     // TODO: Do we need end-of-sentence?
@@ -591,6 +822,9 @@ FeatureFunction::StateModifications *GappyLanguageModel<M>::estimateScoreUpdate(
     }
     */
 
+    // update selected word counter for this sentence
+    s->nrSelected += s->GetNrOfWords(sentNo);
+
   }
 
   ////////////////////////////////////////////////////////
@@ -600,9 +834,18 @@ FeatureFunction::StateModifications *GappyLanguageModel<M>::estimateScoreUpdate(
     StateType_ in_state(model_->BeginSentenceState()), out_state;
     const VocabularyType_ &vocab = model_->GetVocabulary();
 
-    Float score;
+    Float score=0;
+    uint sentno = 999;
     for (uint i = 0; i < s->selectedWords.size(); ++i){
       for (uint j = 0; j < s->selectedWords[i].size(); ++j){
+	if (withinSentence){
+	  if (sentno != s->selectedWords[i][j].sentNo){
+	    // TODO: do we need end of sentence?
+	    // score += model_->Score(state,vocab.EndSentence()),out_state);
+	    in_state = model_->BeginSentenceState();
+	    sentno = s->selectedWords[i][j].sentNo;
+	  }
+	}
 	score += model_->Score(in_state,vocab.Index(s->GetWord(i,j,bilingual)),out_state);
 	in_state = out_state;
       }
@@ -613,9 +856,20 @@ FeatureFunction::StateModifications *GappyLanguageModel<M>::estimateScoreUpdate(
   }
   ////////////////////////////////////////////////////////
 
+  if (logger_.loggable(debug)){
+    if (prevstate->currentScore != s->currentScore){
+      if (prevstate->currentScore < s->currentScore){
+	LOG(logger_, debug, "higher LM score " << s->currentScore << " (" << prevstate->currentScore << ")" );
+      }
+      else {
+	LOG(logger_, debug, "lower LM score " << s->currentScore << " (" << prevstate->currentScore << ")" );
+      }
+    }
+  }
 
-  LOG(logger_, debug, "new LM score " << s->currentScore);
+
   *sbegin = s->score();
+  (*(sbegin + 1)) = Float(s->nrSelected);
   return s;
 }
 

@@ -191,8 +191,15 @@ while (<>){
 	    $mid{$f}++;
 	    print $h '<markable id="markable_',$mid{$f};
 	    print $h '" span="word_',$wid;
-	    print $h '" tag="',&escape($parts[$_]);
-	    print $h '" mmax_level="',$f,'" />',"\n";
+	    if ($parts[$_]=~/\"/){
+		$parts[$_]=~s/\'/&apos;/g;
+		print $h '" tag=',"'",&escape($parts[$_]),"'";
+	    }
+	    else{
+		$parts[$_]=~s/\"/&quot;/g;
+		print $h '" tag="',&escape($parts[$_]),'"';
+	    }
+	    print $h ' mmax_level="',$f,'" />',"\n";
 	}
     }
     $sid++;
