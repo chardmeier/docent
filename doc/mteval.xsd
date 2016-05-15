@@ -78,7 +78,7 @@
 
   <xsd:complexType name="containerType" mixed="true">
     <xsd:sequence>
-      <xsd:element name="seg" type="segType" maxOccurs="unbounded"/>
+      <xsd:element name="seg" type="segType" minOccurs="0" maxOccurs="unbounded"/>
     </xsd:sequence>
     <xsd:anyAttribute processContents="lax"/>
   </xsd:complexType>
