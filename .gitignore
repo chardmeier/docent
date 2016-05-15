@@ -9,3 +9,4 @@ mpi-docent
 libdecoder.a
 tests
 *.o
+external/libstemmer_c/stemwords
