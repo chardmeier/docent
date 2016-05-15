@@ -201,7 +201,6 @@ add_library(
 	src/StateGenerator.cpp
 	src/TypeTokenRateModel.cpp
 	src/WellFormednessModel.cpp
-	src/SelectedWordLM.cpp
 	src/GappyLanguageModel.cpp
 )
 
