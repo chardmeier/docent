@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      == Schema for the MTEval XML document sets accepted and produced by Docent ==
+      This is a superset of the original NIST XML schema, enforcing the structure
+      and attributes needed by tools such as Docent and mteval*.pl, but accepting
+      arbitrary language specifiers as well as a broader range of in-document nodes
+      such as div and h1--h6, which in their turn also may contain seg nodes
+      (with seg:s also allowed to appear directly under a doc, of course).
+
+      Sebastian Schleussner sebastian@schleussner.name, 2016-05-11
+    </xsd:documentation>
+  </xsd:annotation>
+
+  <xsd:element name="mteval">
+    <xsd:complexType>
+      <xsd:choice>
+        <xsd:element name="srcset" type="srcsetType"/>
+        <xsd:element name="refset" type="refsetType" maxOccurs="unbounded"/>
+        <xsd:element name="tstset" type="tstsetType" maxOccurs="unbounded"/>
+      </xsd:choice>
+    </xsd:complexType>
+  </xsd:element>
+
+  <xsd:complexType name="srcsetType">
+    <xsd:sequence>
+      <xsd:element name="doc" type="docType" maxOccurs="unbounded"/>
+    </xsd:sequence>
+    <xsd:attribute name="setid"   type="xsd:string" use="required"/>
+    <xsd:attribute name="srclang" type="xsd:string" use="required"/>
+    <xsd:anyAttribute processContents="lax"/>
+  </xsd:complexType>
+
+  <xsd:complexType name="refsetType">
+    <xsd:sequence>
+      <xsd:element name="doc" type="docType" maxOccurs="unbounded"/>
+    </xsd:sequence>
+    <xsd:attribute name="refid" type="xsd:string" use="required"/>
+    <xsd:anyAttribute processContents="lax"/>
+  </xsd:complexType>
+
+  <xsd:complexType name="tstsetType">
+    <xsd:sequence>
+      <xsd:element name="doc" type="docType" maxOccurs="unbounded"/>
+    </xsd:sequence>
+    <xsd:attribute name="sysid" type="xsd:string" use="required"/>
+    <xsd:anyAttribute processContents="lax"/>
+  </xsd:complexType>
+
+  <xsd:complexType name="docType">
+    <xsd:choice maxOccurs="unbounded">
+      <xsd:element name="seg" type="segType"/>
+
+      <xsd:element name="description" type="containerType"/>
+      <xsd:element name="div" type="containerType"/>
+      <xsd:element name="h1" type="containerType"/>
+      <xsd:element name="h2" type="containerType"/>
+      <xsd:element name="h3" type="containerType"/>
+      <xsd:element name="h4" type="containerType"/>
+      <xsd:element name="h5" type="containerType"/>
+      <xsd:element name="h6" type="containerType"/>
+      <xsd:element name="hl" type="containerType"/>
+      <xsd:element name="keywords" type="containerType"/>
+      <xsd:element name="p" type="containerType"/>
+      <xsd:element name="poster" type="containerType"/>
+      <xsd:element name="reviewer" type="containerType"/>
+      <xsd:element name="span" type="containerType"/>
+      <xsd:element name="speaker" type="containerType"/>
+      <xsd:element name="talkid" type="containerType"/>
+      <xsd:element name="title" type="containerType"/>
+      <xsd:element name="translator" type="containerType"/>
+      <xsd:element name="url" type="containerType"/>
+    </xsd:choice>
+    <xsd:attribute name="genre" type="xsd:string" use="optional"/>
+    <xsd:anyAttribute processContents="lax"/>
+  </xsd:complexType>
+
+  <xsd:complexType name="containerType" mixed="true">
+    <xsd:sequence>
+      <xsd:element name="seg" type="segType" maxOccurs="unbounded"/>
+    </xsd:sequence>
+    <xsd:anyAttribute processContents="lax"/>
+  </xsd:complexType>
+
+  <xsd:complexType name="segType" mixed="true">
+    <xsd:attribute name="id" type="xsd:string" use="required"/>
+  </xsd:complexType>
+</xsd:schema>
