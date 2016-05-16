@@ -105,7 +105,7 @@ if ($Opts{output} eq '-') {
         or die "unable to write to '$Opts{output}'!\n";
 }
 binmode $fh;
-print $xml->toString(2);
+print {$fh} $xml->toString(2);
 close $fh;
 
 exit;
