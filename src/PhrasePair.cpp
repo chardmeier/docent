@@ -24,21 +24,24 @@
 #include "PhrasePair.h"
 #include "PhraseTable.h"
 
-#include <boost/algorithm/string/trim.hpp>
 #include <boost/foreach.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include <iterator>
 #include <sstream>
 #include <vector>
 
-bool PhrasePairData::operator==(const PhrasePairData &o) const {
-	return	coverage_ == o.coverage_ &&
-			sourcePhrase_ == o.sourcePhrase_ &&
-			targetPhrase_ == o.targetPhrase_;
+bool PhrasePairData::operator==(const PhrasePairData &o) const
+{
+	return
+		coverage_     == o.coverage_     &&
+		sourcePhrase_ == o.sourcePhrase_ &&
+		targetPhrase_ == o.targetPhrase_;
 }
 
-std::size_t hash_value(const PhrasePairData &p) {
+std::size_t hash_value(const PhrasePairData &p)
+{
 	std::size_t seed = 0;
 	boost::hash_combine(seed, p.coverage_);
 	boost::hash_combine(seed, p.sourcePhrase_.get());
@@ -47,8 +50,12 @@ std::size_t hash_value(const PhrasePairData &p) {
 	return seed;
 }
 
-WordAlignment::WordAlignment(uint nsrc, uint ntgt, const std::string &alignment) :
-		nsrc_(nsrc), ntgt_(ntgt), matrix_(nsrc * ntgt) {
+WordAlignment::WordAlignment(
+	uint nsrc,
+	uint ntgt,
+	const std::string &alignment
+) : nsrc_(nsrc), ntgt_(ntgt), matrix_(nsrc * ntgt)
+{
 	std::istringstream is(boost::trim_copy(alignment));
 	for(;;) {
 		std::string ss, st;
@@ -61,35 +68,4 @@ WordAlignment::WordAlignment(uint nsrc, uint ntgt, const std::string &alignment)
 		uint t = boost::lexical_cast<uint>(st);
 		setLink(s, t);
 	}
-}
-
-
-std::ostream &operator<<(std::ostream &os, const std::vector<Word> &phrase)
-{
-	bool first = true;
-	BOOST_FOREACH(const Word &w, phrase) {
-		if(first)
-			first = false;
-		else
-			os << ' ';
-		os << w;
-	}
-
-	return os;
-}
-
-std::ostream &operator<<(std::ostream &os, const PhraseSegmentation &seg)
-{
-	std::copy(seg.begin(), seg.end(),
-		std::ostream_iterator<AnchoredPhrasePair>(os, "\n")
-	);
-	return os;
-}
-
-std::ostream &operator<<(std::ostream &os, const AnchoredPhrasePair &ppair)
-{
-	os  << ppair.first << "\t["
-	    << ppair.second.get().getSourcePhrase().get() << "] -\t["
-	    << ppair.second.get().getTargetPhrase().get() << ']';
-	return os;
 }

@@ -50,8 +50,6 @@ void usage();
 
 template<class Testset>
 void processTestset(const ConfigurationFile &configFile, Testset &testset, const std::string &outstem, bool dumpStates, uint burnIn, uint sampleInterval, uint maxSteps, const std::string& firstStateFilename, const std::string& lastStateFilename);
-
-
 void printState(const std::string& filename, const std::vector<std::vector<PhraseSegmentation> >& state);
 
 int main(int argc, char **argv) {
@@ -140,6 +138,12 @@ int main(int argc, char **argv) {
 	}
 
 	return 0;
+}
+
+void printState(const std::string& filename, const std::vector<std::vector<PhraseSegmentation> >& state) {
+	std::ofstream ofs(filename.c_str());
+	boost::archive::text_oarchive oa(ofs);
+	oa << state;
 }
 
 void usage() {
@@ -267,64 +271,4 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset,
 		std::cerr << boost::diagnostic_information(e);
 		abort();
 	}
-}
-
-
-// WARNING: The definitions of the below operators have been from the other *docent.cpp program code files
-// (where they were shared) to PhrasePair.cpp. In principle "overriding" them here should work, as the other
-// def.s end up in the decoder library, but still they cause compilation errors. The target for this binary
-// has therefore been disabled for the time being, and you'll have to find a workaround (such as moving the
-// below "&operator<<(...)" and "getIndices()" definitions to PhrasePair.cpp).
-std::ostream &operator<<(std::ostream &os, const std::vector<Word> &phrase) {
-	bool first = true;
-	BOOST_FOREACH(const Word &w, phrase) {
-		if(!first)
-			os << ' ';
-		else
-			first = false;
-		os << w;
-	}
-
-	return os;
-}
-
-std::ostream &operator<<(std::ostream &os, const PhraseSegmentation &seg) {
-	std::copy(seg.begin(), seg.end(), std::ostream_iterator<AnchoredPhrasePair>(os, "\t"));
-	return os;
-}
-
-std::string  getIndices(CoverageBitmap bitmap) {
-	// int found = -1;  //Change to find_first!!!
-	// std::string res = "";
-
-	std::ostringstream os;
-
-	CoverageBitmap::size_type i = bitmap.find_first();
-	CoverageBitmap::size_type prev;
-
-	os << i;
-	prev= i;
-	i = bitmap.find_next(i);
-	while (i != CoverageBitmap::npos) {
-		os << "-" <<  i;
-		prev = i;
-		i = bitmap.find_next(i);
-	}
-	//os << " " << prev;
-
-	os << ": " << bitmap.size();
-	return os.str();
-}
-
-std::ostream &operator<<(std::ostream &os, const AnchoredPhrasePair &ppair) {
-	os  << ppair.second.get().getSourcePhrase().get() << "\\"
-	    << ppair.second.get().getTargetPhrase().get() << "\\"
-	    << getIndices(ppair.first);
-	return os;
-}
-
-void printState(const std::string& filename, const std::vector<std::vector<PhraseSegmentation> >& state) {
-	std::ofstream ofs(filename.c_str());
-	boost::archive::text_oarchive oa(ofs);
-	oa << state;
 }

@@ -238,7 +238,7 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset, const
 		of.exceptions(std::ofstream::failbit | std::ofstream::badbit);
 		testset.outputTranslation(of);
 		of.close();
-		
+
 		// Print the state after initialization if asked for
 		if (!firstStateFilename.empty()) {
 		  std::vector<std::vector<PhraseSegmentation> > state;
@@ -250,7 +250,7 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset, const
 
 
 		uint steps_done = 0;
-		std::vector<NbestStorage> nbest(inputdocs.size(), NbestStorage(1));		
+		std::vector<NbestStorage> nbest(inputdocs.size(), NbestStorage(1));
 
 		for(uint steps = 256; steps <= 134217728; steps *= 2) {
 			for(uint i = 0; i < inputdocs.size(); i++) {
@@ -287,7 +287,7 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset, const
 			testset.outputTranslation(of);
 			of.close();
 		}
-		
+
 		// Print the final best state if asked for
 		if (!lastStateFilename.empty()) {
 		  std::vector<std::vector<PhraseSegmentation> > state;
@@ -312,9 +312,14 @@ std::string formatWordAlignment(const PhraseSegmentation &snt) {
 	BOOST_FOREACH(const AnchoredPhrasePair &app, snt) {
 		uint srcoffset = app.first.find_first();
 		const WordAlignment &wa = app.second.get().getWordAlignment();
-		for(uint t = 0; t < app.second.get().getTargetPhrase().get().size(); t++)
+		for(uint t = 0;
+			t < app.second.get().getTargetPhrase().get().size();
+			t++
+		)
 			for(WordAlignment::const_iterator it = wa.begin_for_target(t);
-					it != wa.end_for_target(t); ++it)
+				it != wa.end_for_target(t);
+				++it
+			)
 				out << (srcoffset + *it) << '-' << (tgtoffset + t) << ' ';
 		tgtoffset += app.second.get().getTargetPhrase().get().size();
 	}
