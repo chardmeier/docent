@@ -53,8 +53,22 @@ std::size_t hash_value(const PhrasePairData &p)
 WordAlignment::WordAlignment(
 	uint nsrc,
 	uint ntgt,
+	const std::vector<AlignmentPair> &alignments
+) :	nsrc_(nsrc),
+	ntgt_(ntgt),
+	matrix_(nsrc * ntgt)
+{
+	BOOST_FOREACH(AlignmentPair alignment, alignments)
+		setLink(alignment.first, alignment.second);
+}
+
+WordAlignment::WordAlignment(
+	uint nsrc,
+	uint ntgt,
 	const std::string &alignment
-) : nsrc_(nsrc), ntgt_(ntgt), matrix_(nsrc * ntgt)
+) :	nsrc_(nsrc),
+	ntgt_(ntgt),
+	matrix_(nsrc * ntgt)
 {
 	std::istringstream is(boost::trim_copy(alignment));
 	for(;;) {

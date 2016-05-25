@@ -34,7 +34,8 @@
 #include <boost/tuple/tuple_comparison.hpp>
 #include <boost/serialization/split_member.hpp>
 
-class PhraseTable;
+
+typedef std::pair<char, char> AlignmentPair;
 
 class WordAlignment {
 private:
@@ -51,10 +52,15 @@ private:
 		ar & ntgt_;
 		ar & matrix_;
 	}
-	
+
 public:
-	class const_iterator : public boost::iterator_facade<const_iterator,const uint,
-				boost::bidirectional_traversal_tag,const uint> {
+	class const_iterator :
+	public boost::iterator_facade<
+		const_iterator,
+		const uint,
+		boost::bidirectional_traversal_tag,
+		const uint
+	> {
 	private:
 		friend class WordAlignment;
 		friend class boost::iterator_core_access;
@@ -66,8 +72,17 @@ public:
 		uint stride_;
 		MatrixType_::size_type base_;
 
-		const_iterator(const MatrixType_ &matrix, uint from, uint nelems, uint stride, bool begin) :
-				matrix_(matrix), from_(from), nelems_(nelems), stride_(stride) {
+		const_iterator(
+			const MatrixType_ &matrix,
+			uint from,
+			uint nelems,
+			uint stride,
+			bool begin
+		) :	matrix_(matrix),
+			from_(from),
+			nelems_(nelems),
+			stride_(stride)
+		{
 			if(begin) {
 				base_ = from_;
 				for(uint i = 0; i < nelems_; i++, base_ += stride_)
@@ -103,10 +118,19 @@ public:
 		}
 	};
 
-	WordAlignment(uint nsrc, uint ntgt) :
-		nsrc_(nsrc), ntgt_(ntgt), matrix_(nsrc * ntgt) {}
+	WordAlignment(
+		uint nsrc, uint ntgt
+	) : nsrc_(nsrc), ntgt_(ntgt), matrix_(nsrc * ntgt) {}
 
-	WordAlignment(uint nsrc, uint ntgt, const std::string &alignment);
+	WordAlignment(
+		uint nsrc, uint ntgt,
+		const std::vector<AlignmentPair> &alignments
+	);
+
+	WordAlignment(
+		uint nsrc, uint ntgt,
+		const std::string &alignment
+	);
 
 	bool hasLink(uint s, uint t) const {
 		return matrix_[t * nsrc_ + s];
@@ -114,6 +138,14 @@ public:
 
 	void setLink(uint s, uint t) {
 		matrix_.set(t * nsrc_ + s);
+	}
+
+	uint getSourceSize() const {
+		return nsrc_;
+	}
+
+	uint getTargetSize() const {
+		return ntgt_;
 	}
 
 	const_iterator begin_for_source(uint s) const {
@@ -133,6 +165,7 @@ public:
 	}
 };
 
+
 class PhrasePairData {
 private:
 	std::vector<uint> coverage_;
@@ -144,7 +177,6 @@ private:
 	bool oovFlag_;
 
 public:
-
 	friend class boost::serialization::access;
 	template<class Archive>
 	void serialize(Archive & ar, const unsigned int version) {
@@ -156,41 +188,59 @@ public:
 		ar & scores_;
 		ar & oovFlag_;
 	}
-	
-	PhrasePairData(const std::vector<Word> &sourcePhrase,
-			const std::vector<Word> &targetPhrase,
-			const std::vector<Phrase> &targetAnnotations,
-			const WordAlignment &alignment, const Scores &scores) :
-		coverage_(1, sourcePhrase.size()), sourcePhrase_(sourcePhrase),
-		targetPhrase_(targetPhrase), targetAnnotations_(targetAnnotations), alignment_(alignment),
-		scores_(scores), oovFlag_(false) {}
 
-	PhrasePairData(const std::vector<uint> &coverage,
-			const std::vector<Word> &sourcePhrase, const std::vector<Word> &targetPhrase,
-			const std::vector<Phrase> &targetAnnotations,
-			const WordAlignment &alignment, const Scores &scores) :
-		coverage_(coverage), sourcePhrase_(sourcePhrase), targetPhrase_(targetPhrase),
-		targetAnnotations_(targetAnnotations), alignment_(alignment), scores_(scores), oovFlag_(false) {}
+	PhrasePairData(
+		const std::vector<Word> &sourcePhrase,
+		const std::vector<Word> &targetPhrase,
+		const std::vector<Phrase> &targetAnnotations,
+		const WordAlignment &alignment, const Scores &scores
+	) :	coverage_(1, sourcePhrase.size()),
+		sourcePhrase_(sourcePhrase),
+		targetPhrase_(targetPhrase),
+		targetAnnotations_(targetAnnotations),
+		alignment_(alignment),
+		scores_(scores),
+		oovFlag_(false)
+	{}
 
-	PhrasePairData(const Word &oov, const Scores &scores) :
-			coverage_(1, 1), sourcePhrase_(1, oov), targetPhrase_(1, oov),
-			alignment_(1, 1), scores_(scores), oovFlag_(true) {
+	PhrasePairData(
+		const std::vector<uint> &coverage,
+		const std::vector<Word> &sourcePhrase, const std::vector<Word> &targetPhrase,
+		const std::vector<Phrase> &targetAnnotations,
+		const WordAlignment &alignment, const Scores &scores
+	) :	coverage_(coverage),
+		sourcePhrase_(sourcePhrase),
+		targetPhrase_(targetPhrase),
+		targetAnnotations_(targetAnnotations),
+		alignment_(alignment),
+		scores_(scores),
+		oovFlag_(false)
+	{}
+
+	PhrasePairData(const Word &oov, const Scores &scores
+	) :	coverage_(1, 1),
+		sourcePhrase_(1, oov),
+		targetPhrase_(1, oov),
+		alignment_(1, 1),
+		scores_(scores),
+		oovFlag_(true)
+	{
 		alignment_.setLink(0, 0);
 	}
 
 	//Needed for serialization
 	PhrasePairData() :alignment_(1, 1) {
-	  alignment_.setLink(0, 0);
+		alignment_.setLink(0, 0);
 	}
 
 	const std::vector<uint> &getCoverage() const {
 		return coverage_;
 	}
-	
+
 	Phrase getSourcePhrase() const {
 		return sourcePhrase_;
 	}
-	
+
 	Phrase getTargetPhrase() const {
 		return targetPhrase_;
 	}
@@ -202,14 +252,17 @@ public:
 		else
 			return targetAnnotations_[level];
 	}
-	
-	Phrase getTargetPhraseOrAnnotations(int annotationLevel, bool tokenFlag) const {
+
+	Phrase getTargetPhraseOrAnnotations(
+		int annotationLevel,
+		bool tokenFlag
+	) const {
 		if(annotationLevel==-1||(oovFlag_&& tokenFlag))
 			return getTargetPhrase();
 		else
 			return getTargetAnnotations(annotationLevel);
 	}
-	
+
 	const WordAlignment &getWordAlignment() const {
 		return alignment_;
 	}
@@ -217,7 +270,7 @@ public:
 	const Scores &getScores() const {
 		return scores_;
 	}
-	
+
 	bool isOOV() const {
 		return oovFlag_;
 	}
@@ -225,13 +278,13 @@ public:
 	bool operator==(const PhrasePairData &o) const;
 
 	friend std::size_t hash_value(const PhrasePairData &p);
-
 };
+
 
 std::size_t hash_value(const PhrasePairData &p);
 
-typedef boost::flyweight<PhrasePairData,boost::flyweights::no_tracking> PhrasePair;
-typedef std::pair<CoverageBitmap,PhrasePair> AnchoredPhrasePair;
+typedef boost::flyweight<PhrasePairData, boost::flyweights::no_tracking> PhrasePair;
+typedef std::pair<CoverageBitmap, PhrasePair> AnchoredPhrasePair;
 typedef std::list<AnchoredPhrasePair> PhraseSegmentation;
 
 template<class PhrasePairIterator>
@@ -248,8 +301,16 @@ inline uint countTargetWords(PhrasePairContainer cont) {
 }
 
 struct CompareAnchoredPhrasePairs :
-		public std::binary_function<const AnchoredPhrasePair,const AnchoredPhrasePair,bool> {
-	typedef boost::tuples::tuple<const CoverageBitmap &,const PhraseData &,const PhraseData &> PhrasePairKey;
+public std::binary_function<
+	const AnchoredPhrasePair,
+	const AnchoredPhrasePair,
+	bool
+> {
+	typedef boost::tuples::tuple<
+		const CoverageBitmap &,
+		const PhraseData &,
+		const PhraseData &
+	> PhrasePairKey;
 
 	bool operator()(const PhrasePairKey &a, const PhrasePairKey &b) const {
 		return a < b;
@@ -270,13 +331,16 @@ struct CompareAnchoredPhrasePairs :
 private:
 	PhrasePairKey peel(const AnchoredPhrasePair &a) const {
 		using namespace boost;
-		return make_tuple(cref(a.first),
-			cref(a.second.get().getSourcePhrase().get()), cref(a.second.get().getTargetPhrase().get()));
+		return make_tuple(
+			cref(a.first),
+			cref(a.second.get().getSourcePhrase().get()),
+			cref(a.second.get().getTargetPhrase().get())
+		);
 	}
 };
 
 std::ostream &operator<<(std::ostream &os, const std::vector<Word> &phrase);
 std::ostream &operator<<(std::ostream &os, const AnchoredPhrasePair &ppair);
 std::ostream &operator<<(std::ostream &os, const PhraseSegmentation &ppair);
-#endif
 
+#endif
