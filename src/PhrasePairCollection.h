@@ -44,13 +44,23 @@ private:
 	typedef std::list<AnchoredPhrasePair> PhrasePairList_;
 	PhrasePairList_ phrasePairList_;
 
-	PhrasePairCollection(uint sentenceLength, Random random);
+	PhrasePairCollection(
+		uint sentenceLength,
+		Random random
+	);
 	void addPhrasePair(CoverageBitmap cov, PhrasePair phrasePair);
 
-	bool proposeSegmentationLeftRight(const CoverageBitmap &range,
-		std::vector<AnchoredPhrasePair>::const_iterator startit, std::vector<AnchoredPhrasePair>::const_iterator endit,
-		PhraseSegmentation &seg) const;
-	bool proposeSegmentationRandomChoice(CoverageBitmap range, const PhrasePairList_ &list, PhraseSegmentation &seg) const;
+	bool proposeSegmentationLeftRight(
+		const CoverageBitmap &range,
+		std::vector<AnchoredPhrasePair>::const_iterator startit,
+		std::vector<AnchoredPhrasePair>::const_iterator endit,
+		PhraseSegmentation &seg
+	) const;
+	bool proposeSegmentationRandomChoice(
+		CoverageBitmap range,
+		const PhrasePairList_ &list,
+		PhraseSegmentation &seg
+	) const;
 
 public:
 	uint getSentenceLength() const {
@@ -69,3 +79,4 @@ public:
 };
 
 #endif
+
