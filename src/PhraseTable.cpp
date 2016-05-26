@@ -23,35 +23,46 @@
 #include "Docent.h"
 
 #include "DocumentState.h"
+#include "PhrasePair.h"
 #include "PhrasePairCollection.h"
 #include "PhraseTable.h"
 #include "SearchStep.h"
 
-#include "PhraseDictionaryTree.h" // from moses
+#include "util/file_piece.hh"  // from KenLM
+#include "util/file.hh"
+#include "util/string_piece.hh"
+#include "util/probing_hash_table.hh"
 
+#include "ProbingPT/quering.hh"
+
+#include <boost/foreach.hpp>
 #include <boost/function.hpp>
 #include <boost/iterator/transform_iterator.hpp>
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>
 #include <boost/lambda/algorithm.hpp>
 #include <boost/lambda/numeric.hpp>
+#include <boost/tokenizer.hpp>
 
 #include <iostream>
 #include <ostream>
 #include <sstream>
+#include <string>
 #include <iterator>
 
-PhraseTable::PhraseTable(const Parameters &params, Random random) :
-		logger_("PhraseTable"), random_(random) {
+typedef boost::tokenizer< boost::char_separator<char> > Tokenizer;
+
+PhraseTable::PhraseTable(
+	const Parameters &params,
+	Random random
+) : logger_("PhraseTable"), random_(random)
+{
 	filename_ = params.get<std::string>("file");
 	nscores_ = params.get<uint>("nscores", 5);
 	maxPhraseLength_ = params.get<uint>("max-phrase-length", 7);
-	loadAlignments_ = params.get<bool>("load-alignments", false);
 	annotationCount_ = params.get<uint>("annotation-count", 0);
 
-	backend_ = new Moses::PhraseDictionaryTree(nscores_);
-	backend_->UseWordAlignment(loadAlignments_);
-	backend_->Read(filename_);
+	backend_ = new QueryEngine(filename_.c_str());
 }
 
 PhraseTable::~PhraseTable() {
@@ -65,7 +76,10 @@ inline Scores PhraseTable::scorePhraseSegmentation(const PhraseSegmentation &ps)
 	return s;
 }
 
-FeatureFunction::State *PhraseTable::initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
+FeatureFunction::State *PhraseTable::initDocument(
+	const DocumentState &doc,
+	Scores::iterator sbegin
+) const {
 	const std::vector<PhraseSegmentation> &segs = doc.getPhraseSegmentations();
 	Scores s(nscores_);
 	for(std::vector<PhraseSegmentation>::const_iterator it = segs.begin(); it != segs.end(); ++it)
@@ -74,107 +88,169 @@ FeatureFunction::State *PhraseTable::initDocument(const DocumentState &doc, Scor
 	return NULL;
 }
 
-void PhraseTable::computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const {
+void PhraseTable::computeSentenceScores(
+	const DocumentState &doc,
+	uint sentno,
+	Scores::iterator sbegin
+) const {
 	const PhraseSegmentation &snt = doc.getPhraseSegmentation(sentno);
 	Scores s = scorePhraseSegmentation(snt);
 	std::copy(s.begin(), s.end(), sbegin);
 }
 
-FeatureFunction::StateModifications *PhraseTable::estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
-		Scores::const_iterator psbegin, Scores::iterator sbegin) const {
+FeatureFunction::StateModifications
+*PhraseTable::estimateScoreUpdate(
+	const DocumentState &doc,
+	const SearchStep &step,
+	const State *state,
+	Scores::const_iterator psbegin,
+	Scores::iterator sbegin
+) const {
 	Scores s(psbegin, psbegin + getNumberOfScores());
 	const std::vector<SearchStep::Modification> &mods = step.getModifications();
 	for(std::vector<SearchStep::Modification>::const_iterator it = mods.begin(); it != mods.end(); ++it) {
 		PhraseSegmentation::const_iterator ps_it = it->from_it;
 		PhraseSegmentation::const_iterator to_it = it->to_it;
 		const PhraseSegmentation &proposal = it->proposal;
-		
+
 		while(ps_it != to_it) {
 			s -= ps_it->second.get().getScores();
 			++ps_it;
 		}
-		
+
 		s += scorePhraseSegmentation(proposal);
 	}
 	std::copy(s.begin(), s.end(), sbegin);
 	return NULL;
 }
 
-FeatureFunction::StateModifications *PhraseTable::updateScore(const DocumentState &doc, const SearchStep &step, const State *state,
-		FeatureFunction::StateModifications *estmods, Scores::const_iterator psbegin, Scores::iterator estbegin) const {
+FeatureFunction::StateModifications *PhraseTable::updateScore(
+	const DocumentState &doc,
+	const SearchStep &step,
+	const State *state,
+	FeatureFunction::StateModifications *estmods,
+	Scores::const_iterator psbegin,
+	Scores::iterator estbegin
+) const {
 	return estmods;
 }
 
-boost::shared_ptr<const PhrasePairCollection> PhraseTable::getPhrasesForSentence(const std::vector<Word> &sentence) const {
+
+boost::shared_ptr<const PhrasePairCollection>
+PhraseTable::getPhrasesForSentence(
+	const std::vector<Word> &sentence
+) const
+{
 	using namespace boost::lambda;
 	LOG(logger_, verbose, "getPhrasesForSentence " << sentence);
-	boost::shared_ptr<PhrasePairCollection> ptc(new PhrasePairCollection(sentence.size(), random_));
-	CoverageBitmap cov(sentence.size());
+	boost::shared_ptr<PhrasePairCollection> ptc(
+		new PhrasePairCollection(sentence.size(), random_)
+	);
+	std::pair<bool, std::vector<target_text> > query_result;
+	std::map<uint, std::string> vocabids = backend_->getVocab();
 
+	CoverageBitmap cov(sentence.size());
 	CoverageBitmap uncovered(sentence.size());
 	uncovered.set();
 
-	for(uint i = 0; i < sentence.size(); i++) {
-		Moses::PhraseDictionaryTree::PrefixPtr ptr = backend_->GetRoot();
+	boost::char_separator<char> word_sep(" ");
+	boost::char_separator<char> factor_sep("|");
+
+	for(uint i = 0; i < sentence.size(); ++i) {
 		cov.reset();
 		std::vector<Word> srcphrase;
-		for(uint j = 0; j < maxPhraseLength_ && i + j < sentence.size(); j++) {
-			ptr = backend_->Extend(ptr, sentence[i + j]);
-			if(!ptr)
-				break;
+		std::ostringstream src("");
+		for(uint j = 0;
+			j < maxPhraseLength_ && i + j < sentence.size();
+			++j
+		) {
+			if(src.tellp() > 0)
+				src << ' ';
+			src << sentence[i + j];
 
+			query_result = backend_->query(StringPiece(src.str()));
 			srcphrase.push_back(sentence[i + j]);
 			cov.set(i + j);
 
-			std::vector<Moses::StringTgtCand> tgtcand;
-			std::vector<std::string> alignments;
-			if(loadAlignments_)
-				backend_->GetTargetCandidates(ptr, tgtcand, alignments);
-			else {
-				backend_->GetTargetCandidates(ptr, tgtcand);
-				alignments.resize(tgtcand.size());
-			}
-			
-			if(!tgtcand.empty())
-				uncovered -= cov;
+			if(!query_result.first)
+				continue;
 
-			std::vector<std::string>::const_iterator ait = alignments.begin();
-			for(std::vector<Moses::StringTgtCand>::const_iterator it = tgtcand.begin();
-					it != tgtcand.end(); ++it, ++ait) {
-				std::vector<Word> tgtphrase(it->first.size());
-				std::vector<std::vector<Word> > annotations(annotationCount_,
-					std::vector<Word>(it->first.size()));
-				for(uint i = 0; i < it->first.size(); i++) {
-					std::istringstream is(*it->first[i]);
-					if(!getline(is, tgtphrase[i], '|')) {
-						LOG(logger_, error, "Problem parsing target phrase: "
-							<< *it->first[i]);
-						BOOST_THROW_EXCEPTION(FileFormatException());
-					}
-					for(uint j = 0; j < annotationCount_; j++)
-						if(!getline(is, annotations[j][i], '|')) {
-							LOG(logger_, error, "Problem parsing target phrase: "
-								<< *it->first[i]);
+			std::vector<target_text> finds(query_result.second);
+			BOOST_FOREACH(target_text find, finds) {  // All PHRASES
+				Tokenizer tokens_it(
+					getTargetWordsFromIDs(find.target_phrase, &vocabids),
+					word_sep
+				);
+				std::vector<Word> tokens;
+				std::copy(tokens_it.begin(), tokens_it.end(), std::back_inserter(tokens));
+
+				std::vector< std::vector<Word> > factors(
+					(annotationCount_ + 1),
+					std::vector<Word>(tokens.size())
+				);
+				uint k = 0;
+				BOOST_FOREACH(Word token, tokens) {  // All TOKENS (word|annotation1|...)
+					Tokenizer factors_it(token, factor_sep);
+					uint l = 0;
+					for(Tokenizer::iterator it = factors_it.begin();
+						it != factors_it.end();
+						++it, ++l
+					) {
+						if((l == 0) && (it->length() == 0)) {
+							LOG(logger_, error, "Problem, empty target phrase: " << token);
 							BOOST_THROW_EXCEPTION(FileFormatException());
 						}
+						if(l > annotationCount_) {
+							LOG(logger_, error, "Problem, too many annotations: " << token);
+							BOOST_THROW_EXCEPTION(FileFormatException());
+						}
+						factors[l][k] = *it;
+					}
+					if(l < (annotationCount_ + 1)) {
+						LOG(logger_, error, "Problem, too few annotations: " << token);
+						BOOST_THROW_EXCEPTION(FileFormatException());
+					}
+					++k;
 				}
+				std::vector<Word> tgtphrase(factors[0]);
+
 				std::vector<Phrase> annotationPhrases;
 				annotationPhrases.reserve(annotationCount_);
-				for(uint i = 0; i < annotationCount_; i++)
-					annotationPhrases.push_back(Phrase(annotations[i]));
+				for(uint l = 0; l < annotationCount_; ++l) {
+					annotationPhrases.push_back(Phrase(factors[l+1]));
+				}
 
-				assert(it->second.size() == nscores_);
+				// Alignment
+				std::vector<AlignmentPair> alignments;
+				alignments.reserve(find.word_all1.size()/2);
+				for(uint l = 0; l < find.word_all1.size(); l = l+2) {
+					alignments.push_back(
+						AlignmentPair(find.word_all1[l], find.word_all1[l+1])
+					);
+				}
+				WordAlignment wa(srcphrase.size(), tgtphrase.size(), alignments);
+
+				// Scores
 				Scores s;
-				std::transform(it->second.begin(), it->second.end(), std::back_inserter(s), bind(log, _1));
-				WordAlignment wa(srcphrase.size(), tgtphrase.size(), *ait);
+				std::transform(
+					find.prob.begin(),
+					find.prob.end(),
+					std::back_inserter(s),
+					bind(log, _1)
+				);
+
 				PhrasePair pp(PhrasePairData(srcphrase, tgtphrase, annotationPhrases, wa, s));
 				ptc->addPhrasePair(cov, pp);
+				uncovered -= cov;
 			}
 		}
 	}
-	
+
 	// add OOV phrase pairs
-	for(CoverageBitmap::size_type i = uncovered.find_first(); i != CoverageBitmap::npos; i = uncovered.find_next(i)) {
+	for(CoverageBitmap::size_type i = uncovered.find_first();
+		i != CoverageBitmap::npos;
+		i = uncovered.find_next(i)
+	) {
 		cov.reset();
 		cov.set(i);
 		ptc->addPhrasePair(cov, PhrasePair(sentence[i], Scores(nscores_, 0)));
@@ -182,4 +258,3 @@ boost::shared_ptr<const PhrasePairCollection> PhraseTable::getPhrasesForSentence
 
 	return ptc;
 }
-
