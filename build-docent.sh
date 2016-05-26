@@ -42,10 +42,6 @@ set -e
 ## patch Arabica spurious-rebuild bug
 cd "$Code/external/arabica"
 patch -p1 ../arabica-norebuild.patch
-
-## unselect unnecessary Moses-server component
-cd "$Code/external/mosesdecoder"
-patch -p1 ../moses-noserver.patch
 cd -
 
 mkdir -p "$Target"
@@ -53,4 +49,4 @@ cd       "$Target"
 
 ## build
 cmake -DCMAKE_BUILD_TYPE=DEBUG "$Code"
-make
+make "$@"
