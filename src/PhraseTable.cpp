@@ -177,12 +177,11 @@ PhraseTable::getPhrasesForSentence(
 
 			std::vector<target_text> finds(query_result.second);
 			BOOST_FOREACH(target_text find, finds) {  // All PHRASES
-				Tokenizer tokens_it(
-					getTargetWordsFromIDs(find.target_phrase, &vocabids),
-					word_sep
-				);
+				std::string phrase(getTargetWordsFromIDs(find.target_phrase, &vocabids));
+				Tokenizer tokens_it(phrase, word_sep);
 				std::vector<Word> tokens;
 				std::copy(tokens_it.begin(), tokens_it.end(), std::back_inserter(tokens));
+				LOG(logger_, verbose, i << "/" << j << " > " << tokens.size() << " TOKENS: " << tokens);
 
 				std::vector< std::vector<Word> > factors(
 					(annotationCount_ + 1),
