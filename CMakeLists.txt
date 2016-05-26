@@ -47,11 +47,9 @@ if(DEFINED ENV{BOOST_ROOT} AND NOT DEFINED BOOST_ROOT)
 endif()
 
 if(DEFINED BOOST_ROOT)
-	set(MOSES_WITH_BOOST "--with-boost=${BOOST_ROOT}")
 	set(Arabica_WITH_BOOST "--with-boost=${BOOST_ROOT}/include")
 else()
 	message("BOOST_ROOT isn't set. If you encounter build problems, consider setting it.")
-	set(MOSES_WITH_BOOST "")
 	set(Arabica_WITH_BOOST "")
 endif()
 
@@ -102,21 +100,13 @@ get_property(Arabica_INCLUDE_DIRS DIRECTORY external/arabica PROPERTY INCLUDE_DI
 set(Arabica_LIBRARIES arabica)
 
 
-### Build Moses
-set(MOSES_ROOT ${CMAKE_SOURCE_DIR}/external/mosesdecoder)
-set(MOSES_INSTALL_DIR ${CMAKE_BINARY_DIR}/external/Install/moses_external)
+### Build KenLM
+set(KenLM_ROOT ${CMAKE_SOURCE_DIR}/external/kenlm)
 
-ExternalProject_add(moses_external
-	SOURCE_DIR ${MOSES_ROOT}
-	CONFIGURE_COMMAND true
-	BUILD_COMMAND ./bjam --max-kenlm-order=${KENLM_MAX_ORDER} ${MOSES_WITH_BOOST}
-	INSTALL_COMMAND ./bjam --prefix=${MOSES_INSTALL_DIR} ${MOSES_WITH_BOOST} install
-	INSTALL_DIR ${MOSES_INSTALL_DIR}
-	BUILD_IN_SOURCE 1
-)
+include_directories(${KenLM_ROOT})
 
-add_library(moses STATIC IMPORTED)
-add_dependencies(moses moses_external)
+add_subdirectory(${KenLM_ROOT})
+
 
 add_definitions(-DKENLM_MAX_ORDER=${KENLM_MAX_ORDER})
 
@@ -128,35 +118,10 @@ else()
 	set(LIBRT_LIBRARIES "")
 endif()
 
-set(MOSES_INCLUDE_DIRS
-	${MOSES_INSTALL_DIR}/include
-	${ZLIB_INCLUDE_DIRS}
-)
-set(MOSES_LIBRARIES
-	${LD_START_GROUP}
-	${MOSES_INSTALL_DIR}/lib/libCompactPT.a
-	${MOSES_INSTALL_DIR}/lib/libCYKPlusParser.a
-	${MOSES_INSTALL_DIR}/lib/libdynsa.a
-	${MOSES_INSTALL_DIR}/lib/libfuzzy-match.a
-	${MOSES_INSTALL_DIR}/lib/libkenlm.a
-	${MOSES_INSTALL_DIR}/lib/libkenutil.a
-	${MOSES_INSTALL_DIR}/lib/libLM.a
-	${MOSES_INSTALL_DIR}/lib/libmoses.a
-	${MOSES_INSTALL_DIR}/lib/libmoses_internal.a
-	${MOSES_INSTALL_DIR}/lib/libOnDiskPt.a
-	${MOSES_INSTALL_DIR}/lib/libpcfg_common.a
-	${MOSES_INSTALL_DIR}/lib/libRuleTable.a
-	${MOSES_INSTALL_DIR}/lib/libScope3Parser.a
-	${LD_END_GROUP}
-	${LIBRT_LIBRARIES}
-	${ZLIB_LIBRARIES}
-)
-
 
 ### Build Docent
 link_directories(
 	${Boost_LIBRARY_DIRS}
-	${MOSES_LIBRARY_DIRS}
 	${Arabica_LIBRARY_DIRS}
 	${MPI_LIBRARY_DIRS}
 )
@@ -165,8 +130,8 @@ include_directories(
 	src
 	${STEMMER_INCLUDE_DIRS}
 	${Boost_INCLUDE_DIRS}
-	${MOSES_INCLUDE_DIRS}
 	${Arabica_INCLUDE_DIRS}
+	${KenLM_ROOT}
 	${MPI_INCLUDE_DIRS}
 )
 
@@ -200,19 +165,35 @@ add_library(decoder STATIC
 	src/StateGenerator.cpp
 	src/TypeTokenRateModel.cpp
 	src/WellFormednessModel.cpp
+
+	src/ProbingPT/hash.cpp
+	src/ProbingPT/huffmanish.cpp
+	src/ProbingPT/line_splitter.cpp
+	src/ProbingPT/probing_hash_utils.cpp
+	src/ProbingPT/quering.cpp
+	src/ProbingPT/storing.cpp
+	src/ProbingPT/vocabid.cpp
 )
 
 add_dependencies(decoder
 	stemmer
 	arabica
-	moses
+	kenlm
+	kenlm_builder
+	kenlm_filter
+	kenlm_interpolate
+	kenlm_util
 )
 
 set(DECODER_LIBRARIES
 	decoder
 	stemmer
+	kenlm
+	kenlm_builder
+	kenlm_filter
+	kenlm_interpolate
+	kenlm_util
 	${Arabica_LIBRARIES}
-	${MOSES_LIBRARIES}
 	${Boost_LIBRARIES}
 )
 
