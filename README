@@ -3,6 +3,9 @@ DOCENT -- DOCUMENT-LEVEL LOCAL SEARCH DECODER FOR PHRASE-BASED SMT
 Christian Hardmeier
 26 September 2012
 
+Sebastian Schleussner
+25 May 2016
+
 Docent is a decoder for phrase-based Statistical Machine Translation (SMT).
 Unlike most existing SMT decoders, it treats complete documents, rather than
 single sentences, as translation units and permits the inclusion of features
@@ -77,16 +80,13 @@ but it may still need some tweaking for your system.
 
 1. Initialising Git submodules
 
-The software packages Arabica (XML parser) and Moses (SMT decoder) are
-referenced by Docent as Git submodules. When you check out Docent for the first
-time, you need to initialise and update the submodules. From Docent's top-level
-directory, run:
+The software package Arabica (XML parser) is referenced by Docent as a Git submodule.
+Therefore you have to clone the repository the following way:
+	git clone --recursive https://github.com/chardmeier/docent
+Alternatively, after a conventional cloning, issue the commands:
+	git submodule init; git submodule update
 
-- git submodule init
-- git submodule update
-
-The build process of Arabica and Moses is driven automatically by Docent's cmake
-script.
+The build process of Arabica is driven automatically by Docent's cmake script.
 
 2. Installing prerequisite components
 
@@ -122,13 +122,6 @@ since Docent links against Moses, which also uses Boost and requires a
 non-standard naming scheme (--layout=tagged). Unless your distribution has a
 very recent Boost version preinstalled, I recommend installing Boost in a prefix
 directory of its own and set the BOOST_ROOT variable as explained below.
-
-If you install Boost yourself, follow the instructions in
-	external/mosesdecoder/BUILD-INSTRUCTIONS.txt
-to make Moses happy. When you're done, rerun b2 without the --layout=tagged
-option:
-	./b2 --prefix=$PREFIX --libdir=$PREFIX/lib64 link=static,shared threading=multi install
-Then pass -DBOOST_ROOT=$PREFIX to cmake (see below).
 
 3. Building Docent
 
