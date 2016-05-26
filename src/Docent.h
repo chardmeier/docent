@@ -23,8 +23,6 @@
 #ifndef docent_Docent_h
 #define docent_Docent_h
 
-#define HAVE_BOOST // for moses. We always have boost.
-
 #include <algorithm>
 #include <list>
 #include <string>

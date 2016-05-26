@@ -38,9 +38,10 @@ private:
 
 public:
 	BeamSearchAdapter(const std::string &moses_ini);
-	//BeamSearchAdapter(const std::string &ttableFile, uint ngramOrder, const std::string lmFile, const std::vector<Float> &weights);
-	PhraseSegmentation search(boost::shared_ptr<const PhrasePairCollection> ppairs, const std::vector<Word> &sentence) const;
+	PhraseSegmentation search(
+		boost::shared_ptr<const PhrasePairCollection> ppairs,
+		const std::vector<Word> &sentence
+	) const;
 };
 
 #endif
-
