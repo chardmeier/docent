@@ -95,7 +95,7 @@ DocumentState::DocumentState(const DocumentState &o)
 
 DocumentState &DocumentState::operator=(const DocumentState &o) {
 	using namespace boost::lambda;
-	
+
 	if(&o == this)
 		return *this;
 
@@ -175,7 +175,7 @@ void DocumentState::applyModifications(SearchStep *step) {
 			featureStates_[i] = ffs[i].applyStateModifications(featureStates_[i], smods[i]);
 
 	delete step;
-	
+
 	generation_++;
 }
 
@@ -214,7 +214,13 @@ void DocumentState::debugSentenceCoverage(const PhraseSegmentation &seg) const {
 
 std::ostream &operator<<(std::ostream &os, const DocumentState &doc) {
 	os << "DOCUMENT STATE:\n";
-	std::copy(doc.sentences_.begin(), doc.sentences_.end(), std::ostream_iterator<PhraseSegmentation>(os));
-	os << doc.scores_ << " * " << doc.configuration_->getFeatureWeights() << " = " << doc.getScore() << '\n';
+	std::copy(
+		doc.sentences_.begin(),
+		doc.sentences_.end(),
+		std::ostream_iterator<PhraseSegmentation>(os)
+	);
+	os	<< doc.scores_
+		<< " * " << doc.configuration_->getFeatureWeights()
+		<< " = " << doc.getScore() << '\n';
 	return os;
 }

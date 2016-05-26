@@ -35,7 +35,7 @@
 
 #include<iostream>
 
-// from kenlm
+// from KenLM
 #include "lm/binary_format.hh"
 #include "lm/model.hh"
 
