@@ -68,8 +68,17 @@ endif()
 
 find_package(Boost 1.44 COMPONENTS thread random serialization regex system filesystem REQUIRED)
 
-### Build libstemmer_c
+find_package(ZLIB REQUIRED)
 
+check_library_exists(-lrt clock_gettime "" HAVE_LIBRT)
+if(HAVE_LIBRT)
+	set(LIBRT_LIBRARIES -lrt)
+else()
+	set(LIBRT_LIBRARIES "")
+endif()
+
+
+### Build libstemmer_c
 set(STEMMER_ROOT ${CMAKE_SOURCE_DIR}/external/libstemmer_c)
 set(STEMMER_INSTALL_DIR ${CMAKE_BINARY_DIR}/external/Install/stemmer_external)
 
@@ -107,16 +116,28 @@ include_directories(${KenLM_ROOT})
 
 add_subdirectory(${KenLM_ROOT})
 
-
 add_definitions(-DKENLM_MAX_ORDER=${KENLM_MAX_ORDER})
 
-find_package(ZLIB REQUIRED)
-check_library_exists(-lrt clock_gettime "" HAVE_LIBRT)
-if(HAVE_LIBRT)
-	set(LIBRT_LIBRARIES -lrt)
-else()
-	set(LIBRT_LIBRARIES "")
-endif()
+
+### Build ProbingPT
+set(ProbingPT_ROOT ${CMAKE_SOURCE_DIR}/external/ProbingPT)
+
+include_directories(${ProbingPT_ROOT})
+
+add_library(probingpt STATIC
+	${ProbingPT_ROOT}/hash.cpp
+	${ProbingPT_ROOT}/huffmanish.cpp
+	${ProbingPT_ROOT}/line_splitter.cpp
+	${ProbingPT_ROOT}/probing_hash_utils.cpp
+	${ProbingPT_ROOT}/quering.cpp
+	${ProbingPT_ROOT}/storing.cpp
+	${ProbingPT_ROOT}/vocabid.cpp
+)
+
+add_dependencies(probingpt
+	kenlm
+	kenlm_util
+)
 
 
 ### Build Docent
@@ -132,6 +153,7 @@ include_directories(
 	${Boost_INCLUDE_DIRS}
 	${Arabica_INCLUDE_DIRS}
 	${KenLM_ROOT}
+	${ProbingPT_ROOT}
 	${MPI_INCLUDE_DIRS}
 )
 
@@ -165,14 +187,6 @@ add_library(decoder STATIC
 	src/StateGenerator.cpp
 	src/TypeTokenRateModel.cpp
 	src/WellFormednessModel.cpp
-
-	src/ProbingPT/hash.cpp
-	src/ProbingPT/huffmanish.cpp
-	src/ProbingPT/line_splitter.cpp
-	src/ProbingPT/probing_hash_utils.cpp
-	src/ProbingPT/quering.cpp
-	src/ProbingPT/storing.cpp
-	src/ProbingPT/vocabid.cpp
 )
 
 add_dependencies(decoder
@@ -185,6 +199,7 @@ add_dependencies(decoder
 	kenlm_util
 )
 
+
 set(DECODER_LIBRARIES
 	decoder
 	stemmer
@@ -193,6 +208,7 @@ set(DECODER_LIBRARIES
 	kenlm_filter
 	kenlm_interpolate
 	kenlm_util
+	probingpt
 	${Arabica_LIBRARIES}
 	${Boost_LIBRARIES}
 )

@@ -31,7 +31,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
 
-#include "ProbingPT/quering.hh"
+#include "quering.hh"  // from ProbingPT
 
 class PhrasePairCollection;
 

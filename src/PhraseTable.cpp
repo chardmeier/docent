@@ -33,7 +33,7 @@
 #include "util/string_piece.hh"
 #include "util/probing_hash_table.hh"
 
-#include "ProbingPT/quering.hh"
+#include "quering.hh"  // from ProbingPT
 
 #include <boost/foreach.hpp>
 #include <boost/function.hpp>
