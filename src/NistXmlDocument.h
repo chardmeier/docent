@@ -20,11 +20,10 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef docent_NistXmlTestset_h
-#define docent_NistXmlTestset_h
+#ifndef docent_NistXmlDocument_h
+#define docent_NistXmlDocument_h
 
 #include "Docent.h"
-#include "NistXmlDocument.h"
 #include "PlainTextDocument.h"
 
 #include <iosfwd>
@@ -32,50 +31,26 @@
 
 #include <DOM/Document.hpp>
 
-class NistXmlTestset {
-public:
-	typedef boost::shared_ptr<NistXmlDocument> value_type;
-	typedef boost::shared_ptr<const NistXmlDocument> const_value_type;
-	typedef std::vector<value_type>::iterator iterator;
-	typedef std::vector<value_type>::const_iterator const_iterator;
+class MMAXDocument;
 
+class NistXmlDocument {
 private:
-	Logger logger_;
-
-	std::vector<value_type> documents_;
-	Arabica::DOM::Document<std::string> outdoc_;
+	Arabica::DOM::Node<std::string> topnode_;
+	Arabica::DOM::Node<std::string> outnode_;
 
 public:
-	NistXmlTestset(const std::string &file);
-	void outputTranslation(std::ostream &os) const;
+	NistXmlDocument(Arabica::DOM::Node<std::string> top)
+		: topnode_(top) {}
 
-	uint size() {
-		return documents_.size();
+	void setOutputNode(Arabica::DOM::Node<std::string> out) {
+		outnode_ = out;
 	}
 
-	iterator begin() {
-		return documents_.begin();
-	}
-
-	iterator end() {
-		return documents_.end();
-	}
-
-	const_iterator begin() const {
-		return documents_.begin();
-	}
-
-	const_iterator end() const {
-		return documents_.end();
-	}
-
-	value_type operator[](uint idx) {
-		return documents_[idx];
-	}
-
-	const value_type operator[](uint idx) const {
-		return documents_[idx];
-	}
+	PlainTextDocument asPlainTextDocument() const;
+	boost::shared_ptr<const MMAXDocument> asMMAXDocument() const;
+	void setTranslation(const PlainTextDocument &);
+	void annotateDocument(const std::string &annot);
+	void annotateSentence(uint sentno, const std::string &annot);
 };
 
 #endif

@@ -21,8 +21,8 @@
  */
 
 #include "Docent.h"
-#include "DocumentState.h"
 #include "MMAXDocument.h"
+#include "NistXmlDocument.h"
 #include "NistXmlTestset.h"
 
 #include <iostream>
@@ -36,8 +36,10 @@
 #include <SAX/helpers/CatchErrorHandler.hpp>
 #include <XPath/XPath.hpp>
 
-NistXmlTestset::NistXmlTestset(const std::string &file)
-		: logger_("NistXmlTestset") {
+NistXmlTestset::NistXmlTestset(
+	const std::string &file
+)	: logger_("NistXmlTestset")
+{
 	Arabica::SAX2DOM::Parser<std::string> domParser;
 	Arabica::SAX::InputSource<std::string> is(file);
 	Arabica::SAX::CatchErrorHandler<std::string> errh;
@@ -51,34 +53,39 @@ NistXmlTestset::NistXmlTestset(const std::string &file)
 		LOG(logger_, error, "Error parsing input file: " << file);
 		BOOST_THROW_EXCEPTION(FileFormatException());
 	}
-
 	doc.getDocumentElement().normalize();
 
 	Arabica::XPath::XPath<std::string> xp;
-
-	Arabica::XPath::NodeSet<std::string> docnodes =
-		xp.compile("/mteval/srcset/doc").evaluateAsNodeSet(doc.getDocumentElement());
+	Arabica::XPath::NodeSet<std::string> docnodes = xp
+		.compile("/mteval/srcset/doc")
+		.evaluateAsNodeSet(doc.getDocumentElement());
 	docnodes.to_document_order();
-	BOOST_FOREACH(Arabica::DOM::Node<std::string> n, docnodes)
+	BOOST_FOREACH(Arabica::DOM::Node<std::string> n, docnodes) {
 		documents_.push_back(boost::make_shared<NistXmlDocument>(n));
+	}
 
 	//outdoc_ = static_cast<Arabica::DOM::Document<std::string> >(doc.cloneNode(true));
 	Arabica::SAX::InputSource<std::string> is2(file);
 	domParser.parse(is2);
 	outdoc_ = domParser.getDocument();
-	
+
 	Arabica::DOM::Element<std::string> srcset =
-		static_cast<Arabica::DOM::Element<std::string> >(
-			xp.compile("/mteval/srcset").evaluateAsNodeSet(outdoc_.getDocumentElement())[0]);
+		static_cast<Arabica::DOM::Element<std::string> >(xp
+			.compile("/mteval/srcset")
+			.evaluateAsNodeSet(outdoc_.getDocumentElement())
+			[0]
+		);
 
 	Arabica::DOM::Element<std::string> tstset = outdoc_.createElement("tstset");
 	int docno = 0;
 	while(srcset.hasChildNodes()) {
 		Arabica::DOM::Node<std::string> n = srcset.removeChild(srcset.getFirstChild());
 		tstset.appendChild(n);
-		if(n.getNodeType() == Arabica::DOM::Node<std::string>::ELEMENT_NODE &&
-				n.getNodeName() == "doc")
+		if(n.getNodeType() == Arabica::DOM::Node<std::string>::ELEMENT_NODE
+			&& n.getNodeName() == "doc"
+		) {
 			documents_[docno++]->setOutputNode(n);
+		}
 	}
 	tstset.setAttribute("setid", srcset.getAttribute("setid"));
 	tstset.setAttribute("srclang", srcset.getAttribute("srclang"));
@@ -88,146 +95,7 @@ NistXmlTestset::NistXmlTestset(const std::string &file)
 	srcset.getParentNode().replaceChild(tstset, srcset);
 }
 
-void NistXmlTestset::outputTranslation(std::ostream &os) const {
+void NistXmlTestset::outputTranslation(std::ostream &os) const
+{
 	os << outdoc_;
-}
-
-struct SegNodeFilter : public Arabica::DOM::Traversal::NodeFilter<std::string> {
-	Result acceptNode(const NodeT &node) const {
-		if(node.getParentNode().getNodeName() == "seg")
-			return FILTER_ACCEPT;
-
-		return FILTER_SKIP;
-	}
-};
-
-PlainTextDocument NistXmlDocument::asPlainTextDocument() const {
-	std::vector<std::vector<Word> > txt;
-
-	typedef Arabica::DOM::Traversal::DocumentTraversal<std::string> Traversal;
-
-	Traversal dt = topnode_.getOwnerDocument().createDocumentTraversal();
-	SegNodeFilter filter;
-	Traversal::TreeWalkerT it = dt.createTreeWalker(topnode_,
-					static_cast<unsigned long>(Arabica::DOM::Traversal::SHOW_TEXT),
-					filter, true);
-
-	for(;;) {
-		Traversal::NodeT n = it.nextNode();
-		if(n == 0)
-			break;
-		std::string seg = n.getNodeValue();
-		boost::trim(seg);
-		txt.push_back(std::vector<Word>());
-		boost::split(txt.back(), seg, boost::is_any_of(" "));
-	}
-
-	return PlainTextDocument(txt);
-}
-
-boost::shared_ptr<const MMAXDocument> NistXmlDocument::asMMAXDocument() const {
-	typedef Arabica::DOM::Traversal::DocumentTraversal<std::string> Traversal;
-
-	Traversal dt = topnode_.getOwnerDocument().createDocumentTraversal();
-	SegNodeFilter filter;
-	Traversal::TreeWalkerT it = dt.createTreeWalker(topnode_,
-					static_cast<unsigned long>(Arabica::DOM::Traversal::SHOW_TEXT),
-					filter, true);
-
-	boost::shared_ptr<MMAXDocument> mmax = boost::make_shared<MMAXDocument>();
-	for(;;) {
-		Traversal::NodeT n = it.nextNode();
-		if(n == 0)
-			break;
-		std::string seg = n.getNodeValue();
-		boost::trim(seg);
-		std::vector<Word> snt;
-		boost::split(snt, seg, boost::is_any_of(" "));
-		mmax->addSentence(snt.begin(), snt.end());
-	}
-
-	return mmax;
-}
-
-void NistXmlDocument::setTranslation(const PlainTextDocument &doc) {
-	typedef Arabica::DOM::Traversal::DocumentTraversal<std::string> Traversal;
-
-	Traversal dt = outnode_.getOwnerDocument().createDocumentTraversal();
-	SegNodeFilter filter;
-	Traversal::TreeWalkerT it = dt.createTreeWalker(outnode_,
-					static_cast<unsigned long>(Arabica::DOM::Traversal::SHOW_TEXT),
-					filter, true);
-
-	uint i = 0;
-	for(;;) {
-		Traversal::NodeT n = it.nextNode();
-		if(n == 0)
-			break;
-		std::ostringstream os;
-		std::copy(doc.sentence_begin(i), doc.sentence_end(i), std::ostream_iterator<Word>(os, " "));
-		i++;
-		std::string str = os.str();
-		str.erase(str.end() - 1);
-		n.setNodeValue(str);
-	}
-}
-
-void NistXmlDocument::annotateDocument(const std::string &annot) {
-	typedef Arabica::DOM::Comment<std::string> Comment;
-	typedef Arabica::DOM::Node<std::string> Node;
-
-	Comment comm = outnode_.getOwnerDocument().createComment(" DOC " + annot + " ");
-
-	if(outnode_.hasChildNodes()) {
-		Node n1 = outnode_.getFirstChild();
-		Node n2 = n1.getNextSibling();
-
-		if(n2 != 0 && n2.getNodeType() == Node::COMMENT_NODE &&
-				boost::starts_with(n2.getNodeValue(), " DOC "))
-			outnode_.replaceChild(comm, n2);
-		else {
-			if(n1.getNodeType() == Node::TEXT_NODE) {
-				Node ws = n1.cloneNode(false);
-				outnode_.insertBefore(ws, n1);
-			}
-			outnode_.insertBefore(comm, n1);
-		}
-	} else
-		outnode_.appendChild(comm);
-}
-
-void NistXmlDocument::annotateSentence(uint sentno, const std::string &annot) {
-	typedef Arabica::DOM::Traversal::DocumentTraversal<std::string> Traversal;
-	typedef Arabica::DOM::Comment<std::string> Comment;
-
-	Traversal dt = outnode_.getOwnerDocument().createDocumentTraversal();
-	SegNodeFilter filter;
-	Traversal::TreeWalkerT it = dt.createTreeWalker(outnode_,
-					static_cast<unsigned long>(Arabica::DOM::Traversal::SHOW_TEXT),
-					filter, true);
-
-	for(uint i = 0; i < sentno; i++)
-		it.nextNode();
-
-	Traversal::NodeT n = it.nextNode(); // the filter finds the next node inside the <seg> element
-	assert(n != 0);
-	n = n.getParentNode(); // get the <seg>
-
-	Comment comm = n.getOwnerDocument().createComment(" SEG " + annot + " ");
-
-	Traversal::NodeT p = n.getPreviousSibling();
-	Traversal::NodeT txt;
-	if(p != 0 && p.getNodeType() == Arabica::DOM::Node<std::string>::TEXT_NODE) {
-		txt = p;
-		p = p.getPreviousSibling();
-	}
-
-	if(p != 0 && p.getNodeType() == Arabica::DOM::Node<std::string>::COMMENT_NODE &&
-			boost::starts_with(p.getNodeValue(), " SEG "))
-		p.getParentNode().replaceChild(comm, p);
-	else {
-		n.getParentNode().insertBefore(comm, n);
-		if(txt != 0)
-			n.getParentNode().insertBefore(txt.cloneNode(false), n);
-	}
 }
