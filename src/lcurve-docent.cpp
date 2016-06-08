@@ -22,20 +22,13 @@
 
 #include <algorithm>
 #include <fstream>
-#include <functional>
 #include <iostream>
 #include <iterator>
-#include <limits>
 #include <sstream>
 #include <vector>
 
 #include <boost/foreach.hpp>
-#include <boost/lambda/lambda.hpp>
 #include <boost/make_shared.hpp>
-#include <boost/tokenizer.hpp>
-#include <boost/unordered_map.hpp>
-#include <boost/utility.hpp>
-#include <boost/archive/tmpdir.hpp>
 #include <boost/archive/text_oarchive.hpp>
 
 #include "Docent.h"
@@ -44,7 +37,6 @@
 #include "MMAXDocument.h"
 #include "NbestStorage.h"
 #include "NistXmlTestset.h"
-#include "Random.h"
 #include "SimulatedAnnealing.h"
 
 void usage();
@@ -53,7 +45,6 @@ template<class Testset>
 class SingleDocumentTestset {
 private:
 	Testset &backend_;
-
 public:
 	SingleDocumentTestset(Testset &backend) : backend_(backend) {}
 
@@ -98,10 +89,21 @@ public:
 };
 
 template<class Testset>
-void processTestset(const ConfigurationFile &configFile, Testset &testset, const std::string &outstem, bool dumpStates, const std::string& firstStateFilename, const std::string& lastStateFilename);
+void processTestset(
+	const ConfigurationFile &configFile,
+	Testset &testset,
+	const std::string &outstem,
+	bool dumpStates,
+	const std::string& firstStateFilename,
+	const std::string& lastStateFilename
+);
 std::string formatWordAlignment(const PhraseSegmentation &snt);
 
-void printState(const std::string& filename, const std::vector<std::vector<PhraseSegmentation> >& state);
+void printState(
+	const std::string& filename,
+	const std::vector<std::vector<PhraseSegmentation> >& state
+);
+
 
 int main(int argc, char **argv) {
 	std::vector<std::string> args;
@@ -184,9 +186,9 @@ int main(int argc, char **argv) {
 		} else
 			processTestset(config, testset, outstem, dumpstates, firstStateFilename, lastStateFilename);
 	}
-
 	return 0;
 }
+
 
 void usage() {
 	std::cerr << "Usage: lcurve-docent [-s xpath value] [-r xpath] "
@@ -197,11 +199,15 @@ void usage() {
 }
 
 template<class Testset>
-void processTestset(const ConfigurationFile &configFile, Testset &testset, const std::string &outstem, bool dumpStates, const std::string &firstStateFilename, const std::string &lastStateFilename) {
+void processTestset(
+	const ConfigurationFile &configFile,
+	Testset &testset,
+	const std::string &outstem,
+	bool dumpStates,
+	const std::string &firstStateFilename,
+	const std::string &lastStateFilename
+) {
 	try {
-		//Random::initGenerator(3525497962);
-		//Random::initGenerator(3812725332);
-
 		DecoderConfiguration config(configFile);
 
 		std::vector<typename Testset::value_type> inputdocs;
@@ -241,13 +247,12 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset, const
 
 		// Print the state after initialization if asked for
 		if (!firstStateFilename.empty()) {
-		  std::vector<std::vector<PhraseSegmentation> > state;
-		  for(uint i = 0; i < states.size(); i++) {
-			  state.push_back(states[i]->getLastDocumentState()->getPhraseSegmentations());
-		  }
-		  printState(firstStateFilename, state);
+			std::vector<std::vector<PhraseSegmentation> > state;
+			for(uint i = 0; i < states.size(); i++) {
+				state.push_back(states[i]->getLastDocumentState()->getPhraseSegmentations());
+			}
+			printState(firstStateFilename, state);
 		}
-
 
 		uint steps_done = 0;
 		std::vector<NbestStorage> nbest(inputdocs.size(), NbestStorage(1));
@@ -255,7 +260,6 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset, const
 		for(uint steps = 256; steps <= 134217728; steps *= 2) {
 			for(uint i = 0; i < inputdocs.size(); i++) {
 				std::cerr << "Document " << i << ", approaching " << steps << " steps." << std::endl;
-				//std::cerr << "Initial score: " << docs[i]->getScore() << std::endl;
 				algo.search(states[i], nbest[i], steps - steps_done, std::numeric_limits<uint>::max());
 				std::vector<boost::shared_ptr<const DocumentState> > out(1);
 				nbest[i].copyNbestList(out);
@@ -265,8 +269,11 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset, const
 				for(uint j = 0; j < ptout.getNumberOfSentences(); j++) {
 					std::ostringstream os;
 					Scores sntscores = out[0]->computeSentenceScores(j);
-					os << std::inner_product(sntscores.begin(), sntscores.end(),
-						config.getFeatureWeights().begin(), Float(0))
+					os << std::inner_product(
+							sntscores.begin(), sntscores.end(),
+							config.getFeatureWeights().begin(),
+							Float(0)
+						)
 						<< " - " << sntscores
 						<< " - " << formatWordAlignment(
 						out[0]->getPhraseSegmentation(j));
@@ -290,11 +297,11 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset, const
 
 		// Print the final best state if asked for
 		if (!lastStateFilename.empty()) {
-		  std::vector<std::vector<PhraseSegmentation> > state;
-		  for(uint i = 0; i < nbest.size(); i++) {
-			  std::cerr << "getting state for sentence " << i << std::endl;
-			  state.push_back(nbest[i].getBestDocumentState()->getPhraseSegmentations());
-		  }
+			std::vector<std::vector<PhraseSegmentation> > state;
+			for(uint i = 0; i < nbest.size(); i++) {
+				std::cerr << "getting state for sentence " << i << std::endl;
+				state.push_back(nbest[i].getBestDocumentState()->getPhraseSegmentations());
+			}
 		  printState(lastStateFilename, state);
 		}
 
@@ -329,7 +336,10 @@ std::string formatWordAlignment(const PhraseSegmentation &snt) {
 	return retstr;
 }
 
-void printState(const std::string& filename, const std::vector<std::vector<PhraseSegmentation> >& state) {
+void printState(
+	const std::string& filename,
+	const std::vector<std::vector<PhraseSegmentation> >& state
+) {
 	std::ofstream ofs(filename.c_str());
 	boost::archive::text_oarchive oa(ofs);
 	oa << state;

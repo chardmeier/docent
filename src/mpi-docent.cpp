@@ -21,7 +21,6 @@
  */
 
 #include <algorithm>
-#include <functional>
 #include <iostream>
 #include <iterator>
 #include <vector>
@@ -33,7 +32,6 @@
 #include <boost/mpi/nonblocking.hpp>
 #include <boost/serialization/utility.hpp>
 #include <boost/thread/thread.hpp>
-#include <boost/unordered_map.hpp>
 
 #include "Docent.h"
 #include "DecoderConfiguration.h"
@@ -41,7 +39,6 @@
 #include "MMAXDocument.h"
 #include "NbestStorage.h"
 #include "NistXmlTestset.h"
-#include "Random.h"
 #include "SimulatedAnnealing.h"
 
 class DocumentDecoder {

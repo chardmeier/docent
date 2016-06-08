@@ -22,19 +22,13 @@
 
 #include <algorithm>
 #include <fstream>
-#include <functional>
 #include <iostream>
 #include <iterator>
-#include <limits>
 #include <sstream>
 #include <vector>
 
 #include <boost/foreach.hpp>
-#include <boost/lambda/lambda.hpp>
 #include <boost/make_shared.hpp>
-#include <boost/tokenizer.hpp>
-#include <boost/unordered_map.hpp>
-#include <boost/archive/tmpdir.hpp>
 #include <boost/archive/text_oarchive.hpp>
 
 #include "Docent.h"
@@ -43,14 +37,26 @@
 #include "MMAXDocument.h"
 #include "NbestStorage.h"
 #include "NistXmlTestset.h"
-#include "Random.h"
 #include "SimulatedAnnealing.h"
 
 void usage();
 
 template<class Testset>
-void processTestset(const ConfigurationFile &configFile, Testset &testset, const std::string &outstem, bool dumpStates, uint burnIn, uint sampleInterval, uint maxSteps, const std::string& firstStateFilename, const std::string& lastStateFilename);
-void printState(const std::string& filename, const std::vector<std::vector<PhraseSegmentation> >& state);
+void processTestset(
+	const ConfigurationFile &configFile,
+	Testset &testset,
+	const std::string &outstem,
+	bool dumpStates,
+	uint burnIn,
+	uint sampleInterval,
+	uint maxSteps,
+	const std::string& firstStateFilename,
+	const std::string& lastStateFilename
+);
+void printState(
+	const std::string& filename,
+	const std::vector<std::vector<PhraseSegmentation> >& state
+);
 
 int main(int argc, char **argv) {
 	std::vector<std::string> args;
@@ -106,11 +112,11 @@ int main(int argc, char **argv) {
 		} else if(strcmp(argv[i], "-pf") == 0) {
 			if(i >= argc - 1)
 				usage();
-			 firstStateFilename = argv[++i];
+			firstStateFilename = argv[++i];
 		} else if(strcmp(argv[i], "-pl") == 0) {
 			if(i >= argc - 1)
 				usage();
-			 lastStateFilename = argv[++i];
+			lastStateFilename = argv[++i];
 		}
 		else
 			args.push_back(argv[i]);
@@ -128,19 +134,42 @@ int main(int argc, char **argv) {
 		config.modifyNodes(m.first, m.second);
 	BOOST_FOREACH(const std::string &m, xpremove)
 		config.removeNodes(m);
-	
+
 	if(!mmax.empty()) {
 		MMAXTestset testset(mmax, nistxml);
-		processTestset(config, testset, outstem, dumpstates, burnIn, sampleInterval, maxSteps, firstStateFilename, lastStateFilename);
+		processTestset(
+			config,
+			testset,
+			outstem,
+			dumpstates,
+			burnIn,
+			sampleInterval,
+			maxSteps,
+			firstStateFilename,
+			lastStateFilename
+		);
 	} else {
 		NistXmlTestset testset(nistxml);
-		processTestset(config, testset, outstem, dumpstates, burnIn, sampleInterval, maxSteps, firstStateFilename, lastStateFilename);
+		processTestset(
+			config,
+			testset,
+			outstem,
+			dumpstates,
+			burnIn,
+			sampleInterval,
+			maxSteps,
+			firstStateFilename,
+			lastStateFilename
+		);
 	}
-
 	return 0;
 }
 
-void printState(const std::string& filename, const std::vector<std::vector<PhraseSegmentation> >& state) {
+
+void printState(
+	const std::string& filename,
+	const std::vector<std::vector<PhraseSegmentation> >& state
+) {
 	std::ofstream ofs(filename.c_str());
 	boost::archive::text_oarchive oa(ofs);
 	oa << state;
@@ -156,14 +185,18 @@ void usage() {
 }
 
 template<class Testset>
-void processTestset(const ConfigurationFile &configFile, Testset &testset,
-					const std::string &outstem, bool dumpStates, 
-					uint burnIn, uint sampleInterval, uint maxSteps,
-					const std::string &firstStateFilename, const std::string &lastStateFilename) {
+void processTestset(
+	const ConfigurationFile &configFile,
+	Testset &testset,
+	const std::string &outstem,
+	bool dumpStates,
+	uint burnIn,
+	uint sampleInterval,
+	uint maxSteps,
+	const std::string &firstStateFilename,
+	const std::string &lastStateFilename
+) {
 	try {
-		//Random::initGenerator(3525497962);
-		//Random::initGenerator(3812725332);
-
 		DecoderConfiguration config(configFile);
 
 		std::vector<typename Testset::value_type> inputdocs;
@@ -196,7 +229,7 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset,
 			docNum++;
 		}
 
-		// Print the state after initialization 
+		// Print the state after initialization
 		if (!firstStateFilename.empty()) {
 			std::vector<std::vector<PhraseSegmentation> > state;
 			for(uint i = 0; i < states.size(); i++) {
@@ -204,7 +237,7 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset,
 			}
 			printState(firstStateFilename, state);
 		}
-		
+
 		if (burnIn <= 0) {
 			std::ostringstream outname;
 			outname << outstem << '.' << std::setfill('0') << std::setw(log10(maxSteps)+1) << 0 << ".xml";
@@ -219,7 +252,7 @@ void processTestset(const ConfigurationFile &configFile, Testset &testset,
 
 		uint steps_done = 0;
 		std::vector<NbestStorage> nbest(inputdocs.size(), NbestStorage(1));
-		
+
 		for(uint steps = burnIn; steps <= maxSteps; steps += sampleInterval) {
 			for(uint i = 0; i < inputdocs.size(); i++) {
 				std::cerr << "Document " << i << ", approaching " << steps << " steps." << std::endl;

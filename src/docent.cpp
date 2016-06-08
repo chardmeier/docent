@@ -29,7 +29,6 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
 #include <boost/lambda/lambda.hpp>
-#include <boost/unordered_map.hpp>
 
 #include "Docent.h"
 #include "DecoderConfiguration.h"
@@ -87,7 +86,7 @@ int main(int argc, char **argv) {
 			boost::shared_ptr<DocumentState> doc = boost::make_shared<DocumentState>(
 				config, mmax, docNum);
 			NbestStorage nbest(5);
-			
+
 			std::cout << "Initial state:" << std::endl;
 			std::cout << *doc << "\n\n" << std::endl;
 
