@@ -48,8 +48,9 @@ private:
 	mutable Logger logger_;
 
 public:
-	ChangePhraseTranslationOperation(const Parameters &params) :
-		logger_("ChangePhraseTranslationOperation") {}
+	ChangePhraseTranslationOperation(
+		const Parameters &params
+	) : logger_("ChangePhraseTranslationOperation") {}
 
 	virtual std::string getDescription() const {
 		return "ChangePhraseTranslation";
@@ -57,6 +58,7 @@ public:
 
 	virtual SearchStep *createSearchStep(const DocumentState &doc) const;
 };
+
 
 class PermutePhrasesOperation : public StateOperation {
 private:
@@ -75,6 +77,7 @@ public:
 	virtual SearchStep *createSearchStep(const DocumentState &doc) const;
 };
 
+
 class LinearisePhrasesOperation : public StateOperation {
 private:
 	mutable Logger logger_;
@@ -92,6 +95,7 @@ public:
 	virtual SearchStep *createSearchStep(const DocumentState &doc) const;
 };
 
+
 class SwapPhrasesOperation : public StateOperation {
 private:
 	mutable Logger logger_;
@@ -108,6 +112,7 @@ public:
 
 	virtual SearchStep *createSearchStep(const DocumentState &doc) const;
 };
+
 
 class MovePhrasesOperation : public StateOperation {
 private:
@@ -132,6 +137,7 @@ public:
 	virtual SearchStep *createSearchStep(const DocumentState &doc) const;
 };
 
+
 class ResegmentOperation : public StateOperation {
 private:
 	mutable Logger logger_;
@@ -149,10 +155,15 @@ public:
 	virtual SearchStep *createSearchStep(const DocumentState &doc) const;
 };
 
-SearchStep *ChangePhraseTranslationOperation::createSearchStep(const DocumentState &doc) const {
-	const std::vector<boost::shared_ptr<const PhrasePairCollection> > &phraseTranslations = getPhraseTranslations(doc);
-	const std::vector<PhraseSegmentation> &sentences = doc.getPhraseSegmentations();
-	
+
+SearchStep
+*ChangePhraseTranslationOperation::createSearchStep(
+	const DocumentState &doc
+) const {
+	const std::vector<boost::shared_ptr<const PhrasePairCollection> >
+		&phraseTranslations = getPhraseTranslations(doc);
+	const std::vector<PhraseSegmentation>
+		&sentences = doc.getPhraseSegmentations();
 
 	Random rnd = doc.getDecoderConfiguration()->getRandom();
 
@@ -166,9 +177,9 @@ SearchStep *ChangePhraseTranslationOperation::createSearchStep(const DocumentSta
 	PhraseSegmentation::const_iterator it = sent.begin();
 	for(uint i = 0; i < ph; i++)
 		++it;
-		
+
 	AnchoredPhrasePair pp = pcoll.proposeAlternativeTranslation(*it);
-	
+
 	if(*it == pp)
 		return NULL;
 
@@ -176,16 +187,21 @@ SearchStep *ChangePhraseTranslationOperation::createSearchStep(const DocumentSta
 	SearchStep *step = new SearchStep(this, doc, featureStates);
 	PhraseSegmentation::const_iterator endit = it;
 	step->addModification(sentno, ph, ph+1, it, ++endit, PhraseSegmentation(1, pp));
-	
+
 	return step;
 }
 
-PermutePhrasesOperation::PermutePhrasesOperation(const Parameters &params) :
-		logger_("PermutePhrasesOperation") {
+
+PermutePhrasesOperation::PermutePhrasesOperation(const Parameters &params)
+:	logger_("PermutePhrasesOperation")
+{
 	phrasePermutationDecay_ = params.get<Float>("phrase-permutation-decay");
 }
 
-SearchStep *PermutePhrasesOperation::createSearchStep(const DocumentState &doc) const {
+SearchStep
+*PermutePhrasesOperation::createSearchStep(
+	const DocumentState &doc
+) const {
 	const std::vector<PhraseSegmentation> &sentences = doc.getPhraseSegmentations();
 
 	LOG(logger_, verbose, "permutePhrases");
@@ -206,7 +222,7 @@ SearchStep *PermutePhrasesOperation::createSearchStep(const DocumentState &doc) 
 
 	uint nperm = rnd.drawFromGeometricDistribution(phrasePermutationDecay_, sentsize - 1) + 1;
 	uint start = rnd.drawFromRange(sentsize - nperm + 1);
-	
+
 	PhraseSegmentation::const_iterator os = sent.begin();
 	std::advance(os, start);
 	PhraseSegmentation::const_iterator oe = os;
@@ -222,8 +238,11 @@ SearchStep *PermutePhrasesOperation::createSearchStep(const DocumentState &doc) 
 	} while(m1.first == oe && trials++ < 10);
 	if(m1.first == oe)
 		return NULL;
-	m2 = std::mismatch(std::reverse_iterator<PhraseSegmentation::const_iterator>(oe),
-		std::reverse_iterator<PhraseSegmentation::const_iterator>(os), pg.rbegin());
+	m2 = std::mismatch(
+		std::reverse_iterator<PhraseSegmentation::const_iterator>(oe),
+		std::reverse_iterator<PhraseSegmentation::const_iterator>(os),
+		pg.rbegin()
+	);
 
 	LOG(logger_, debug, "permute");
 	for(PhraseSegmentation::const_iterator it = m1.first; it != m2.first.base(); ++it)
@@ -234,17 +253,26 @@ SearchStep *PermutePhrasesOperation::createSearchStep(const DocumentState &doc) 
 
 	const std::vector<FeatureFunction::State *> &featureStates = getFeatureStates(doc);
 	SearchStep *step = new SearchStep(this, doc, featureStates);
-	step->addModification(sentno, start, end, m1.first, m2.first.base(), PhraseSegmentation(m1.second, m2.second.base()));
-	
+	step->addModification(
+		sentno,
+		start, end,
+		m1.first, m2.first.base(),
+		PhraseSegmentation(m1.second, m2.second.base())
+	);
 	return step;
 }
 
-LinearisePhrasesOperation::LinearisePhrasesOperation(const Parameters &params) :
-		logger_("LinearisePhrasesOperation") {
+
+LinearisePhrasesOperation::LinearisePhrasesOperation(const Parameters &params)
+:	logger_("LinearisePhrasesOperation")
+{
 	phraseLinearisationDecay_ = params.get<Float>("phrase-linearisation-decay");
 }
 
-SearchStep *LinearisePhrasesOperation::createSearchStep(const DocumentState &doc) const {
+SearchStep
+*LinearisePhrasesOperation::createSearchStep(
+	const DocumentState &doc
+) const {
 	const std::vector<PhraseSegmentation> &sentences = doc.getPhraseSegmentations();
 
 	LOG(logger_, verbose, "linearisePhrases");
@@ -265,7 +293,7 @@ SearchStep *LinearisePhrasesOperation::createSearchStep(const DocumentState &doc
 
 	uint nperm = rnd.drawFromGeometricDistribution(phraseLinearisationDecay_, sentsize - 1) + 1;
 	uint start = rnd.drawFromRange(sentsize - nperm + 1);
-	
+
 	PhraseSegmentation::const_iterator os = sent.begin();
 	std::advance(os, start);
 	PhraseSegmentation::const_iterator oe = os;
@@ -279,8 +307,14 @@ SearchStep *LinearisePhrasesOperation::createSearchStep(const DocumentState &doc
 	std::vector<AnchoredPhrasePair> pg(os, oe);
 	std::sort(pg.begin(), pg.end(), CompareAnchoredPhrasePairs());
 
-	std::pair<PhraseSegmentation::const_iterator,std::vector<AnchoredPhrasePair>::iterator> m1;
-	std::pair<PhraseSegmentation::const_reverse_iterator,std::vector<AnchoredPhrasePair>::reverse_iterator> m2;
+	std::pair<
+		PhraseSegmentation::const_iterator,
+		std::vector<AnchoredPhrasePair>::iterator
+	> m1;
+	std::pair<
+		PhraseSegmentation::const_reverse_iterator,
+		std::vector<AnchoredPhrasePair>::reverse_iterator
+	> m2;
 	m1 = std::mismatch(os, oe, pg.begin());
 	m2 = std::mismatch(std::reverse_iterator<PhraseSegmentation::const_iterator>(oe),
 		std::reverse_iterator<PhraseSegmentation::const_iterator>(os), pg.rbegin());
@@ -295,16 +329,21 @@ SearchStep *LinearisePhrasesOperation::createSearchStep(const DocumentState &doc
 	const std::vector<FeatureFunction::State *> &featureStates = getFeatureStates(doc);
 	SearchStep *step = new SearchStep(this, doc, featureStates);
 	step->addModification(sentno, start, end, m1.first, m2.first.base(), PhraseSegmentation(m1.second, m2.second.base()));
-	
+
 	return step;
 }
 
-SwapPhrasesOperation::SwapPhrasesOperation(const Parameters &params) :
-		logger_("SwapPhrasesOperation") {
+
+SwapPhrasesOperation::SwapPhrasesOperation(const Parameters &params)
+:	logger_("SwapPhrasesOperation")
+{
 	swapDistanceDecay_ = params.get<Float>("swap-distance-decay");
 }
 
-SearchStep *SwapPhrasesOperation::createSearchStep(const DocumentState &doc) const {
+SearchStep
+*SwapPhrasesOperation::createSearchStep(
+	const DocumentState &doc
+) const {
 	const std::vector<PhraseSegmentation> &sentences = doc.getPhraseSegmentations();
 
 	LOG(logger_, verbose, "swapPhrases");
@@ -350,7 +389,7 @@ SearchStep *SwapPhrasesOperation::createSearchStep(const DocumentState &doc) con
 			phrase2 = phrase1 - ph2dist;
 		}
 	}
-	
+
 	PhraseSegmentation::const_iterator it1 = sent.begin();
 	std::advance(it1, phrase1);
 	PhraseSegmentation::const_iterator after_it1 = it1;
@@ -369,19 +408,25 @@ SearchStep *SwapPhrasesOperation::createSearchStep(const DocumentState &doc) con
 	SearchStep *step = new SearchStep(this, doc, featureStates);
 	step->addModification(sentno, phrase1, phrase1 + 1, it1, after_it1, PhraseSegmentation(it2, after_it2));
 	step->addModification(sentno, phrase2, phrase2 + 1, it2, after_it2, PhraseSegmentation(it1, after_it1));
-	
+
 	return step;
 }
 
-MovePhrasesOperation::MovePhrasesOperation(const Parameters &params) :
-		logger_("MovePhrasesOperation") {
+
+MovePhrasesOperation::MovePhrasesOperation(
+	const Parameters &params
+) :	logger_("MovePhrasesOperation")
+{
 	blockSizeDecay_ = params.get<Float>("block-size-decay");
 	rightMovePreference_ = params.get<Float>("right-move-preference", Float(.5));
 	rightDistanceDecay_ = params.get<Float>("right-distance-decay");
 	leftDistanceDecay_ = params.get<Float>("left-distance-decay");
 }
 
-SearchStep *MovePhrasesOperation::createSearchStep(const DocumentState &doc) const {
+SearchStep
+*MovePhrasesOperation::createSearchStep(
+	const DocumentState &doc
+) const {
 	const std::vector<PhraseSegmentation> &sentences = doc.getPhraseSegmentations();
 
 	LOG(logger_, verbose, "movePhrases");
@@ -437,20 +482,35 @@ SearchStep *MovePhrasesOperation::createSearchStep(const DocumentState &doc) con
 
 	const std::vector<FeatureFunction::State *> &featureStates = getFeatureStates(doc);
 	SearchStep *step = new SearchStep(this, doc, featureStates);
-	step->addModification(sentno, dest, dest, dest_it, dest_it, PhraseSegmentation(block_start, block_end));
-	step->addModification(sentno, start, start + block, block_start, block_end, PhraseSegmentation());
-	
+	step->addModification(
+		sentno,
+		dest, dest,
+		dest_it, dest_it,
+		PhraseSegmentation(block_start, block_end)
+	);
+	step->addModification(
+		sentno,
+		start, start + block,
+		block_start, block_end,
+		PhraseSegmentation()
+	);
+
 	return step;
 }
 
-ResegmentOperation::ResegmentOperation(const Parameters &params) :
-		logger_("ResegmentOperation") {
+ResegmentOperation::ResegmentOperation(
+	const Parameters &params
+) :	logger_("ResegmentOperation")
+{
 	phraseResegmentationDecay_ = params.get<Float>("phrase-resegmentation-decay");
 }
 
-SearchStep *ResegmentOperation::createSearchStep(const DocumentState &doc) const {
-	const std::vector<boost::shared_ptr<const PhrasePairCollection> > &phraseTranslations = getPhraseTranslations(doc);
-	const std::vector<PhraseSegmentation> &sentences = doc.getPhraseSegmentations();
+SearchStep
+*ResegmentOperation::createSearchStep(const DocumentState &doc) const {
+	const std::vector<boost::shared_ptr<const PhrasePairCollection> >
+		&phraseTranslations = getPhraseTranslations(doc);
+	const std::vector<PhraseSegmentation>
+		&sentences = doc.getPhraseSegmentations();
 	using namespace boost::lambda;
 
 	LOG(logger_, verbose, "resegment");
@@ -478,12 +538,22 @@ SearchStep *ResegmentOperation::createSearchStep(const DocumentState &doc) const
 
 	PhraseSegmentation newseg = pcoll.proposeSegmentation(tgt);
 
-	std::pair<PhraseSegmentation::const_iterator,PhraseSegmentation::const_iterator> m1;
-	std::pair<PhraseSegmentation::const_reverse_iterator,PhraseSegmentation::const_reverse_iterator> m2;
+	std::pair<
+		PhraseSegmentation::const_iterator,
+		PhraseSegmentation::const_iterator
+	> m1;
+	std::pair<
+		PhraseSegmentation::const_reverse_iterator,
+		PhraseSegmentation::const_reverse_iterator
+	> m2;
 	m1 = std::mismatch(os, oe, newseg.begin());
 	if(m1.first == oe)
 		return NULL;
-	m2 = std::mismatch(PhraseSegmentation::const_reverse_iterator(oe), PhraseSegmentation::const_reverse_iterator(os), newseg.rbegin());
+	m2 = std::mismatch(
+		PhraseSegmentation::const_reverse_iterator(oe),
+		PhraseSegmentation::const_reverse_iterator(os),
+		newseg.rbegin()
+	);
 
 	PhraseSegmentation::const_iterator it = newseg.begin();
 	while(it != m1.second)
@@ -495,57 +565,106 @@ SearchStep *ResegmentOperation::createSearchStep(const DocumentState &doc) const
 
 	const std::vector<FeatureFunction::State *> &featureStates = getFeatureStates(doc);
 	SearchStep *step = new SearchStep(this, doc, featureStates);
-	step->addModification(sentno, start, end, m1.first, m2.first.base(), PhraseSegmentation(m1.second, m2.second.base()));
-	
+	step->addModification(
+		sentno,
+		start, end,
+		m1.first, m2.first.base(),
+		PhraseSegmentation(m1.second, m2.second.base())
+	);
 	return step;
 }
 
+
 struct MonotonicStateInitialiser : public StateInitialiser {
 	MonotonicStateInitialiser(const Parameters &params) {}
-	virtual PhraseSegmentation initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const;
+	virtual PhraseSegmentation initSegmentation(
+		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
+		const std::vector<Word> &sentence,
+		int documentNumber,
+		int sentenceNumber
+	) const;
 };
+
 
 class BeamSearchStateInitialiser : public StateInitialiser {
 private:
+	Logger logger_;
 	BeamSearchAdapter *beamSearchAdapter_;
 
 public:
 	BeamSearchStateInitialiser(const Parameters &params);
 	virtual ~BeamSearchStateInitialiser();
-	virtual PhraseSegmentation initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const;
+	virtual PhraseSegmentation initSegmentation(
+		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
+		const std::vector<Word> &sentence,
+		int documentNumber,
+		int sentenceNumber
+	) const;
 };
+
 
 class FileReadStateInitialiser : public StateInitialiser {
 private:
 	Logger logger_;
 	std::vector<std::vector<PhraseSegmentation> > segmentations_;
 public:
-  FileReadStateInitialiser(const Parameters &params);
-  virtual PhraseSegmentation initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const;
+	FileReadStateInitialiser(const Parameters &params);
+	virtual PhraseSegmentation initSegmentation(
+		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
+		const std::vector<Word> &sentence,
+		int documentNumber,
+		int sentenceNumber
+	) const;
 };
 
 
-PhraseSegmentation MonotonicStateInitialiser::initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const {
+PhraseSegmentation
+MonotonicStateInitialiser::initSegmentation(
+	boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
+	const std::vector<Word> &sentence,
+	int documentNumber,
+	int sentenceNumber
+) const {
 	return phraseTranslations->proposeSegmentation();
 }
 
-BeamSearchStateInitialiser::BeamSearchStateInitialiser(const Parameters &params) {
-	std::string moses_ini = params.get<std::string>("ini");
-	beamSearchAdapter_ = new BeamSearchAdapter(moses_ini);
+
+BeamSearchStateInitialiser::BeamSearchStateInitialiser(
+	const Parameters &params
+)	: logger_("StateInitialiser")
+{
+	std::string filename  = params.get<std::string>("file");
+	if(filename.empty()) {
+		LOG(logger_, error, "Missing parameter 'file'.");
+		BOOST_THROW_EXCEPTION(ConfigurationException());
+	}
+	beamSearchAdapter_ = new BeamSearchAdapter(filename);
 }
 
-BeamSearchStateInitialiser::~BeamSearchStateInitialiser() {
+BeamSearchStateInitialiser::~BeamSearchStateInitialiser()
+{
 	delete beamSearchAdapter_;
 }
 
-PhraseSegmentation BeamSearchStateInitialiser::initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const {
-	return beamSearchAdapter_->search(phraseTranslations, sentence);
+PhraseSegmentation
+BeamSearchStateInitialiser::initSegmentation(
+	boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
+	const std::vector<Word> &sentence,
+	int documentNumber,
+	int sentenceNumber
+) const {
+	return beamSearchAdapter_->search(
+		phraseTranslations,
+		sentence
+	);
 }
 
 
-
-FileReadStateInitialiser::FileReadStateInitialiser(const Parameters &params) : logger_("StateInitialiser") {
-  // get file name from params 
+FileReadStateInitialiser::FileReadStateInitialiser(
+	const Parameters &params
+)	: logger_("StateInitialiser")
+{
+	// get file name from params
 	std::string filename = params.get<std::string>("file");
 
 	// open the archive
@@ -555,27 +674,36 @@ FileReadStateInitialiser::FileReadStateInitialiser(const Parameters &params) : l
 		BOOST_THROW_EXCEPTION(FileFormatException());
 	}
 	boost::archive::text_iarchive ia(ifs);
-	
+
 	// restore the schedule from the archive
 	ia >> segmentations_;
 }
 
-PhraseSegmentation FileReadStateInitialiser::initSegmentation(boost::shared_ptr<const PhrasePairCollection> phraseTranslations, const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const {
-  PhraseSegmentation phraseSegmentation = segmentations_[documentNumber][sentenceNumber]; 
-  //Check that all phrases in the phraseSegmentation exist in phraseTranslations
-  if (!phraseTranslations->phrasesExist(phraseSegmentation)) {
-	  //!checkPhrases(phraseTranslations, phraseSegmentation)) {
-	  LOG(logger_, error, "ERROR: A phrase from the saved state does not exist in phrase table, make sure that the same phrase table is used as when saving the state");
-	  BOOST_THROW_EXCEPTION(ConfigurationException());
-  }
-  
-  return phraseSegmentation;
+PhraseSegmentation
+FileReadStateInitialiser::initSegmentation(
+	boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
+	const std::vector<Word> &sentence,
+	int documentNumber,
+	int sentenceNumber
+) const {
+	PhraseSegmentation phraseSegmentation = segmentations_[documentNumber][sentenceNumber];
+	//Check that all phrases in the phraseSegmentation exist in phraseTranslations
+	if (!phraseTranslations->phrasesExist(phraseSegmentation)) {
+		//!checkPhrases(phraseTranslations, phraseSegmentation)) {
+		LOG(logger_, error, "ERROR: A phrase from the saved state does not exist in phrase table, make sure that the same phrase table is used as when saving the state");
+		BOOST_THROW_EXCEPTION(ConfigurationException());
+	}
+
+	return phraseSegmentation;
 }
 
 
-
-StateGenerator::StateGenerator(const std::string &initMethod, const Parameters &params, Random(random)) :
-		logger_("StateGenerator"), random_(random) {
+StateGenerator::StateGenerator(
+	const std::string &initMethod,
+	const Parameters &params,
+	Random(random)
+) :	logger_("StateGenerator"), random_(random)
+{
 	if(initMethod == "monotonic")
 		initialiser_ = new MonotonicStateInitialiser(params);
 	else if(initMethod == "beam-search")
@@ -592,7 +720,11 @@ StateGenerator::~StateGenerator() {
 	delete initialiser_;
 }
 
-void StateGenerator::addOperation(Float weight, const std::string &type, const Parameters &params) {
+void StateGenerator::addOperation(
+	Float weight,
+	const std::string &type,
+	const Parameters &params
+) {
 	if(type == "change-phrase-translation")
 		operations_.push_back(new ChangePhraseTranslationOperation(params));
 	else if(type == "permute-phrases")
@@ -609,18 +741,20 @@ void StateGenerator::addOperation(Float weight, const std::string &type, const P
 		LOG(logger_, error, "Unknown operation: " << type);
 		BOOST_THROW_EXCEPTION(ConfigurationException());
 	}
-	
+
 	if(!cumulativeOperationDistribution_.empty())
 		weight += cumulativeOperationDistribution_.back();
 	cumulativeOperationDistribution_.push_back(weight);
 }
 
-SearchStep *StateGenerator::createSearchStep(const DocumentState &doc) const {
+SearchStep *StateGenerator::createSearchStep(
+	const DocumentState &doc
+) const {
 	SearchStep *nextStep;
 	for(;;) {
 		uint next_op = random_.drawFromCumulativeDistribution(cumulativeOperationDistribution_);
 		nextStep = operations_[next_op].createSearchStep(doc);
-		
+
 		// NULL just indicates that our operator wasn't able to produce a reasonable set of changes
 		// for some reason.
 		if(nextStep == NULL)
@@ -628,10 +762,9 @@ SearchStep *StateGenerator::createSearchStep(const DocumentState &doc) const {
 
 		if(!nextStep->getModifications().empty())
 			break;
-		
+
 		delete nextStep;
 	}
 
 	return nextStep;
 }
-
