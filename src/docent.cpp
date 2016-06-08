@@ -26,9 +26,9 @@
 #include <iterator>
 #include <vector>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
 #include <boost/lambda/lambda.hpp>
-#include <boost/tokenizer.hpp>
 #include <boost/unordered_map.hpp>
 
 #include "Docent.h"
@@ -76,15 +76,16 @@ int main(int argc, char **argv) {
 	DecoderConfiguration config(cf);
 
 	if(inputMMAX.empty() && inputXML.empty()) {
-		boost::char_separator<char> sep(" ");
 		std::string line;
 		uint docNum = 0;
 		while(getline(std::cin, line)) {
 			boost::shared_ptr<MMAXDocument> mmax = boost::make_shared<MMAXDocument>();
-			boost::tokenizer<boost::char_separator<char> > tok(line, sep);
-			mmax->addSentence(tok.begin(), tok.end());
+			std::vector<std::string> tokens;
+			boost::split(tokens, line, boost::is_any_of(" "));
+			mmax->addSentence(tokens.begin(), tokens.end());
 
-			boost::shared_ptr<DocumentState> doc = boost::make_shared<DocumentState>(config, mmax, docNum);
+			boost::shared_ptr<DocumentState> doc = boost::make_shared<DocumentState>(
+				config, mmax, docNum);
 			NbestStorage nbest(5);
 			
 			std::cout << "Initial state:" << std::endl;
