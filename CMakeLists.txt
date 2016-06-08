@@ -80,7 +80,7 @@ endif()
 
 ### Build libstemmer_c
 set(STEMMER_ROOT ${CMAKE_SOURCE_DIR}/external/libstemmer_c)
-set(STEMMER_INSTALL_DIR ${CMAKE_BINARY_DIR}/external/Install/stemmer_external)
+set(STEMMER_INSTALL_DIR ${CMAKE_BINARY_DIR}/external/libstemmer_c)
 
 ExternalProject_add(stemmer_external
 	SOURCE_DIR ${STEMMER_ROOT}
@@ -99,31 +99,29 @@ set_target_properties(stemmer PROPERTIES
 
 set(STEMMER_INCLUDE_DIRS ${STEMMER_ROOT}/include)
 
+
 ### Build Arabica
 set(Arabica_ROOT ${CMAKE_SOURCE_DIR}/external/arabica)
-
-set(BUILD_ARABICA_EXAMPLES OFF)
-add_subdirectory(${Arabica_ROOT})
-
-get_property(Arabica_INCLUDE_DIRS DIRECTORY external/arabica PROPERTY INCLUDE_DIRECTORIES)
 set(Arabica_LIBRARIES arabica)
+set(BUILD_ARABICA_EXAMPLES OFF)
+
+add_subdirectory(${Arabica_ROOT})
+get_property(Arabica_INCLUDE_DIRS DIRECTORY external/arabica PROPERTY INCLUDE_DIRECTORIES)
 
 
 ### Build KenLM
+add_definitions(-DKENLM_MAX_ORDER=${KENLM_MAX_ORDER})
 set(KenLM_ROOT ${CMAKE_SOURCE_DIR}/external/kenlm)
+set(BUILD_TESTING OFF)
 
 include_directories(${KenLM_ROOT})
-
 add_subdirectory(${KenLM_ROOT})
-
-add_definitions(-DKENLM_MAX_ORDER=${KENLM_MAX_ORDER})
 
 
 ### Build ProbingPT
 set(ProbingPT_ROOT ${CMAKE_SOURCE_DIR}/external/ProbingPT)
 
 include_directories(${ProbingPT_ROOT})
-
 add_library(probingpt STATIC
 	${ProbingPT_ROOT}/hash.cpp
 	${ProbingPT_ROOT}/huffmanish.cpp
@@ -133,7 +131,6 @@ add_library(probingpt STATIC
 	${ProbingPT_ROOT}/storing.cpp
 	${ProbingPT_ROOT}/vocabid.cpp
 )
-
 add_dependencies(probingpt
 	kenlm
 	kenlm_util
@@ -146,7 +143,6 @@ link_directories(
 	${Arabica_LIBRARY_DIRS}
 	${MPI_LIBRARY_DIRS}
 )
-
 include_directories(
 	src
 	${STEMMER_INCLUDE_DIRS}
@@ -156,7 +152,6 @@ include_directories(
 	${ProbingPT_ROOT}
 	${MPI_INCLUDE_DIRS}
 )
-
 add_library(decoder STATIC
 	src/BeamSearchAdapter.cpp
 	src/BleuModel.cpp
@@ -172,6 +167,7 @@ add_library(decoder STATIC
 	src/MMAXDocument.cpp
 	src/NbestStorage.cpp
 	src/NgramModel.cpp
+	src/NistXmlDocument.cpp
 	src/NistXmlRefset.cpp
 	src/NistXmlTestset.cpp
 	src/OvixModel.cpp
@@ -188,7 +184,6 @@ add_library(decoder STATIC
 	src/TypeTokenRateModel.cpp
 	src/WellFormednessModel.cpp
 )
-
 add_dependencies(decoder
 	stemmer
 	arabica
@@ -198,7 +193,6 @@ add_dependencies(decoder
 	kenlm_interpolate
 	kenlm_util
 )
-
 
 set(DECODER_LIBRARIES
 	decoder
