@@ -68,8 +68,9 @@ ConfigurationFile::getParametersForModule(
 ) const
 {
 	Arabica::XPath::XPath<std::string> xp;
-	Arabica::XPath::NodeSet<std::string> nodes =
-		xp.compile(xpath).evaluateAsNodeSet(doc_.getDocumentElement());
+	Arabica::XPath::NodeSet<std::string> nodes = xp
+		.compile(xpath)
+		.evaluateAsNodeSet(doc_.getDocumentElement());
 
 	if(nodes.empty())
 		LOG(logger_, error, "XPath expression " << xpath << " returns empty node set.");
@@ -115,8 +116,9 @@ ConfigurationFile::removeNodes(
 	const std::string &xpath
 ) {
 	Arabica::XPath::XPath<std::string> xp;
-	Arabica::XPath::NodeSet<std::string> nodes =
-		xp.compile(xpath).evaluateAsNodeSet(doc_.getDocumentElement());
+	Arabica::XPath::NodeSet<std::string> nodes = xp
+		.compile(xpath)
+		.evaluateAsNodeSet(doc_.getDocumentElement());
 
 	BOOST_FOREACH(Arabica::DOM::Node<std::string> &n, nodes)
 		n.getParentNode().removeChild(n);
@@ -328,4 +330,3 @@ void DecoderConfiguration::setupWeights(Arabica::DOM::Node<std::string> n) {
 		BOOST_THROW_EXCEPTION(ConfigurationException());
 	}
 }
-
