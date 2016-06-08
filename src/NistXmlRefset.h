@@ -24,15 +24,10 @@
 #define docent_NistXmlRefset_h
 
 #include "Docent.h"
-#include "PlainTextDocument.h"
+#include "NistXmlDocument.h"
 
 #include <iosfwd>
 #include <vector>
-
-#include <DOM/Document.hpp>
-
-class DocumentState;
-class MMAXDocument;
 
 class NistXmlRefset {
 public:
@@ -43,7 +38,6 @@ public:
 
 private:
 	Logger logger_;
-
 	std::vector<value_type> documents_;
 
 public:
