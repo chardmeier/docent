@@ -22,7 +22,7 @@
 
 #include "Docent.h"
 #include "DocumentState.h"
-#include "MMAXDocument.h"
+#include "NistXmlDocument.h"
 #include "NistXmlRefset.h"
 
 #include <iostream>
@@ -30,14 +30,17 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
 
+#include <DOM/Document.hpp>
 #include <DOM/io/Stream.hpp>
 #include <DOM/SAX2DOM/SAX2DOM.hpp>
 #include <DOM/Traversal/DocumentTraversal.hpp>
 #include <SAX/helpers/CatchErrorHandler.hpp>
 #include <XPath/XPath.hpp>
 
-NistXmlRefset::NistXmlRefset(const std::string &file)
-		: logger_("NistXmlRefset") {
+NistXmlRefset::NistXmlRefset(
+	const std::string &file
+)	: logger_("NistXmlRefset")
+{
 	Arabica::SAX2DOM::Parser<std::string> domParser;
 	Arabica::SAX::InputSource<std::string> is(file);
 	Arabica::SAX::CatchErrorHandler<std::string> errh;
@@ -56,10 +59,10 @@ NistXmlRefset::NistXmlRefset(const std::string &file)
 
 	Arabica::XPath::XPath<std::string> xp;
 
-	Arabica::XPath::NodeSet<std::string> docnodes =
-		xp.compile("/mteval/refset/doc").evaluateAsNodeSet(doc.getDocumentElement());
+	Arabica::XPath::NodeSet<std::string> docnodes = xp
+		.compile("/mteval/refset/doc")
+		.evaluateAsNodeSet(doc.getDocumentElement());
 	docnodes.to_document_order();
 	BOOST_FOREACH(Arabica::DOM::Node<std::string> n, docnodes)
 		documents_.push_back(boost::make_shared<NistXmlDocument>(n));
-
 }
