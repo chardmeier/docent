@@ -35,6 +35,7 @@
 
 #include "quering.hh"  // from ProbingPT
 
+#include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
 #include <boost/function.hpp>
 #include <boost/iterator/transform_iterator.hpp>
@@ -42,7 +43,6 @@
 #include <boost/lambda/bind.hpp>
 #include <boost/lambda/algorithm.hpp>
 #include <boost/lambda/numeric.hpp>
-#include <boost/tokenizer.hpp>
 
 #include <iostream>
 #include <ostream>
@@ -50,7 +50,6 @@
 #include <string>
 #include <iterator>
 
-typedef boost::tokenizer< boost::char_separator<char> > Tokenizer;
 
 PhraseTable::PhraseTable(
 	const Parameters &params,
@@ -76,7 +75,8 @@ inline Scores PhraseTable::scorePhraseSegmentation(const PhraseSegmentation &ps)
 	return s;
 }
 
-FeatureFunction::State *PhraseTable::initDocument(
+FeatureFunction::State
+*PhraseTable::initDocument(
 	const DocumentState &doc,
 	Scores::iterator sbegin
 ) const {
@@ -108,7 +108,11 @@ FeatureFunction::StateModifications
 ) const {
 	Scores s(psbegin, psbegin + getNumberOfScores());
 	const std::vector<SearchStep::Modification> &mods = step.getModifications();
-	for(std::vector<SearchStep::Modification>::const_iterator it = mods.begin(); it != mods.end(); ++it) {
+	for(std::vector<SearchStep::Modification>::const_iterator
+		it = mods.begin();
+		it != mods.end();
+		++it
+	) {
 		PhraseSegmentation::const_iterator ps_it = it->from_it;
 		PhraseSegmentation::const_iterator to_it = it->to_it;
 		const PhraseSegmentation &proposal = it->proposal;
@@ -153,9 +157,6 @@ PhraseTable::getPhrasesForSentence(
 	CoverageBitmap uncovered(sentence.size());
 	uncovered.set();
 
-	boost::char_separator<char> word_sep(" ");
-	boost::char_separator<char> factor_sep("|");
-
 	for(uint i = 0; i < sentence.size(); ++i) {
 		cov.reset();
 		std::vector<Word> srcphrase;
@@ -178,10 +179,10 @@ PhraseTable::getPhrasesForSentence(
 			std::vector<target_text> finds(query_result.second);
 			BOOST_FOREACH(target_text find, finds) {  // All PHRASES
 				std::string phrase(getTargetWordsFromIDs(find.target_phrase, &vocabids));
-				Tokenizer tokens_it(phrase, word_sep);
+				boost::trim(phrase);
 				std::vector<Word> tokens;
-				std::copy(tokens_it.begin(), tokens_it.end(), std::back_inserter(tokens));
-				LOG(logger_, verbose, i << "/" << j << " > " << tokens.size() << " TOKENS: " << tokens);
+				boost::split(tokens, phrase, boost::is_any_of(" "));
+				LOG(logger_, verbose, i << "/" << j << " > " << tokens.size() << " TOKENS: [" << tokens << "]");
 
 				std::vector< std::vector<Word> > factors(
 					(annotationCount_ + 1),
@@ -189,10 +190,12 @@ PhraseTable::getPhrasesForSentence(
 				);
 				uint k = 0;
 				BOOST_FOREACH(Word token, tokens) {  // All TOKENS (word|annotation1|...)
-					Tokenizer factors_it(token, factor_sep);
+					std::vector<Word> curr_factors;
+					boost::split(curr_factors, token, boost::is_any_of("|"));
 					uint l = 0;
-					for(Tokenizer::iterator it = factors_it.begin();
-						it != factors_it.end();
+					for(std::vector<Word>::iterator
+						it = curr_factors.begin();
+						it != curr_factors.end();
 						++it, ++l
 					) {
 						if((l == 0) && (it->length() == 0)) {
@@ -211,7 +214,6 @@ PhraseTable::getPhrasesForSentence(
 					}
 					++k;
 				}
-				std::vector<Word> tgtphrase(factors[0]);
 
 				std::vector<Phrase> annotationPhrases;
 				annotationPhrases.reserve(annotationCount_);
@@ -227,18 +229,20 @@ PhraseTable::getPhrasesForSentence(
 						AlignmentPair(find.word_all1[l], find.word_all1[l+1])
 					);
 				}
-				WordAlignment wa(srcphrase.size(), tgtphrase.size(), alignments);
+				WordAlignment wa(srcphrase.size(), tokens.size(), alignments);
 
 				// Scores
-				Scores s;
+				Scores scores;
 				std::transform(
 					find.prob.begin(),
 					find.prob.end(),
-					std::back_inserter(s),
+					std::back_inserter(scores),
 					bind(log, _1)
 				);
 
-				PhrasePair pp(PhrasePairData(srcphrase, tgtphrase, annotationPhrases, wa, s));
+				PhrasePair pp(PhrasePairData(
+					srcphrase, factors[0], annotationPhrases, wa, scores
+				));
 				ptc->addPhrasePair(cov, pp);
 				uncovered -= cov;
 			}
