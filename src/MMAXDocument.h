@@ -25,6 +25,8 @@
 
 #include "Docent.h"
 #include "NistXmlTestset.h"
+#include "NistXmlDocument.h"
+#include "PlainTextDocument.h"
 
 #include <boost/filesystem/path.hpp>
 #include <boost/foreach.hpp>

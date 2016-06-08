@@ -193,7 +193,8 @@ public:
 		const std::vector<Word> &sourcePhrase,
 		const std::vector<Word> &targetPhrase,
 		const std::vector<Phrase> &targetAnnotations,
-		const WordAlignment &alignment, const Scores &scores
+		const WordAlignment &alignment,
+		const Scores &scores
 	) :	coverage_(1, sourcePhrase.size()),
 		sourcePhrase_(sourcePhrase),
 		targetPhrase_(targetPhrase),
@@ -205,9 +206,11 @@ public:
 
 	PhrasePairData(
 		const std::vector<uint> &coverage,
-		const std::vector<Word> &sourcePhrase, const std::vector<Word> &targetPhrase,
+		const std::vector<Word> &sourcePhrase,
+		const std::vector<Word> &targetPhrase,
 		const std::vector<Phrase> &targetAnnotations,
-		const WordAlignment &alignment, const Scores &scores
+		const WordAlignment &alignment,
+		const Scores &scores
 	) :	coverage_(coverage),
 		sourcePhrase_(sourcePhrase),
 		targetPhrase_(targetPhrase),
@@ -217,7 +220,9 @@ public:
 		oovFlag_(false)
 	{}
 
-	PhrasePairData(const Word &oov, const Scores &scores
+	PhrasePairData(
+		const Word &oov,
+		const Scores &scores
 	) :	coverage_(1, 1),
 		sourcePhrase_(1, oov),
 		targetPhrase_(1, oov),
