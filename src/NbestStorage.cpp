@@ -20,8 +20,6 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
-#include "DocumentState.h"
 #include "NbestStorage.h"
 
 #include <algorithm>
@@ -45,7 +43,7 @@ bool NbestStorage::offer(const boost::shared_ptr<const DocumentState> &e) {
 	Float newScore = e->getScore();
 	if(!nbest_.empty() && newScore <= nbest_[0]->getScore())
 		return false;
-	
+
 	if(nbestHash_.find(e) != nbestHash_.end())
 		return false;
 
@@ -56,13 +54,13 @@ bool NbestStorage::offer(const boost::shared_ptr<const DocumentState> &e) {
 	nbestHash_.insert(clone);
 	nbest_.push_back(clone);
 	std::push_heap(nbest_.begin(), nbest_.end(), compareScores);
-	
+
 	while(nbest_.size() > maxSize_) {
 		nbestHash_.erase(nbest_[0]);
 		std::pop_heap(nbest_.begin(), nbest_.end(), compareScores);
 		nbest_.resize(nbest_.size() - 1);
 	}
-	
+
 	return true;
 }
 
@@ -71,4 +69,3 @@ void NbestStorage::copyNbestList(std::vector<boost::shared_ptr<const DocumentSta
 	std::copy(nbest_.begin(), nbest_.end(), outvec.begin());
 	std::sort_heap(outvec.begin(), outvec.end(), compareScores);
 }
-

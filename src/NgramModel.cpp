@@ -23,9 +23,7 @@
 #include "Docent.h"
 
 #include "DocumentState.h"
-#include "FeatureFunction.h"
 #include "NgramModel.h"
-//#include "NgramModelIrstlm.h"
 #include "PhrasePair.h"
 #include "PiecewiseIterator.h"
 #include "SearchStep.h"
@@ -72,7 +70,7 @@ private:
 	Float scorePhraseSegmentation(const StateType_ *last_state, PhrasePairIterator from_it,
 		PhrasePairIterator to_it, PhrasePairIterator eos,
 		StateIterator state_it, bool atEos = false) const;
-		
+
 	int annotationLevel_;
 	bool tokenFlag_;
 
@@ -89,13 +87,14 @@ public:
 	virtual FeatureFunction::State *applyStateModifications(FeatureFunction::State *oldState, FeatureFunction::StateModifications *modif) const;
 
 	virtual void computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const;
-	
+
 	virtual uint getNumberOfScores() const {
 		return 1;
 	}
 };
 
-FeatureFunction *NgramModelFactory::createNgramModel(const Parameters &params) {
+FeatureFunction
+*NgramModelFactory::createNgramModel(const Parameters &params) {
 	std::string file = params.get<std::string>("lm-file");
 	lm::ngram::ModelType mtype;
 
@@ -152,7 +151,7 @@ FeatureFunction *NgramModelFactory::createNgramModel(const Parameters &params) {
 template<class M>
 struct NgramDocumentState : public FeatureFunction::State {
 	std::vector<typename M::SentenceState_> lmCache;
-	
+
 	virtual FeatureFunction::State *clone() const {
 		return new NgramDocumentState(*this);
 	}
@@ -170,8 +169,12 @@ struct NgramDocumentModifications : public FeatureFunction::StateModifications {
 };
 
 template<class Model>
-NgramModel<Model>::NgramModel(const std::string &file, const int annotationLevel, const bool tokenFlag) :
-		logger_("NgramModel") {
+NgramModel<Model>::NgramModel(
+	const std::string &file,
+	const int annotationLevel,
+	const bool tokenFlag
+) :	logger_("NgramModel")
+{
 	model_ = new Model(file.c_str());
 	annotationLevel_ = annotationLevel;
 	tokenFlag_ = tokenFlag;
@@ -185,32 +188,55 @@ NgramModel<M>::~NgramModel() {
 }
 
 template<class M>
-FeatureFunction::State *NgramModel<M>::initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
-
+FeatureFunction::State
+*NgramModel<M>::initDocument(
+	const DocumentState &doc,
+	Scores::iterator sbegin
+) const {
 	NgramDocumentState_ *state = new NgramDocumentState_();
 	const std::vector<PhraseSegmentation> &segs = doc.getPhraseSegmentations();
 	state->lmCache.resize(segs.size());
 	Float &s = *sbegin;
 	for(uint i = 0; i < segs.size(); i++) {
 		state->lmCache[i].resize(countTargetWords(segs[i].begin(), segs[i].end()) + 1); // one for </s>
-		s += scorePhraseSegmentation<true>(&model_->BeginSentenceState(), segs[i].begin(),
-			segs[i].end(), segs[i].end(), state->lmCache[i].begin(), true);
+		s += scorePhraseSegmentation<true>(
+			&model_->BeginSentenceState(),
+			segs[i].begin(),
+			segs[i].end(),
+			segs[i].end(),
+			state->lmCache[i].begin(),
+			true
+		);
 	}
 	return state;
 }
 
 template<class M>
-void NgramModel<M>::computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const {
+void NgramModel<M>::computeSentenceScores(
+	const DocumentState &doc,
+	uint sentno,
+	Scores::iterator sbegin
+) const {
 	const PhraseSegmentation &snt = doc.getPhraseSegmentation(sentno);
 	SentenceState_ state(countTargetWords(snt.begin(), snt.end()) + 1);
-	*sbegin = scorePhraseSegmentation<true>(&model_->BeginSentenceState(), snt.begin(), snt.end(), snt.end(),
-		state.begin(), true);
+	*sbegin = scorePhraseSegmentation<true>(
+		&model_->BeginSentenceState(),
+		snt.begin(),
+		snt.end(),
+		snt.end(),
+		state.begin(), true
+	);
 }
 
 template<class M>
-FeatureFunction::StateModifications *NgramModel<M>::estimateScoreUpdate(const DocumentState &doc,
-		const SearchStep &step, const FeatureFunction::State *ffstate,
-		Scores::const_iterator psbegin, Scores::iterator sbegin) const {
+FeatureFunction::StateModifications
+*NgramModel<M>::estimateScoreUpdate(
+	const DocumentState &doc,
+	const SearchStep &step,
+	const FeatureFunction::State *ffstate,
+	Scores::const_iterator psbegin,
+	Scores::iterator sbegin
+) const {
 	const NgramDocumentState_ &state = dynamic_cast<const NgramDocumentState_ &>(*ffstate);
 
 	// copy scores and subtract those that will change so updateScore() only adds stuff
@@ -251,9 +277,15 @@ FeatureFunction::StateModifications *NgramModel<M>::estimateScoreUpdate(const Do
 }
 
 template<class M>
-FeatureFunction::StateModifications *NgramModel<M>::updateScore(const DocumentState &doc,
-		const SearchStep &step, const FeatureFunction::State *ffstate,
-		StateModifications *estmods, Scores::const_iterator psbegin, Scores::iterator sbegin) const {
+FeatureFunction::StateModifications
+*NgramModel<M>::updateScore(
+	const DocumentState &doc,
+	const SearchStep &step,
+	const FeatureFunction::State *ffstate,
+	StateModifications *estmods,
+	Scores::const_iterator psbegin,
+	Scores::iterator sbegin
+) const {
 	LOG(logger_, debug, "NgramModel::updateScore");
 	const NgramDocumentState_ &state = dynamic_cast<const NgramDocumentState_ &>(*ffstate);
 	Float &s = *sbegin;
@@ -296,7 +328,11 @@ FeatureFunction::StateModifications *NgramModel<M>::updateScore(const DocumentSt
 		pieces.push_back(current.begin());
 		pieces.push_back(next_from_it);
 
-		for(std::vector<SearchStep::Modification>::const_iterator modit = it1; modit != it2; ++modit) {
+		for(std::vector<SearchStep::Modification>::const_iterator
+			modit = it1;
+			modit != it2;
+			++modit
+		) {
 			LOG(logger_, debug, "next modification");
 			PhraseSegmentation::const_iterator from_it = modit->from_it;
 			PhraseSegmentation::const_iterator to_it = modit->to_it;
@@ -319,7 +355,7 @@ FeatureFunction::StateModifications *NgramModel<M>::updateScore(const DocumentSt
 
 			uint state_pos = sntstate.size();
 			oldstate1 = oldstate2 + countTargetWords(from_it, to_it);
-			
+
 			for(typename SentenceState_::const_iterator pit = oldstate2; pit != oldstate1; ++pit) {
 				LOG(logger_, debug, "(a) minus " << pit->second);
 				s -= pit->second;
@@ -339,7 +375,7 @@ FeatureFunction::StateModifications *NgramModel<M>::updateScore(const DocumentSt
 			PieceIt end_piece(pieces.begin(), pieces.end() - 2, pieces.end(), next_from_it);
 			s += scorePhraseSegmentation<false>(&last_state, from_piece, to_piece, end_piece,
 				sntstate.begin() + state_pos, last_mod_in_sentence);
-			
+
 			if(!sntstate.empty())
 				last_state = sntstate.back().first;
 
@@ -352,19 +388,28 @@ FeatureFunction::StateModifications *NgramModel<M>::updateScore(const DocumentSt
 }
 
 template<class M>
-FeatureFunction::State *NgramModel<M>::applyStateModifications(FeatureFunction::State *oldState,
-		FeatureFunction::StateModifications *modif) const {
+FeatureFunction::State
+*NgramModel<M>::applyStateModifications(
+	FeatureFunction::State *oldState,
+	FeatureFunction::StateModifications *modif
+) const {
 	NgramDocumentState_ &state = dynamic_cast<NgramDocumentState_ &>(*oldState);
 	NgramDocumentModifications_ *mod = dynamic_cast<NgramDocumentModifications_ *>(modif);
-	for(typename std::vector<std::pair<uint,SentenceState_> >::iterator it = mod->modifications.begin();
-			it != mod->modifications.end(); ++it)
+	for(typename std::vector<std::pair<uint,SentenceState_> >::iterator
+		it = mod->modifications.begin();
+		it != mod->modifications.end();
+		++it
+	)
 		state.lmCache[it->first].swap(it->second);
 	return oldState;
 }
 
 template<class M>
-inline Float NgramModel<M>::scoreNgram(const StateType_ &state,
-		lm::WordIndex word, WordState_ &out_state) const {
+inline Float NgramModel<M>::scoreNgram(
+	const StateType_ &state,
+	lm::WordIndex word,
+	WordState_ &out_state
+) const {
 	Float s = model_->Score(state, word, out_state.first);
 	s *= Float(2.30258509299405); // log10 -> ln
 	out_state.second = s;
@@ -373,11 +418,17 @@ inline Float NgramModel<M>::scoreNgram(const StateType_ &state,
 
 template<class M>
 template<bool ScoreCompleteSentence,class PhrasePairIterator,class StateIterator>
-Float NgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, PhrasePairIterator from_it,
-		PhrasePairIterator to_it, PhrasePairIterator eos, StateIterator state_it, bool atEos) const {
+Float NgramModel<M>::scorePhraseSegmentation(
+	const StateType_ *last_state,
+	PhrasePairIterator from_it,
+	PhrasePairIterator to_it,
+	PhrasePairIterator eos,
+	StateIterator state_it,
+	bool atEos
+) const {
 	const VocabularyType_ &vocab = model_->GetVocabulary();
 
-	PhrasePairIterator ng_it = from_it;	
+	PhrasePairIterator ng_it = from_it;
 
 	uint last_statelen = last_state->Length();
 
@@ -385,9 +436,11 @@ Float NgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, Phras
 	Float s = .0;
 	while(ng_it != to_it) {
 		LOG(logger_, debug, "running (a) loop");
-		for(PhraseData::const_iterator wi = ng_it->second.get().getTargetPhraseOrAnnotations(annotationLevel_,tokenFlag_).get().begin();
-				wi != ng_it->second.get().getTargetPhraseOrAnnotations(annotationLevel_,tokenFlag_).get().end(); ++wi) {
-
+		for(PhraseData::const_iterator
+			wi = ng_it->second.get().getTargetPhraseOrAnnotations(annotationLevel_,tokenFlag_).get().begin();
+			wi != ng_it->second.get().getTargetPhraseOrAnnotations(annotationLevel_,tokenFlag_).get().end();
+			++wi
+		) {
 			Float lscore = scoreNgram(*last_state, vocab.Index(*wi), *state_it);
 			// old score has already been subtracted
 			last_state = &state_it->first;
@@ -397,15 +450,18 @@ Float NgramModel<M>::scorePhraseSegmentation(const StateType_ *last_state, Phras
 		}
 		++ng_it;
 	}
-	
+
 	LOG(logger_, debug, 5);
 	uint future = 1;
 	bool independent = false;
 	while(!ScoreCompleteSentence && ng_it != eos && !independent) {
 		LOG(logger_, debug, "running (b) loop");
 
-		for(PhraseData::const_iterator wi = ng_it->second.get().getTargetPhraseOrAnnotations(annotationLevel_,tokenFlag_).get().begin();
-				wi != ng_it->second.get().getTargetPhraseOrAnnotations(annotationLevel_,tokenFlag_).get().end(); ++wi) {
+		for(PhraseData::const_iterator
+			wi = ng_it->second.get().getTargetPhraseOrAnnotations(annotationLevel_,tokenFlag_).get().begin();
+			wi != ng_it->second.get().getTargetPhraseOrAnnotations(annotationLevel_,tokenFlag_).get().end();
+			++wi
+		) {
 
 			if(future > last_state->Length() && future > last_statelen) {
 				LOG(logger_, debug, "breaking, future = " << future

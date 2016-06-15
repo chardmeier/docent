@@ -20,10 +20,10 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
+#include "NistXmlTestset.h"
+
 #include "MMAXDocument.h"
 #include "NistXmlDocument.h"
-#include "NistXmlTestset.h"
 
 #include <iostream>
 

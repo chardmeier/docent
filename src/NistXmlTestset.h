@@ -24,13 +24,13 @@
 #define docent_NistXmlTestset_h
 
 #include "Docent.h"
-#include "NistXmlDocument.h"
-#include "PlainTextDocument.h"
 
 #include <iosfwd>
 #include <vector>
 
 #include <DOM/Document.hpp>
+
+class NistXmlDocument;
 
 class NistXmlTestset {
 public:

@@ -20,9 +20,7 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
 #include "PhrasePair.h"
-#include "PhraseTable.h"
 
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string/trim.hpp>

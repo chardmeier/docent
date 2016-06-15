@@ -1,7 +1,9 @@
 #include "BleuModel.h"
+
 #include "DocumentState.h"
 #include "NistXmlDocument.h"
 #include "NistXmlRefset.h"
+#include "PlainTextDocument.h"
 #include "SearchStep.h"
 
 #include <string>

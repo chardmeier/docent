@@ -20,13 +20,12 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
+#include "SimulatedAnnealing.h"
 
 #include "CoolingSchedule.h"
 #include "NbestStorage.h"
 #include "Random.h"
 #include "SearchStep.h"
-#include "SimulatedAnnealing.h"
 #include "StateGenerator.h"
 
 #include <boost/make_shared.hpp>
@@ -38,8 +37,11 @@ struct SimulatedAnnealingSearchState : public SearchState {
 	CoolingSchedule *schedule;
 	uint nsteps;
 
-	SimulatedAnnealingSearchState(boost::shared_ptr<DocumentState> doc, const Parameters &params)
-			: document(doc), nsteps(0) {
+	SimulatedAnnealingSearchState(
+		boost::shared_ptr<DocumentState> doc,
+		const Parameters &params
+	) :	document(doc), nsteps(0)
+	{
 		schedule = CoolingSchedule::createCoolingSchedule(params);
 	}
 
@@ -52,7 +54,9 @@ struct SimulatedAnnealingSearchState : public SearchState {
 	}
 };
 
-SimulatedAnnealing::SimulatedAnnealing(const DecoderConfiguration &config, const Parameters &params
+SimulatedAnnealing::SimulatedAnnealing(
+	const DecoderConfiguration &config,
+	const Parameters &params
 ) :	logger_("SimulatedAnnealing"),
 	random_(config.getRandom()),
 	generator_(config.getStateGenerator()),

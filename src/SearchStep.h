@@ -23,11 +23,10 @@
 #ifndef docent_SearchStep_h
 #define docent_SearchStep_h
 
-#include "Docent.h"
 #include "DocumentState.h"
 #include "FeatureFunction.h"
 #include "PhrasePair.h"
-#include "StateGenerator.h"
+#include "StateOperation.h"
 
 #include <vector>
 
@@ -51,7 +50,7 @@ public:
 			sentno(psentno), from(pfrom), to(pto),
 			from_it(pfrom_it), to_it(pto_it), proposal(pproposal) {}
 	};
-	
+
 private:
 	Logger logger_;
 	const DocumentState &document_;
@@ -68,75 +67,94 @@ private:
 	mutable bool modificationsConsolidated_;
 	mutable Scores scores_;
 	mutable enum ScoreState { NoScores, ScoresEstimated, ScoresComputed } scoreState_;
-	
+
 	void consolidateModifications() const;
 	static bool compareModifications(const Modification &a, const Modification &b);
 	void estimateScores() const;
 	void computeScores() const;
 
 public:
-	SearchStep(const StateOperation *op, const DocumentState &doc, const std::vector<FeatureFunction::State *> &featureStates);
+	SearchStep(
+		const StateOperation *op,
+		const DocumentState &doc,
+		const std::vector<FeatureFunction::State *> &featureStates
+	);
 	~SearchStep();
 
 	const StateOperation *getOperation() const {
 		return operation_;
 	}
-	
+
 	const std::string getDescription() const {
-	  return operation_->getDescription();
+		return operation_->getDescription();
 	}
-	
+
 	const std::vector<Modification> &getModifications() const {
 		if(!modificationsConsolidated_)
 			consolidateModifications();
 		return modifications_;
 	}
-	
+
 	std::vector<Modification> &getModifications() {
 		if(!modificationsConsolidated_)
 			consolidateModifications();
 		return modifications_;
 	}
 
-	void addModification(uint sentno, uint start, uint end,
-			PhraseSegmentation::const_iterator new1, PhraseSegmentation::const_iterator new2, const PhraseSegmentation &proposal) {
+	void addModification(
+		uint sentno,
+		uint start,
+		uint end,
+		PhraseSegmentation::const_iterator new1,
+		PhraseSegmentation::const_iterator new2,
+		const PhraseSegmentation &proposal
+	) {
 		modifications_.push_back(Modification(sentno, start, end, new1, new2, proposal));
 		modificationsConsolidated_ = false;
 	}
-	
+
 	const Scores &getScores() const {
 		computeScores();
 		return scores_;
 	}
-	
+
 	bool isProvisionallyAcceptable(const AcceptanceDecision &accept) const;
 
 	Float getScore() const {
 		computeScores();
-		return std::inner_product(scores_.begin(), scores_.end(), configuration_.getFeatureWeights().begin(), static_cast<Float>(0));
+		return std::inner_product(
+			scores_.begin(),
+			scores_.end(),
+			configuration_.getFeatureWeights().begin(),
+			static_cast<Float>(0)
+		);
 	}
-	
+
 	Float getScoreEstimate() const {
 		estimateScores();
-		return std::inner_product(scores_.begin(), scores_.end(), configuration_.getFeatureWeights().begin(), static_cast<Float>(0));
+		return std::inner_product(
+			scores_.begin(),
+			scores_.end(),
+			configuration_.getFeatureWeights().begin(),
+			static_cast<Float>(0)
+		);
 	}
-	
+
 	void setStateModifications(uint i, FeatureFunction::StateModifications *mod) {
 		stateModifications_[i] = mod;
 	}
-	
+
 	const std::vector<FeatureFunction::StateModifications *> &getStateModifications() const {
 		return stateModifications_;
 	}
-	
+
 	const DocumentState &getDocumentState() const {
 		return document_;
 	}
-	
+
 	DocumentGeneration getDocumentGeneration() const {
 		return generation_;
 	}
 };
 
 #endif
-

@@ -24,7 +24,6 @@
 #define docent_DocumentState_h
 
 #include "Docent.h"
-#include "DecoderConfiguration.h"
 #include "FeatureFunction.h"
 #include "PhrasePair.h"
 #include "PlainTextDocument.h"
@@ -38,10 +37,10 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/functional/hash.hpp>
 
+class DecoderConfiguration;
 class MMAXDocument;
 class NistXmlDocument;
 class PhrasePairCollection;
-class PhraseTable;
 class SearchStep;
 class StateOperation;
 
@@ -61,7 +60,7 @@ private:
 	const DecoderConfiguration *configuration_;
 
 	uint docNumber_;
-	
+
 	boost::shared_ptr<const MMAXDocument> inputdoc_;
 	std::vector<PhraseSegmentation> sentences_;
 	std::vector<boost::shared_ptr<const PhrasePairCollection> > phraseTranslations_;
@@ -81,7 +80,7 @@ public:
 	DocumentState(const DocumentState &o);
 	~DocumentState();
 	DocumentState &operator=(const DocumentState &o);
-	
+
 	uint getDocNumber() const {
 		return docNumber_;
 	}
@@ -113,30 +112,30 @@ public:
 
 	SearchStep *proposeSearchStep() const;
 	void applyModifications(SearchStep *step);
-	
+
 	const std::vector<PhraseSegmentation> &getPhraseSegmentations() const {
 		return sentences_;
 	}
-	
+
 	const PhraseSegmentation &getPhraseSegmentation(uint sentno) const {
 		return sentences_[sentno];
 	}
-	
+
 	Scores computeSentenceScores(uint sentno) const; // debugging only!
 
 	const Scores &getScores() const {
 		return scores_;
 	}
-	
+
 	Float getScore() const {
 		return std::inner_product(scores_.begin(), scores_.end(),
 			configuration_->getFeatureWeights().begin(), Float(0));
 	}
-	
+
 	DocumentGeneration getGeneration() const {
 		return generation_;
 	}
-	
+
 	const DecoderConfiguration *getDecoderConfiguration() const {
 		return configuration_;
 	}
@@ -159,4 +158,3 @@ inline std::size_t hash_value(const DocumentState &state) {
 }
 
 #endif
-

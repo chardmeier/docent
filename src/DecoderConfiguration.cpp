@@ -20,10 +20,9 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
 #include "DecoderConfiguration.h"
+
 #include "PhraseTable.h"
-#include "Random.h"
 #include "SearchAlgorithm.h"
 #include "StateGenerator.h"
 
@@ -34,6 +33,7 @@
 #include <vector>
 
 #include <boost/dynamic_bitset.hpp>
+#include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include <DOM/SAX2DOM/SAX2DOM.hpp>
@@ -195,8 +195,13 @@ void DecoderConfiguration::setupRandomGenerator(Arabica::DOM::Node<std::string> 
 void DecoderConfiguration::setupStateGenerator(Arabica::DOM::Node<std::string> n) {
 	Arabica::DOM::Node<std::string> c = n.getFirstChild();
 
-	while(c != 0 && (c.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE || c.getNodeName() != "initial-state"))
+	while(c != 0
+		&& (c.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE
+			|| c.getNodeName() != "initial-state"
+		)
+	) {
 		c = c.getNextSibling();
+	}
 
 	if(c == 0) {
 		LOG(logger_, error, "Element 'initial-state' not found.");

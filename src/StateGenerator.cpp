@@ -117,9 +117,7 @@ BeamSearchStateInitialiser::initSegmentation(
 ) const {
 	return beamSearchAdapter_->search(
 		phraseTranslations,
-		sentence,
-		documentNumber,
-		sentenceNumber
+		sentence
 	);
 }
 

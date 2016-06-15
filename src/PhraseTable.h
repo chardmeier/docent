@@ -31,9 +31,8 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
 
-#include "quering.hh"  // from ProbingPT
-
 class PhrasePairCollection;
+class QueryEngine; // from ProbingPT
 
 class PhraseTable : public FeatureFunction, boost::noncopyable {
 private:

@@ -26,9 +26,7 @@
 #include "SearchStep.h"
 #include "TypeTokenRateModel.h"
 
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
-#include <boost/unordered_map.hpp>
+#include <boost/foreach.hpp>
 
 #include <iostream>
 #include <map>
@@ -36,9 +34,11 @@
 using namespace std;
 
 
- 
-struct TypeTokenRateModelState : public FeatureFunction::State, public FeatureFunction::StateModifications {
-	TypeTokenRateModelState(uint nsents) : tokens(0) {} 
+struct TypeTokenRateModelState
+:	public FeatureFunction::State,
+	public FeatureFunction::StateModifications
+{
+	TypeTokenRateModelState(uint nsents) : tokens(0) {}
 
 	typedef std::map<Word,uint> TypeMap_;
 
@@ -74,69 +74,94 @@ struct TypeTokenRateModelState : public FeatureFunction::State, public FeatureFu
 };
 
 
-
-struct WordCounter : public std::unary_function<const AnchoredPhrasePair &,Float> {
+struct WordCounter
+:	public std::unary_function<const AnchoredPhrasePair &,Float>
+{
  	Float operator()(const AnchoredPhrasePair &ppair) const {
  		return Float(-ppair.second.get().getTargetPhrase().get().size());
  	};
 };
 
 
-
-FeatureFunction::State *TypeTokenRateModel::initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
+FeatureFunction::State
+*TypeTokenRateModel::initDocument(
+	const DocumentState &doc,
+	Scores::iterator sbegin
+) const {
 	const std::vector<PhraseSegmentation> &segs = doc.getPhraseSegmentations();
 
 	TypeTokenRateModelState *s = new TypeTokenRateModelState(segs.size());
 	for(uint i = 0; i < segs.size(); i++) {
 		BOOST_FOREACH(const AnchoredPhrasePair &app, segs[i]) {
 			s->addPhrasePair(app);
-		}	 
+		}
 	}
 
 	*sbegin = s->score();
 	return s;
 }
 
-void TypeTokenRateModel::computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const {
+void TypeTokenRateModel::computeSentenceScores(
+	const DocumentState &doc,
+	uint sentno,
+	Scores::iterator sbegin
+) const {
 	*sbegin = Float(0);
 }
 
-FeatureFunction::StateModifications *TypeTokenRateModel::estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
-																			 Scores::const_iterator psbegin, Scores::iterator sbegin) const {
+FeatureFunction::StateModifications
+*TypeTokenRateModel::estimateScoreUpdate(
+	const DocumentState &doc,
+	const SearchStep &step,
+	const State *state,
+	Scores::const_iterator psbegin,
+	Scores::iterator sbegin
+) const {
 	const TypeTokenRateModelState *prevstate = dynamic_cast<const TypeTokenRateModelState *>(state);
 	TypeTokenRateModelState *s = prevstate->clone();
 
 	const std::vector<SearchStep::Modification> &mods = step.getModifications();
-	for(std::vector<SearchStep::Modification>::const_iterator it = mods.begin(); it != mods.end(); ++it) {
-
+	for(std::vector<SearchStep::Modification>::const_iterator
+		it = mods.begin();
+		it != mods.end();
+		++it
+	) {
 		// Do Nothing if it is a swap,s ince that don't affect this model
 		if (step.getDescription().substr(0,4) != "Swap") {
-
 			PhraseSegmentation::const_iterator from_it = it->from_it;
 			PhraseSegmentation::const_iterator to_it = it->to_it;
-		
+
 			for (PhraseSegmentation::const_iterator pit=from_it; pit != to_it; pit++) {
-				s->removePhrasePair(*pit);	  
+				s->removePhrasePair(*pit);
 			}
-		
+
 			BOOST_FOREACH(const AnchoredPhrasePair &app, it->proposal) {
 				s->addPhrasePair(app);
 			}
-	
 		}
-	
 	}
-	
+
 	*sbegin = s->score();
 	return s;
 }
 
-FeatureFunction::StateModifications *TypeTokenRateModel::updateScore(const DocumentState &doc, const SearchStep &step, const State *state,
-																	 FeatureFunction::StateModifications *estmods, Scores::const_iterator psbegin, Scores::iterator estbegin) const {
+FeatureFunction::StateModifications
+*TypeTokenRateModel::updateScore(
+	const DocumentState &doc,
+	const SearchStep &step,
+	const State *state,
+	FeatureFunction::StateModifications *estmods,
+	Scores::const_iterator psbegin,
+	Scores::iterator estbegin
+) const {
 	return estmods;
 }
 
-FeatureFunction::State *TypeTokenRateModel::applyStateModifications(FeatureFunction::State *oldState, FeatureFunction::StateModifications *modif) const {
+FeatureFunction::State
+*TypeTokenRateModel::applyStateModifications(
+	FeatureFunction::State *oldState,
+	FeatureFunction::StateModifications *modif
+) const {
 	TypeTokenRateModelState *os = dynamic_cast<TypeTokenRateModelState *>(oldState);
 	TypeTokenRateModelState *ms = dynamic_cast<TypeTokenRateModelState *>(modif);
 

@@ -20,10 +20,10 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
+#include "NistXmlRefset.h"
+
 #include "DocumentState.h"
 #include "NistXmlDocument.h"
-#include "NistXmlRefset.h"
 
 #include <iostream>
 

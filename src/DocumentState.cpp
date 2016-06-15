@@ -20,16 +20,11 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
 #include "DocumentState.h"
-#include "DecoderConfiguration.h"
-#include "FeatureFunction.h"
+
 #include "MMAXDocument.h"
-#include "PhrasePair.h"
 #include "PhrasePairCollection.h"
 #include "PhraseTable.h"
-#include "PlainTextDocument.h"
-#include "Random.h"
 #include "SearchStep.h"
 #include "StateGenerator.h"
 

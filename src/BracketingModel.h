@@ -24,31 +24,50 @@
 #define docent_BracketingModel_h
 
 class BracketingModel : public FeatureFunction {
-
 private:
+	typedef boost::unordered_map<std::string,std::string> TagList_;
 
-  typedef boost::unordered_map<std::string,std::string> TagList_;
+	TagList_ opentaglist;
+	TagList_ closetaglist;
 
-  TagList_ opentaglist;
-  TagList_ closetaglist;
-
-  mutable Logger logger_;
+	mutable Logger logger_;
 
 public:
 	BracketingModel(const Parameters &params);
 
-	virtual State *initDocument(const DocumentState &doc, Scores::iterator sbegin) const;
-	virtual StateModifications *estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
-		Scores::const_iterator psbegin, Scores::iterator sbegin) const;
-	virtual StateModifications *updateScore(const DocumentState &doc, const SearchStep &step, const State *state,
-		StateModifications *estmods, Scores::const_iterator, Scores::iterator estbegin) const;
-	virtual FeatureFunction::State *applyStateModifications(FeatureFunction::State *oldState, FeatureFunction::StateModifications *modif) const;
-	
+	virtual State *initDocument(
+		const DocumentState &doc,
+		Scores::iterator sbegin
+	) const;
+	virtual StateModifications *estimateScoreUpdate(
+		const DocumentState &doc,
+		const SearchStep &step,
+		const State *state,
+		Scores::const_iterator psbegin,
+		Scores::iterator sbegin
+	) const;
+	virtual StateModifications *updateScore(
+		const DocumentState &doc,
+		const SearchStep &step,
+		const State *state,
+		StateModifications *estmods,
+		Scores::const_iterator,
+		Scores::iterator estbegin
+	) const;
+	virtual FeatureFunction::State *applyStateModifications(
+		FeatureFunction::State *oldState,
+		FeatureFunction::StateModifications *modif
+	) const;
+
 	virtual uint getNumberOfScores() const {
 		return 1;
 	}
 
-	virtual void computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const;
+	virtual void computeSentenceScores(
+		const DocumentState &doc,
+		uint sentno,
+		Scores::iterator sbegin
+	) const;
 };
 
 #endif

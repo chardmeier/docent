@@ -20,12 +20,10 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
+#include "PhraseTable.h"
 
 #include "DocumentState.h"
-#include "PhrasePair.h"
 #include "PhrasePairCollection.h"
-#include "PhraseTable.h"
 #include "SearchStep.h"
 
 #include "util/file_piece.hh"  // from KenLM

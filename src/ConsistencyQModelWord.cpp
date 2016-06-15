@@ -26,9 +26,7 @@
 #include "SearchStep.h"
 #include "ConsistencyQModelWord.h"
 
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
-#include <boost/unordered_map.hpp>
+#include <boost/foreach.hpp>
 
 #include <iostream>
 #include <map>
@@ -36,7 +34,7 @@
 using namespace std;
 
 struct QCount {
-  
+
 	QCount() : freq(0) {}
 
 	QCount& operator++ () {
@@ -66,7 +64,7 @@ struct QCount {
 	}
 
 	uint freq;
-  
+
 };
 
 struct AlignMap {
@@ -125,7 +123,7 @@ struct AlignMap {
 
 
 struct ConsistencyQModelWordState : public FeatureFunction::State, public FeatureFunction::StateModifications {
-	ConsistencyQModelWordState(uint nsents) : oldScore(0) {} 
+	ConsistencyQModelWordState(uint nsents) : oldScore(0) {}
 
 	AlignMap s2t;
 	AlignMap t2s;
@@ -147,7 +145,7 @@ struct ConsistencyQModelWordState : public FeatureFunction::State, public Featur
 				wit != wa.end_for_target(i); ++wit) {
 				ss += app.second.get().getSourcePhrase().get()[*wit];
 			}
-      
+
 			s2t.addAlignPair(ss,ts);
 			t2s.addAlignPair(ts,ss);
 		}
@@ -163,7 +161,7 @@ struct ConsistencyQModelWordState : public FeatureFunction::State, public Featur
 				wit != wa.end_for_target(i); ++wit) {
 				ss += app.second.get().getSourcePhrase().get()[*wit];
 			}
-      
+
 			s2t.removeAlignPair(ss,ts);
 			t2s.removeAlignPair(ts,ss);
 		}
@@ -206,17 +204,17 @@ FeatureFunction::StateModifications *ConsistencyQModelWord::estimateScoreUpdate(
 		if (step.getDescription().substr(0,4) != "Swap") {
 			PhraseSegmentation::const_iterator from_it = it->from_it;
 			PhraseSegmentation::const_iterator to_it = it->to_it;
-		
+
 			for (PhraseSegmentation::const_iterator pit=from_it; pit != to_it; pit++) {
-				s->removePhrasePair(*pit);	  
+				s->removePhrasePair(*pit);
 			}
 
 			BOOST_FOREACH(const AnchoredPhrasePair &app, it->proposal) {
 				s->addPhrasePair(app);
 			}
-		}	
+		}
 	}
-	
+
 	*sbegin = s->score();
 	return s;
 }

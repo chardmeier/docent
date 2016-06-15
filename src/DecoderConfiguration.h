@@ -38,7 +38,6 @@
 #include <DOM/Document.hpp>
 #include <DOM/Element.hpp>
 
-class BeamSearchAdapter;
 class FeatureFunctionInstantiation;
 class Parameters;
 class PhraseTable;
@@ -135,11 +134,16 @@ private:
 				BOOST_THROW_EXCEPTION(ConfigurationException());
 			}
 			if(pname == name) {
-				for(Arabica::DOM::Node<std::string> v = pnode.getFirstChild(); v != 0; v = v.getNextSibling())
+				for(Arabica::DOM::Node<std::string>
+					v = pnode.getFirstChild();
+					v != 0;
+					v = v.getNextSibling()
+				) {
 					if(v.getNodeType() == Arabica::DOM::Node<std::string>::TEXT_NODE) {
 						outstr = v.getNodeValue();
 						return true;
 					}
+				}
 				LOG(logger_, error, "No value for parameter " << name << ".");
 			}
 		}
@@ -208,4 +212,3 @@ inline bool Parameters::get<bool>(const std::string &name, const bool &defaultVa
 }
 
 #endif
-

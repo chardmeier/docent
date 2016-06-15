@@ -23,6 +23,8 @@
 #ifndef docent_Docent_h
 #define docent_Docent_h
 
+#include "Logger.h"
+
 #include <algorithm>
 #include <list>
 #include <string>
@@ -102,7 +104,7 @@ namespace serialization {
 			boost::flyweights::flyweight<T,A1,A2,A3,A4,A5> &t,
 			const unsigned int file_version){
 		boost::serialization::split_free(ar, t, file_version);
-	}	
+	}
 
 }} //end namespace boost serialization
 
@@ -169,7 +171,4 @@ namespace err_info {
 	typedef boost::error_info<struct tag_Parameter,std::string> Parameter;
 }
 
-#include "Logger.h"
-
 #endif
-

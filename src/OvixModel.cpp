@@ -26,18 +26,17 @@
 #include "SearchStep.h"
 #include "OvixModel.h"
 
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
-#include <boost/unordered_map.hpp>
+#include <boost/foreach.hpp>
 
 #include <iostream>
 #include <map>
 
 using namespace std;
 
-
- 
-struct OvixModelState : public FeatureFunction::State, public FeatureFunction::StateModifications {
+struct OvixModelState
+:	public FeatureFunction::State,
+	public FeatureFunction::StateModifications
+{
 	OvixModelState(uint nsents) : tokens(0) {} // :  sentencePairs(nsents) {}
 
 	typedef std::map<Word,uint> TypeMap_;
@@ -75,7 +74,6 @@ struct OvixModelState : public FeatureFunction::State, public FeatureFunction::S
 };
 
 
-
 struct WordCounter : public std::unary_function<const AnchoredPhrasePair &,Float> {
  	Float operator()(const AnchoredPhrasePair &ppair) const {
  		return Float(-ppair.second.get().getTargetPhrase().get().size());
@@ -83,15 +81,18 @@ struct WordCounter : public std::unary_function<const AnchoredPhrasePair &,Float
 };
 
 
-
-FeatureFunction::State *OvixModel::initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
+FeatureFunction::State
+*OvixModel::initDocument(
+	const DocumentState &doc,
+	Scores::iterator sbegin
+) const {
 	const std::vector<PhraseSegmentation> &segs = doc.getPhraseSegmentations();
 
 	OvixModelState *s = new OvixModelState(segs.size());
 	for(uint i = 0; i < segs.size(); i++) {
 		BOOST_FOREACH(const AnchoredPhrasePair &app, segs[i]) {
 			s->addPhrasePair(app);
-		}	 
+		}
 	}
 
 
@@ -99,46 +100,64 @@ FeatureFunction::State *OvixModel::initDocument(const DocumentState &doc, Scores
 	return s;
 }
 
-void OvixModel::computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const {
+void OvixModel::computeSentenceScores(
+	const DocumentState &doc,
+	uint sentno,
+	Scores::iterator sbegin
+) const {
 	*sbegin = Float(0);
 }
 
-FeatureFunction::StateModifications *OvixModel::estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
-																	Scores::const_iterator psbegin, Scores::iterator sbegin) const {
+FeatureFunction::StateModifications
+*OvixModel::estimateScoreUpdate(
+	const DocumentState &doc,
+	const SearchStep &step,
+	const State *state,
+	Scores::const_iterator psbegin,
+	Scores::iterator sbegin
+) const {
 	const OvixModelState *prevstate = dynamic_cast<const OvixModelState *>(state);
 	OvixModelState *s = prevstate->clone();
 
 	const std::vector<SearchStep::Modification> &mods = step.getModifications();
 	for(std::vector<SearchStep::Modification>::const_iterator it = mods.begin(); it != mods.end(); ++it) {
-
 		// Do Nothing if it is a swap,s ince that don't affect this model
 		if (step.getDescription().substr(0,4) != "Swap") {
-
 			PhraseSegmentation::const_iterator from_it = it->from_it;
 			PhraseSegmentation::const_iterator to_it = it->to_it;
-		
+
 			for (PhraseSegmentation::const_iterator pit=from_it; pit != to_it; pit++) {
-				s->removePhrasePair(*pit);	  
+				s->removePhrasePair(*pit);
 			}
-		
+
 			BOOST_FOREACH(const AnchoredPhrasePair &app, it->proposal) {
 				s->addPhrasePair(app);
 			}
-	
 		}
-	
+
 	}
-	
+
 	*sbegin = s->score();
 	return s;
 }
 
-FeatureFunction::StateModifications *OvixModel::updateScore(const DocumentState &doc, const SearchStep &step, const State *state,
-															FeatureFunction::StateModifications *estmods, Scores::const_iterator psbegin, Scores::iterator estbegin) const {
+FeatureFunction::StateModifications
+*OvixModel::updateScore(
+	const DocumentState &doc,
+	const SearchStep &step,
+	const State *state,
+	FeatureFunction::StateModifications *estmods,
+	Scores::const_iterator psbegin,
+	Scores::iterator estbegin
+) const {
 	return estmods;
 }
 
-FeatureFunction::State *OvixModel::applyStateModifications(FeatureFunction::State *oldState, FeatureFunction::StateModifications *modif) const {
+FeatureFunction::State
+*OvixModel::applyStateModifications(
+	FeatureFunction::State *oldState,
+	FeatureFunction::StateModifications *modif
+) const {
 	OvixModelState *os = dynamic_cast<OvixModelState *>(oldState);
 	OvixModelState *ms = dynamic_cast<OvixModelState *>(modif);
 

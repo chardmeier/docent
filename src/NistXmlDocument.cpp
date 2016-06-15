@@ -1,5 +1,5 @@
 /*
- *  NistXmlTestset.cpp
+ *  NistXmlDocument.cpp
  *
  *  Copyright 2012 by Christian Hardmeier. All rights reserved.
  *
@@ -20,9 +20,9 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
-#include "MMAXDocument.h"
 #include "NistXmlDocument.h"
+
+#include "MMAXDocument.h"
 #include "PlainTextDocument.h"
 
 #include <boost/algorithm/string.hpp>

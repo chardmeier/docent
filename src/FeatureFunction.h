@@ -25,7 +25,6 @@
 
 #include "Docent.h"
 #include "DecoderConfiguration.h"
-#include "PhrasePair.h"
 
 #include <boost/shared_ptr.hpp>
 
@@ -53,21 +52,51 @@ public:
 
 	virtual ~FeatureFunction() {}
 
-	virtual State *initDocument(const DocumentState &doc, Scores::iterator sbegin) const = 0;
-	virtual StateModifications *estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
-		Scores::const_iterator psbegin, Scores::iterator sbegin) const = 0;
-	virtual StateModifications *updateScore(const DocumentState &doc, const SearchStep &step, const State *state,
-		StateModifications *estmods, Scores::const_iterator psbegin, Scores::iterator estbegin) const = 0;
+	virtual State
+	*initDocument(
+		const DocumentState &doc,
+		Scores::iterator sbegin
+	) const = 0;
+
+	virtual StateModifications *estimateScoreUpdate(
+		const DocumentState &doc,
+		const SearchStep &step,
+		const State *state,
+		Scores::const_iterator psbegin,
+		Scores::iterator sbegin
+	) const = 0;
+
+	virtual StateModifications
+	*updateScore(
+		const DocumentState &doc,
+		const SearchStep &step,
+		const State *state,
+		StateModifications *estmods,
+		Scores::const_iterator psbegin,
+		Scores::iterator estbegin
+	) const = 0;
+
 	virtual uint getNumberOfScores() const = 0;
-	
-	virtual FeatureFunction::State *applyStateModifications(FeatureFunction::State *oldState, FeatureFunction::StateModifications *modif) const {
+
+	virtual FeatureFunction::State
+	*applyStateModifications(
+		FeatureFunction::State *oldState,
+		FeatureFunction::StateModifications *modif
+	) const {
 		return NULL;
 	}
 
-	virtual void dumpFeatureFunctionState(const DocumentState &doc, FeatureFunction::State *state) const {}
+	virtual void dumpFeatureFunctionState(
+		const DocumentState &doc,
+		FeatureFunction::State *state
+	) const {}
 
 	// debugging only!
-	virtual void computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const = 0;
+	virtual void computeSentenceScores(
+		const DocumentState &doc,
+		uint sentno,
+		Scores::iterator sbegin
+	) const = 0;
 };
 
 class FeatureFunctionInstantiation {
@@ -77,8 +106,11 @@ private:
 	boost::shared_ptr<const FeatureFunction> impl_;
 
 public:
-	FeatureFunctionInstantiation(const std::string &id, uint scoreIndex, boost::shared_ptr<const FeatureFunction> impl) :
-		id_(id), scoreIndex_(scoreIndex), impl_(impl) {}
+	FeatureFunctionInstantiation(
+		const std::string &id,
+		uint scoreIndex,
+		boost::shared_ptr<const FeatureFunction> impl
+	) :	id_(id), scoreIndex_(scoreIndex), impl_(impl) {}
 
 	const std::string &getId() const {
 		return id_;
@@ -87,35 +119,63 @@ public:
 	uint getScoreIndex() const {
 		return scoreIndex_;
 	}
-	
-	FeatureFunction::State *initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
+
+	FeatureFunction::State
+	*initDocument(
+		const DocumentState &doc,
+		Scores::iterator sbegin
+	) const {
 		return impl_->initDocument(doc, sbegin);
 	}
 
 	// debugging only!
-	void computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const {
+	void computeSentenceScores(
+		const DocumentState &doc,
+		uint sentno,
+		Scores::iterator sbegin
+	) const {
 		impl_->computeSentenceScores(doc, sentno, sbegin);
 	}
 
-	FeatureFunction::StateModifications *estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const FeatureFunction::State *state,
-			Scores::const_iterator psbegin, Scores::iterator sbegin) const {
+	FeatureFunction::StateModifications
+	*estimateScoreUpdate(
+		const DocumentState &doc,
+		const SearchStep &step,
+		const FeatureFunction::State *state,
+		Scores::const_iterator psbegin,
+		Scores::iterator sbegin
+	) const {
 		return impl_->estimateScoreUpdate(doc, step, state, psbegin, sbegin);
 	}
-	
-	FeatureFunction::StateModifications *updateScore(const DocumentState &doc, const SearchStep &step, const FeatureFunction::State *state,
-			FeatureFunction::StateModifications *estmods, Scores::const_iterator psbegin, Scores::iterator estbegin) const {
+
+	FeatureFunction::StateModifications
+	*updateScore(
+		const DocumentState &doc,
+		const SearchStep &step,
+		const FeatureFunction::State *state,
+		FeatureFunction::StateModifications *estmods,
+		Scores::const_iterator psbegin,
+		Scores::iterator estbegin
+	) const {
 		return impl_->updateScore(doc, step, state, estmods, psbegin, estbegin);
 	}
-	
+
 	uint getNumberOfScores() const {
 		return impl_->getNumberOfScores();
 	}
-	
-	FeatureFunction::State *applyStateModifications(FeatureFunction::State *oldState, FeatureFunction::StateModifications *modif) const {
+
+	FeatureFunction::State
+	*applyStateModifications(
+		FeatureFunction::State *oldState,
+		FeatureFunction::StateModifications *modif
+	) const {
 		return impl_->applyStateModifications(oldState, modif);
 	}
 
-	void dumpFeatureFunctionState(const DocumentState &doc, FeatureFunction::State *state) const {
+	void dumpFeatureFunctionState(
+		const DocumentState &doc,
+		FeatureFunction::State *state
+	) const {
 		return impl_->dumpFeatureFunctionState(doc, state);
 	}
 };
@@ -127,7 +187,11 @@ private:
 public:
 	FeatureFunctionFactory(Random rnd) : random_(rnd) {}
 
-	boost::shared_ptr<FeatureFunction> create(const std::string &type, const Parameters &params) const;
+	boost::shared_ptr<FeatureFunction>
+	create(
+		const std::string &type,
+		const Parameters &params
+	) const;
 };
-#endif
 
+#endif

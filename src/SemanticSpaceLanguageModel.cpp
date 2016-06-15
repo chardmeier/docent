@@ -23,7 +23,6 @@
 #include "Docent.h"
 
 #include "DocumentState.h"
-#include "FeatureFunction.h"
 #include "SemanticSpace.h"
 #include "SemanticSpaceLanguageModel.h"
 #include "PhrasePair.h"
@@ -173,7 +172,7 @@ public:
 	virtual FeatureFunction::State *applyStateModifications(FeatureFunction::State *oldState, FeatureFunction::StateModifications *modif) const;
 
 	virtual void computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const;
-	
+
 	virtual uint getNumberOfScores() const {
 		return 1;
 	}

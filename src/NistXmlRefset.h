@@ -24,10 +24,11 @@
 #define docent_NistXmlRefset_h
 
 #include "Docent.h"
-#include "NistXmlDocument.h"
 
 #include <iosfwd>
 #include <vector>
+
+class NistXmlDocument;
 
 class NistXmlRefset {
 public:

@@ -24,6 +24,7 @@
 #define docent_SearchAlgorithm_h
 
 #include "Docent.h"
+#include "NbestStorage.h"
 #include "Random.h"
 
 #include <functional>
@@ -33,7 +34,6 @@
 
 class DecoderConfiguration;
 class DocumentState;
-class NbestStorage;
 class Parameters;
 
 class AcceptanceDecision : public std::unary_function<Float,bool> {
@@ -54,7 +54,7 @@ public:
 		// compute acceptance threshold for acceptance with probability exp((old - new) / T)
 		Float d = rnd.draw01();
 		threshold_ = T * log(d) + oldScore;
-		
+
 		d_ = d;
 		T_ = T;
 		oldScore_ = oldScore;
@@ -98,4 +98,3 @@ struct SearchAlgorithm {
 };
 
 #endif
-

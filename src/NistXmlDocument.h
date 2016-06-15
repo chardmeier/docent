@@ -1,5 +1,5 @@
 /*
- *  NistXmlTestset.h
+ *  NistXmlDocument.h
  *
  *  Copyright 2012 by Christian Hardmeier. All rights reserved.
  *
@@ -24,7 +24,6 @@
 #define docent_NistXmlDocument_h
 
 #include "Docent.h"
-#include "PlainTextDocument.h"
 
 #include <iosfwd>
 #include <vector>
@@ -32,6 +31,7 @@
 #include <DOM/Document.hpp>
 
 class MMAXDocument;
+class PlainTextDocument;
 
 class NistXmlDocument {
 private:

@@ -20,12 +20,8 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
-
 #include "CoolingSchedule.h"
-#include "DecoderConfiguration.h"
 
-#include <iostream>
 #include <limits>
 #include <numeric>
 
@@ -58,10 +54,10 @@ AartsLaarhovenSchedule::AartsLaarhovenSchedule(const Parameters &params)
 	initialAcceptanceRatio_ = params.get<Float>("aarts-laarhoven:initial-acceptance-ratio", .95);
 	chainLength_ = params.get<uint>("aarts-laarhoven:chain-length", 200);
 	initSteps_ = params.get<uint>("aarts-laarhoven:init-steps", 30);
-	
+
 	uint movingAvgWindow = params.get<uint>("aarts-laarhoven:moving-avg-window", 15);
 	muBuffer_.set_capacity(movingAvgWindow + 1);
-	
+
 	chainCosts_.reserve(chainLength_);
 }
 
@@ -107,7 +103,7 @@ void AartsLaarhovenSchedule::adaptInitialTemperature(Float score) {
 		m2_++;
 		scoreDecrease_ += lastScore_ - score;
 	}
-	
+
 	lastScore_ = score;
 
 	Float logdenom = m2_ * initialAcceptanceRatio_ - m1_ * (1.0 - initialAcceptanceRatio_);
@@ -115,13 +111,15 @@ void AartsLaarhovenSchedule::adaptInitialTemperature(Float score) {
 		temperature_ = (scoreDecrease_ / m2_) / log(m2_ / logdenom);
 		initSteps_--;
 	} else {
-		LOG(logger_, debug, "Hardwiring temperature to 100 (m1 = " << m1_ <<
-			", m2 = " << m2_ << ")");
+		LOG(logger_, debug,
+			"Hardwiring temperature to 100 (m1 = " << m1_ << ", m2 = " << m2_ << ")"
+		);
 		temperature_ = 100;
 	}
-	
-	LOG(logger_, debug, "adaptInitialTemperature: m1: " << m1_ <<
-		"; m2: " << m2_);
+
+	LOG(logger_, debug,
+		"adaptInitialTemperature: m1: " << m1_ << "; m2: " << m2_
+	);
 }
 
 void AartsLaarhovenSchedule::startNextChain() {
@@ -131,8 +129,17 @@ void AartsLaarhovenSchedule::startNextChain() {
 		std::copy(chainCosts_.begin(), chainCosts_.end(),
 			std::ostream_iterator<Float>(logger_.getLogStream(), " "));
 
-	Float mu = std::accumulate(chainCosts_.begin(), chainCosts_.end(), static_cast<Float>(0)) / chainCosts_.size();
-	Float sigma_sq = std::accumulate(chainCosts_.begin(), chainCosts_.end(), static_cast<Float>(0), _1 + (_2 - mu) * (_2 - mu)) / chainCosts_.size();
+	Float mu = std::accumulate(
+			chainCosts_.begin(),
+			chainCosts_.end(),
+			static_cast<Float>(0)
+		) / chainCosts_.size();
+	Float sigma_sq = std::accumulate(
+			chainCosts_.begin(),
+			chainCosts_.end(),
+			static_cast<Float>(0),
+			_1 + (_2 - mu) * (_2 - mu)
+		) / chainCosts_.size();
 	lastTemperature_ = temperature_;
 	temperature_ /= 1 + temperature_ * log(1 + delta_) / (3 * sqrt(sigma_sq));
 	chainCosts_.front() = chainCosts_.back();
@@ -142,4 +149,3 @@ void AartsLaarhovenSchedule::startNextChain() {
 	muBuffer_.push_back(mu);
 	stepsInChain_ = 0;
 }
-

@@ -20,10 +20,9 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
-#include "LocalBeamSearch.h"
-//#include "MetropolisHastingsSampler.h"
 #include "SearchAlgorithm.h"
+
+#include "LocalBeamSearch.h"
 #include "SimulatedAnnealing.h"
 
 SearchAlgorithm *SearchAlgorithm::createSearchAlgorithm(const std::string &algo,

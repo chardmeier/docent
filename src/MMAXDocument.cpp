@@ -20,8 +20,6 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
-
 #include "MMAXDocument.h"
 
 #include <boost/algorithm/string/replace.hpp>
@@ -392,7 +390,7 @@ MarkableLevel::MarkableLevel(const MMAXDocument &mmax, const std::string &name, 
 			}
 
 			if(start == 0 || end == 0) {
-				LOG(logger_, error, file << ": " << id << 
+				LOG(logger_, error, file << ": " << id <<
 					": Word numbering must be 1-based.");
 				BOOST_THROW_EXCEPTION(FileFormatException() << err_info::Filename(file));
 			} else {
