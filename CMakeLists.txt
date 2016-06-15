@@ -181,6 +181,7 @@ add_library(decoder STATIC
 	src/SentenceParityModel.cpp
 	src/SimulatedAnnealing.cpp
 	src/StateGenerator.cpp
+	src/StateOperation.cpp
 	src/TypeTokenRateModel.cpp
 	src/WellFormednessModel.cpp
 )
