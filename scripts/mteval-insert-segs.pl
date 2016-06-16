@@ -22,13 +22,13 @@ ARGV: while (@ARGV) {
 
         , 'update|u'
 
-        , 'help|h|?' => \&usage
+        , 'help|h|?'  => sub { usage() }
         , 'version|V' => sub { print "mteval-insert-segs.pl v$VERSION\n"; exit }
     ) or usage();
     while ((scalar @ARGV) && ($ARGV[0] !~ m{^-.+}x)) {
         if      (! $Opts{srcfile}) {
             $Opts{srcfile} = shift;
-        } elsif (! $Opts{segsfile} && -t) {
+        } elsif ('-' eq $Opts{segsfile} && -t) {
             $Opts{segsfile} = shift;
         } else {
             usage( "excess files on the command line" );
@@ -39,7 +39,7 @@ ARGV: while (@ARGV) {
 eval { require XML::LibXML };
 die "$0: missing Perl dependency: XML::LibXML\n" if $@;
 
-die "$0: source file not specified\n"  unless exists $Opts{srcfile};
+usage( "source file not specified" )  unless exists $Opts{srcfile};
 die "$0: file '$Opts{srcfile}' not found, or empty\n"  unless -s $Opts{srcfile} && ! -d $Opts{srcfile};
 my $input = eval { XML::LibXML->load_xml( location => $Opts{srcfile} ) }
     or die "$0: error parsing '$Opts{srcfile}': $@\n";
@@ -101,7 +101,7 @@ if ($Opts{output} eq '-') {
         or die "$0: unable to write to '$Opts{output}': $!\n";
 }
 binmode $fh;
-print {$fh} $xml->toString(2);
+print {$fh} $xml->toString();
 close $fh;
 
 exit;
@@ -119,8 +119,7 @@ Usage: mteval-insert-segs.pl [OPTIONS] -s SOURCE.xml SEGSMENTSFILE
 NOTE: This script relies on the libxml2 system library and the Perl package
 XML::LibXML.
 
-Mandatory arguments to long options are mandatory for short options too. The
-arguments LANGS must have the form 'SRCLANG-TRGLANG' (either may be 'any').
+Mandatory arguments to long options are mandatory for short options too.
   -o, --output FILE  name of the file to which the XML result is written
   -u, --update       write
 
