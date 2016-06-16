@@ -22,7 +22,6 @@
 
 #include "Docent.h"
 #include "DocumentState.h"
-#include "FeatureFunction.h"
 #include "SearchStep.h"
 #include "ConsistencyQModelPhrase.h"
 
@@ -32,7 +31,8 @@
 
 using namespace std;
 
-struct QCount {
+struct QCount
+{
 	QCount() : freq(0), sSpread(0), tSpread(0) {}
 
 	QCount& operator++ () {
@@ -67,7 +67,8 @@ struct QCount {
 };
 
 
-struct PhraseMap {
+struct PhraseMap
+{
 	typedef std::map<Phrase,QCount> PhraseScore_;
 	typedef std::map<Phrase,PhraseScore_> PhrasePairMap_;
 
@@ -103,10 +104,10 @@ struct PhraseMap {
 	float scoreAll(const PhraseMap& pm) const {
 		float score = 0;
 		float numPhrases = 0;
-		for (PhrasePairMap_::const_iterator it1=pMap.begin() ; it1 != pMap.end(); it1++ ) {
+		for(PhrasePairMap_::const_iterator it1=pMap.begin() ; it1 != pMap.end(); it1++ ) {
 			//q-VALUE = TPF / (TpS + SpT)
 			PhraseScore_ ps = it1->second;
-			for (PhraseScore_::const_iterator it2=ps.begin() ; it2 != ps.end(); it2++ ) {
+			for(PhraseScore_::const_iterator it2=ps.begin() ; it2 != ps.end(); it2++ ) {
 				//weight the score by the number of occurences of the phrase pair
 				float newScore = it2->second.freq * it2->second.freq/(it1->second.size() + pm.getPhraseSpread(it2->first));
 				score += newScore;
@@ -192,17 +193,22 @@ FeatureFunction::StateModifications
 	Scores::const_iterator psbegin,
 	Scores::iterator sbegin
 ) const {
-	const ConsistencyQModelPhraseState *prevstate = dynamic_cast<const ConsistencyQModelPhraseState *>(state);
+	const ConsistencyQModelPhraseState *prevstate =
+		dynamic_cast<const ConsistencyQModelPhraseState *>(state);
 	ConsistencyQModelPhraseState *s = prevstate->clone();
 
 	const std::vector<SearchStep::Modification> &mods = step.getModifications();
-	for(std::vector<SearchStep::Modification>::const_iterator it = mods.begin(); it != mods.end(); ++it) {
+	for(std::vector<SearchStep::Modification>::const_iterator
+		it = mods.begin();
+		it != mods.end();
+		++it
+	) {
 		// Do Nothing if it is a swap, since that don't affect this model
-		if (step.getDescription().substr(0,4) != "Swap") {
+		if(step.getDescription().substr(0,4) != "Swap") {
 			PhraseSegmentation::const_iterator from_it = it->from_it;
 			PhraseSegmentation::const_iterator to_it = it->to_it;
 
-			for (PhraseSegmentation::const_iterator pit=from_it; pit != to_it; pit++) {
+			for(PhraseSegmentation::const_iterator pit=from_it; pit != to_it; pit++) {
 				s->removePhrasePair(*pit);
 			}
 

@@ -163,15 +163,23 @@ FeatureFunction::StateModifications
 	BracketingModelState *s = prevstate->clone();
 
 	const std::vector<SearchStep::Modification> &mods = step.getModifications();
-	for(std::vector<SearchStep::Modification>::const_iterator it = mods.begin(); it != mods.end(); ++it) {
-		// Do Nothing if it is a swap,s ince that don't affect this model
+	for(std::vector<SearchStep::Modification>::const_iterator
+		it = mods.begin();
+		it != mods.end();
+		++it
+	) {
+		// Do Nothing if it is a swap, since that don't affect this model
 		if (step.getDescription().substr(0,4) == "Swap")
 			continue;
 
 		PhraseSegmentation::const_iterator from_it = it->from_it;
 		PhraseSegmentation::const_iterator to_it = it->to_it;
 
-		for (PhraseSegmentation::const_iterator pit=from_it; pit != to_it; pit++) {
+		for (PhraseSegmentation::const_iterator
+			pit = from_it;
+			pit != to_it;
+			++pit
+		) {
 			BOOST_FOREACH(const std::string &w, pit->second.get().getTargetPhrase().get()) {
 				if (opentaglist.find(w) != opentaglist.end()){
 					s->opentagcount[w]--;
@@ -184,10 +192,10 @@ FeatureFunction::StateModifications
 				}
 				boost::match_results<std::string::const_iterator> result1;
 				boost::match_results<std::string::const_iterator> result2;
-				if (boost::regex_match(w, result2, closetagRE)){
+				if (boost::regex_match(w, result2, closetagRE)) {
 					s->closetagcount[result2[1]]--;
 					LOG(logger_, debug, "removed closing tag " << w << " (" << s->closetagcount[w] << ")");
-				} else if (boost::regex_match(w, result1, opentagRE)){
+				} else if (boost::regex_match(w, result1, opentagRE)) {
 					s->opentagcount[result1[1]]--;
 					LOG(logger_, debug, "removed opening tag " << w << " (" << s->opentagcount[w] << ")");
 				}
@@ -196,21 +204,21 @@ FeatureFunction::StateModifications
 
 		BOOST_FOREACH(const AnchoredPhrasePair &app, it->proposal) {
 			BOOST_FOREACH(const std::string &w, app.second.get().getTargetPhrase().get()) {
-				if (opentaglist.find(w) != opentaglist.end()){
+				if(opentaglist.find(w) != opentaglist.end()){
 					s->opentagcount[w]++;
 					LOG(logger_, debug, "added opening tag " << w << " (" << s->opentagcount[w] << ")");
 				}
 				// TODO: is it OK that tags can be counted as both (opening and closing tag?)
-				if (closetaglist.find(w) != closetaglist.end()){
+				if(closetaglist.find(w) != closetaglist.end()){
 					s->closetagcount[w]++;
 					LOG(logger_, debug, "added closing tag " << w << " (" << s->closetagcount[w] << ")");
 				}
 				boost::match_results<std::string::const_iterator> result1;
 				boost::match_results<std::string::const_iterator> result2;
-				if (boost::regex_match(w, result2, closetagRE)){
+				if(boost::regex_match(w, result2, closetagRE)) {
 					s->closetagcount[result2[1]]++;
 					LOG(logger_, debug, "added closing tag " << w << " (" << s->closetagcount[w] << ")");
-				} else if (boost::regex_match(w, result1, opentagRE)){
+				} else if (boost::regex_match(w, result1, opentagRE)) {
 					s->opentagcount[result1[1]]++;
 					LOG(logger_, debug, "added opening tag " << w << " (" << s->opentagcount[w] << ")");
 				}

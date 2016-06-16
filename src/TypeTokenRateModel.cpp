@@ -127,11 +127,11 @@ FeatureFunction::StateModifications
 		++it
 	) {
 		// Do Nothing if it is a swap,s ince that don't affect this model
-		if (step.getDescription().substr(0,4) != "Swap") {
+		if(step.getDescription().substr(0,4) != "Swap") {
 			PhraseSegmentation::const_iterator from_it = it->from_it;
 			PhraseSegmentation::const_iterator to_it = it->to_it;
 
-			for (PhraseSegmentation::const_iterator pit=from_it; pit != to_it; pit++) {
+			for(PhraseSegmentation::const_iterator pit=from_it; pit != to_it; pit++) {
 				s->removePhrasePair(*pit);
 			}
 

@@ -22,7 +22,6 @@
 
 #include "Docent.h"
 #include "DocumentState.h"
-#include "FeatureFunction.h"
 #include "SearchStep.h"
 #include "ConsistencyQModelWord.h"
 
@@ -33,8 +32,8 @@
 
 using namespace std;
 
-struct QCount {
-
+struct QCount
+{
 	QCount() : freq(0) {}
 
 	QCount& operator++ () {
@@ -64,11 +63,11 @@ struct QCount {
 	}
 
 	uint freq;
-
 };
 
-struct AlignMap {
 
+struct AlignMap
+{
 	typedef std::map<std::string,QCount> AlignScore_;
 	typedef std::map<std::string,AlignScore_> AlignPairMap_;
 
@@ -77,7 +76,6 @@ struct AlignMap {
 	void swap(AlignMap& other) {
 		this->pMap.swap(other.pMap);
 	}
-
 
 	void addAlignPair(const std::string& p1, const std::string& p2) {
 		pMap[p1][p2]++;
@@ -116,13 +114,13 @@ struct AlignMap {
 		}
 		return score/numPairs;
 	}
-
 };
 
 
-
-
-struct ConsistencyQModelWordState : public FeatureFunction::State, public FeatureFunction::StateModifications {
+struct ConsistencyQModelWordState
+:	public FeatureFunction::State,
+	public FeatureFunction::StateModifications
+{
 	ConsistencyQModelWordState(uint nsents) : oldScore(0) {}
 
 	AlignMap s2t;
@@ -173,7 +171,11 @@ struct ConsistencyQModelWordState : public FeatureFunction::State, public Featur
 };
 
 
-FeatureFunction::State *ConsistencyQModelWord::initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
+FeatureFunction::State
+*ConsistencyQModelWord::initDocument(
+	const DocumentState &doc,
+	Scores::iterator sbegin
+) const {
 	const std::vector<PhraseSegmentation> &segs = doc.getPhraseSegmentations();
 
 	ConsistencyQModelWordState *s = new ConsistencyQModelWordState(segs.size());
@@ -188,24 +190,38 @@ FeatureFunction::State *ConsistencyQModelWord::initDocument(const DocumentState 
 	return s;
 }
 
-void ConsistencyQModelWord::computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const {
+void ConsistencyQModelWord::computeSentenceScores(
+	const DocumentState &doc,
+	uint sentno,
+	Scores::iterator sbegin
+) const {
 	*sbegin = Float(0);
 }
 
-FeatureFunction::StateModifications *ConsistencyQModelWord::estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
-																				Scores::const_iterator psbegin, Scores::iterator sbegin) const {
-	const ConsistencyQModelWordState *prevstate = dynamic_cast<const ConsistencyQModelWordState *>(state);
+FeatureFunction::StateModifications
+*ConsistencyQModelWord::estimateScoreUpdate(
+	const DocumentState &doc,
+	const SearchStep &step,
+	const State *state,
+	Scores::const_iterator psbegin,
+	Scores::iterator sbegin
+) const {
+	const ConsistencyQModelWordState *prevstate =
+		dynamic_cast<const ConsistencyQModelWordState *>(state);
 	ConsistencyQModelWordState *s = prevstate->clone();
 
 	const std::vector<SearchStep::Modification> &mods = step.getModifications();
-	for(std::vector<SearchStep::Modification>::const_iterator it = mods.begin(); it != mods.end(); ++it) {
-
+	for(std::vector<SearchStep::Modification>::const_iterator
+		it = mods.begin();
+		it != mods.end();
+		++it
+	) {
 		// Do Nothing if it is a swap,s ince that don't affect this model
-		if (step.getDescription().substr(0,4) != "Swap") {
+		if(step.getDescription().substr(0,4) != "Swap") {
 			PhraseSegmentation::const_iterator from_it = it->from_it;
 			PhraseSegmentation::const_iterator to_it = it->to_it;
 
-			for (PhraseSegmentation::const_iterator pit=from_it; pit != to_it; pit++) {
+			for(PhraseSegmentation::const_iterator pit=from_it; pit != to_it; pit++) {
 				s->removePhrasePair(*pit);
 			}
 
@@ -219,12 +235,23 @@ FeatureFunction::StateModifications *ConsistencyQModelWord::estimateScoreUpdate(
 	return s;
 }
 
-FeatureFunction::StateModifications *ConsistencyQModelWord::updateScore(const DocumentState &doc, const SearchStep &step, const State *state,
-																		FeatureFunction::StateModifications *estmods, Scores::const_iterator psbegin, Scores::iterator estbegin) const {
+FeatureFunction::StateModifications
+*ConsistencyQModelWord::updateScore(
+	const DocumentState &doc,
+	const SearchStep &step,
+	const State *state,
+	FeatureFunction::StateModifications *estmods,
+	Scores::const_iterator psbegin,
+	Scores::iterator estbegin
+) const {
 	return estmods;
 }
 
-FeatureFunction::State *ConsistencyQModelWord::applyStateModifications(FeatureFunction::State *oldState, FeatureFunction::StateModifications *modif) const {
+FeatureFunction::State
+*ConsistencyQModelWord::applyStateModifications(
+	FeatureFunction::State *oldState,
+	FeatureFunction::StateModifications *modif
+) const {
 	ConsistencyQModelWordState *os = dynamic_cast<ConsistencyQModelWordState *>(oldState);
 	ConsistencyQModelWordState *ms = dynamic_cast<ConsistencyQModelWordState *>(modif);
 

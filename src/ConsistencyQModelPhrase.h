@@ -23,6 +23,8 @@
 #ifndef docent_ConsistencyQModelPhrase_h
 #define docent_ConsistencyQModelPhrase_h
 
+#include "FeatureFunction.h"
+
 class ConsistencyQModelPhrase : public FeatureFunction {
 public:
 	ConsistencyQModelPhrase(const Parameters &params) {}

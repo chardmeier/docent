@@ -120,7 +120,11 @@ FeatureFunction::StateModifications
 	OvixModelState *s = prevstate->clone();
 
 	const std::vector<SearchStep::Modification> &mods = step.getModifications();
-	for(std::vector<SearchStep::Modification>::const_iterator it = mods.begin(); it != mods.end(); ++it) {
+	for(std::vector<SearchStep::Modification>::const_iterator
+		it = mods.begin();
+		it != mods.end();
+		++it
+	) {
 		// Do Nothing if it is a swap,s ince that don't affect this model
 		if (step.getDescription().substr(0,4) != "Swap") {
 			PhraseSegmentation::const_iterator from_it = it->from_it;

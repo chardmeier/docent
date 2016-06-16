@@ -27,7 +27,10 @@
 
 #include <boost/lambda/lambda.hpp>
 
-CoolingSchedule *CoolingSchedule::createCoolingSchedule(const Parameters &params) {
+CoolingSchedule
+*CoolingSchedule::createCoolingSchedule(
+	const Parameters &params
+) {
 	std::string s_schedule = params.get<std::string>("schedule");
 
 	CoolingSchedule *schedule;
@@ -44,11 +47,16 @@ CoolingSchedule *CoolingSchedule::createCoolingSchedule(const Parameters &params
 	return schedule;
 }
 
-AartsLaarhovenSchedule::AartsLaarhovenSchedule(const Parameters &params)
-	: logger_("AartsLaarhovenSchedule"),
-	  m1_(0), m2_(0), scoreDecrease_(.0), stepsInChain_(0),
-	  lastScore_(-std::numeric_limits<Float>::infinity()),
-	  temperature_(50) {
+AartsLaarhovenSchedule::AartsLaarhovenSchedule(
+	const Parameters &params
+):	logger_("AartsLaarhovenSchedule"),
+	m1_(0),
+	m2_(0),
+	scoreDecrease_(.0),
+	stepsInChain_(0),
+	lastScore_(-std::numeric_limits<Float>::infinity()),
+	temperature_(50)
+{
 	delta_ = params.get<Float>("aarts-laarhoven:delta", .1);
 	epsilon_ = params.get<Float>("aarts-laarhoven:epsilon", 1e-3);
 	initialAcceptanceRatio_ = params.get<Float>("aarts-laarhoven:initial-acceptance-ratio", .95);
@@ -61,7 +69,8 @@ AartsLaarhovenSchedule::AartsLaarhovenSchedule(const Parameters &params)
 	chainCosts_.reserve(chainLength_);
 }
 
-Float AartsLaarhovenSchedule::getTemperature() const {
+Float AartsLaarhovenSchedule::getTemperature()
+const {
 	return temperature_;
 }
 
@@ -73,15 +82,23 @@ bool AartsLaarhovenSchedule::isDone() const {
 		"; mu1 = " << mu1_ << "; Tlast = " << lastTemperature_);
 
 	if(logger_.loggable(debug))
-		std::copy(muBuffer_.begin(), muBuffer_.end(),
-			std::ostream_iterator<Float>(logger_.getLogStream(), " "));
+		std::copy(
+			muBuffer_.begin(),
+			muBuffer_.end(),
+			std::ostream_iterator<Float>(logger_.getLogStream(), " ")
+		);
 
-	Float q = temperature_ / mu1_ * ((muBuffer_.front() - muBuffer_.back()) / (muBuffer_.size() - 1)) / (lastTemperature_ - temperature_);
+	Float q = temperature_ / mu1_ 
+		* ((muBuffer_.front() - muBuffer_.back()) / (muBuffer_.size() - 1))
+		/ (lastTemperature_ - temperature_);
 	LOG(logger_, debug, "q = " << q);
 	return q < epsilon_;
 }
 
-void AartsLaarhovenSchedule::step(Float score, bool accept) {
+void AartsLaarhovenSchedule::step(
+	Float score,
+	bool accept
+) {
 	if(initSteps_ > 0)
 		adaptInitialTemperature(score);
 	else {
@@ -93,7 +110,9 @@ void AartsLaarhovenSchedule::step(Float score, bool accept) {
 	LOG(logger_, debug, "T:  " << temperature_);
 }
 
-void AartsLaarhovenSchedule::adaptInitialTemperature(Float score) {
+void AartsLaarhovenSchedule::adaptInitialTemperature(
+	Float score
+) {
 	if(score <= IMPOSSIBLE_SCORE)
 		return;
 
@@ -122,12 +141,16 @@ void AartsLaarhovenSchedule::adaptInitialTemperature(Float score) {
 	);
 }
 
-void AartsLaarhovenSchedule::startNextChain() {
+void AartsLaarhovenSchedule::startNextChain()
+{
 	using namespace boost::lambda;
 	LOG(logger_, debug, "chainScores:");
 	if(logger_.loggable(debug))
-		std::copy(chainCosts_.begin(), chainCosts_.end(),
-			std::ostream_iterator<Float>(logger_.getLogStream(), " "));
+		std::copy(
+			chainCosts_.begin(),
+			chainCosts_.end(),
+			std::ostream_iterator<Float>(logger_.getLogStream(), " ")
+		);
 
 	Float mu = std::accumulate(
 			chainCosts_.begin(),
