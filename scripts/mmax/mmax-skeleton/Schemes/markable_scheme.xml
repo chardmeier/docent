@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- Mark-Christoph Mueller, European Media Lab, Heidelberg, Germany (mueller@eml.org) -->
+<annotationscheme>
+	<attribute id="level_markable_type" name="type" text="Type of candidate for coreference resolution (CHUNK/ENAMEX)"  type="freetext">
+		<value id="value_700" name="type"/>
+	</attribute>
+	<attribute id="level_markable_label" name="label" text="Label of candidate for coreference resolution (NP/LOC-ORG-etc)"  type="freetext">
+		<value id="value_800" name="label"/>
+	</attribute>
+	<attribute id="level_markable_sentenceid" name="sentenceid" text="ID of the sentence markable the candidate belongs to"  type="freetext">
+		<value id="value_900" name="sentenceid"/>
+	</attribute>
+	<attribute id="level_markable_lemmata" name="lemmata" text="Lemmata of the candidate token constituents"  type="freetext">
+		<value id="value_1000" name="lemmata"/>
+	</attribute>
+	<attribute id="level_markable_capitalization" name="capitalization" text="Capitalization of the candidate token constituents"  type="freetext">
+		<value id="value_1100" name="capitalization"/>
+	</attribute>
+	<attribute id="level_markable_pos" name="pos" text="PoS of the candidate token constituents"  type="freetext">
+		<value id="value_1200" name="pos"/>
+	</attribute>
+	<attribute id="level_markable_isprenominal" name="isprenominal" text="Whether the coreference resolution candidate is a prenominal modifier"  type="freetext">
+		<value id="value_1300" name="isprenominal"/>
+	</attribute>
+
+	<attribute id="level_markable_semrole" name="semrole" text="The semantic role of the coreference resolution candidate"  type="freetext">
+		<value id="value_1400" name="semrole"/>
+	</attribute>
+
+</annotationscheme>
