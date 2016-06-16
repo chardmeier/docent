@@ -162,6 +162,7 @@ add_library(decoder STATIC
 	src/DecoderConfiguration.cpp
 	src/DocumentState.cpp
 	src/FeatureFunction.cpp
+	src/GappyLanguageModel.cpp
 	src/LocalBeamSearch.cpp
 	src/Logger.cpp
 	src/MMAXDocument.cpp
@@ -177,6 +178,7 @@ add_library(decoder STATIC
 	src/Random.cpp
 	src/SearchAlgorithm.cpp
 	src/SearchStep.cpp
+	src/SemanticSimilarityModel.cpp
 	src/SemanticSpaceLanguageModel.cpp
 	src/SentenceParityModel.cpp
 	src/SimulatedAnnealing.cpp
