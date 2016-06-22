@@ -23,8 +23,10 @@
 #ifndef docent_SelectedPOSLM_h
 #define docent_SelectedPOSLM_h
 
+#include "FeatureFunction.h"
+
 struct SelectedPOSLMFactory {
-  static FeatureFunction *createNgramModel(const Parameters &);
+	static FeatureFunction *createNgramModel(const Parameters &);
 };
 
 #endif

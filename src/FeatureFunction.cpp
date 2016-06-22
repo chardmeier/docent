@@ -21,25 +21,20 @@
  */
 
 #include "FeatureFunction.h"
-#include "NgramModel.h"
 #include "PhraseTable.h"
 #include "SearchStep.h"
-#include "SemanticSpaceLanguageModel.h"
-#include "SentenceParityModel.h"
-#include "ConsistencyQModelPhrase.h"
-#include "ConsistencyQModelWord.h"
-#include "OvixModel.h"
-#include "TypeTokenRateModel.h"
-#include "BleuModel.h"
-#include "BracketingModel.h"
-#include "WellFormednessModel.h"
-/*
-#include "SelectedWordLM.h"
-#include "SelectedPOSLM.h"
-#include "SelectedAnnotationLM.h"
-*/
-#include "GappyLanguageModel.h"
-#include "SemanticSimilarityModel.h"
+#include "models/BleuModel.h"
+#include "models/BracketingModel.h"
+#include "models/ConsistencyQModelPhrase.h"
+#include "models/ConsistencyQModelWord.h"
+#include "models/GappyLanguageModel.h"
+#include "models/NgramModel.h"
+#include "models/OvixModel.h"
+#include "models/SemanticSimilarityModel.h"
+#include "models/SemanticSpaceLanguageModel.h"
+#include "models/SentenceParityModel.h"
+#include "models/TypeTokenRateModel.h"
+#include "models/WellFormednessModel.h"
 
 #include <algorithm>
 #include <limits>
@@ -426,14 +421,6 @@ FeatureFunctionFactory::create(
 		ff = new BracketingModel(params);
 	else if(type == "well-formedness-model")
 		ff = new WellFormednessModel(params);
-	/*
-	else if(type == "selected-word-lm")
-		ff = SelectedWordLMFactory::createNgramModel(params);
-	else if(type == "selected-pos-lm")
-		ff = SelectedPOSLMFactory::createNgramModel(params);
-	else if(type == "selected-annotation-lm")
-		ff = SelectedAnnotationLMFactory::createNgramModel(params);
-	*/
 	else if(type == "gappy-lm")
 		ff = GappyLanguageModelFactory::createNgramModel(params);
 	else if(type == "semantic-similarity-model")

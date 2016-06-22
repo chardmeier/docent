@@ -23,7 +23,7 @@
 #include "Docent.h"
 
 #include "DocumentState.h"
-#include "NgramModel.h"
+#include "models/NgramModel.h"
 #include "PhrasePair.h"
 #include "PiecewiseIterator.h"
 #include "SearchStep.h"

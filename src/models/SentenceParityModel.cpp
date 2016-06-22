@@ -24,7 +24,7 @@
 #include "DocumentState.h"
 #include "FeatureFunction.h"
 #include "SearchStep.h"
-#include "SentenceParityModel.h"
+#include "models/SentenceParityModel.h"
 
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>

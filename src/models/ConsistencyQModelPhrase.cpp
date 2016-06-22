@@ -23,7 +23,7 @@
 #include "Docent.h"
 #include "DocumentState.h"
 #include "SearchStep.h"
-#include "ConsistencyQModelPhrase.h"
+#include "models/ConsistencyQModelPhrase.h"
 
 #include <boost/foreach.hpp>
 

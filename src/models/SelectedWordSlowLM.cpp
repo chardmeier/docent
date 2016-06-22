@@ -22,7 +22,6 @@
 
 #include "SelectedWordSlowLM.h"
 
-#include "Docent.h"
 #include "DocumentState.h"
 #include "SearchStep.h"
 
@@ -35,7 +34,8 @@
 #include "lm/model.hh"
 
 template<class Model>
-class SelectedWordSlowLM : public FeatureFunction {
+class SelectedWordSlowLM
+:	public FeatureFunction {
 	friend class SelectedWordSlowLMFactory;
 
 private:
@@ -50,7 +50,10 @@ private:
 	Model *model_;
 	uint maxWordLength;
 
-	SelectedWordSlowLM(const std::string &file,const Parameters &params);
+	SelectedWordSlowLM(
+		const std::string &file,
+		const Parameters &params
+	);
 	Float scoreNgram(
 		const StateType_ &old_state,
 		lm::WordIndex word,
@@ -207,7 +210,8 @@ SelectedWordSlowLM<M>::~SelectedWordSlowLM() {
 }
 
 template<class M>
-inline Float SelectedWordSlowLM<M>::scoreNgram(
+inline Float
+SelectedWordSlowLM<M>::scoreNgram(
 	const StateType_ &state,
 	lm::WordIndex word,
 	WordState_ &out_state
@@ -283,8 +287,10 @@ FeatureFunction::StateModifications
 	uint lastPos = 0;
 
 	// run through all modifications and check if we need to update the word list
-	const std::vector<SearchStep::Modification> &mods = step.getModifications();
-	std::vector<SearchStep::Modification>::const_iterator it = mods.begin();
+	const std::vector<SearchStep::Modification>
+		&mods = step.getModifications();
+	std::vector<SearchStep::Modification>::const_iterator
+		it = mods.begin();
 	while(it != mods.end()) {
 		PhraseSegmentation::const_iterator from_it = it->from_it;
 		PhraseSegmentation::const_iterator to_it = it->to_it;

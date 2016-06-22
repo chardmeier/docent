@@ -154,38 +154,38 @@ include_directories(
 )
 add_library(decoder STATIC
 	src/BeamSearchAdapter.cpp
-	src/BleuModel.cpp
-	src/BracketingModel.cpp
-	src/ConsistencyQModelPhrase.cpp
-	src/ConsistencyQModelWord.cpp
 	src/CoolingSchedule.cpp
 	src/DecoderConfiguration.cpp
 	src/DocumentState.cpp
 	src/FeatureFunction.cpp
-	src/GappyLanguageModel.cpp
 	src/LocalBeamSearch.cpp
 	src/Logger.cpp
 	src/MMAXDocument.cpp
 	src/NbestStorage.cpp
-	src/NgramModel.cpp
 	src/NistXmlDocument.cpp
 	src/NistXmlRefset.cpp
 	src/NistXmlTestset.cpp
-	src/OvixModel.cpp
 	src/PhrasePair.cpp
 	src/PhrasePairCollection.cpp
 	src/PhraseTable.cpp
 	src/Random.cpp
 	src/SearchAlgorithm.cpp
 	src/SearchStep.cpp
-	src/SemanticSimilarityModel.cpp
-	src/SemanticSpaceLanguageModel.cpp
-	src/SentenceParityModel.cpp
 	src/SimulatedAnnealing.cpp
 	src/StateGenerator.cpp
 	src/StateOperation.cpp
-	src/TypeTokenRateModel.cpp
-	src/WellFormednessModel.cpp
+	src/models/BleuModel.cpp
+	src/models/BracketingModel.cpp
+	src/models/ConsistencyQModelPhrase.cpp
+	src/models/ConsistencyQModelWord.cpp
+	src/models/GappyLanguageModel.cpp
+	src/models/NgramModel.cpp
+	src/models/OvixModel.cpp
+	src/models/SemanticSimilarityModel.cpp
+	src/models/SemanticSpaceLanguageModel.cpp
+	src/models/SentenceParityModel.cpp
+	src/models/TypeTokenRateModel.cpp
+	src/models/WellFormednessModel.cpp
 )
 add_dependencies(decoder
 	stemmer

@@ -24,7 +24,7 @@
 #include "DocumentState.h"
 #include "FeatureFunction.h"
 #include "SearchStep.h"
-#include "BracketingModel.h"
+#include "models/BracketingModel.h"
 
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>

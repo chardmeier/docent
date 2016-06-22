@@ -24,7 +24,7 @@
 #include "DocumentState.h"
 #include "FeatureFunction.h"
 #include "SearchStep.h"
-#include "TypeTokenRateModel.h"
+#include "models/TypeTokenRateModel.h"
 
 #include <boost/foreach.hpp>
 

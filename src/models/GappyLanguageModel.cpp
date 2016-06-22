@@ -30,9 +30,8 @@
  *                                               otherwise: separate token for each link
  */
 
-#include "GappyLanguageModel.h"
+#include "models/GappyLanguageModel.h"
 
-#include "Docent.h"
 #include "DocumentState.h"
 #include "SearchStep.h"
 #include "MMAXDocument.h"

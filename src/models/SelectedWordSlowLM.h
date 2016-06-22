@@ -1,5 +1,5 @@
 /*
- *  GappyLanguageModel.cpp
+ *  SelectedWordSlowLM.cpp
  *
  *  Copyright 2012 by Joerg Tiedemann. All rights reserved.
  *
@@ -20,13 +20,13 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef docent_GappyLanguageModel_h
-#define docent_GappyLanguageModel_h
+#ifndef docent_SelectedWordSlowLM_h
+#define docent_SelectedWordSlowLM_h
 
 #include "FeatureFunction.h"
 
-struct GappyLanguageModelFactory {
-  static FeatureFunction *createNgramModel(const Parameters &);
+struct SelectedWordSlowLMFactory {
+	static FeatureFunction *createNgramModel(const Parameters &);
 };
 
 #endif

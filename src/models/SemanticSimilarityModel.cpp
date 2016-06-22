@@ -20,11 +20,10 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
+#include "models/SemanticSimilarityModel.h"
+
 #include "DocumentState.h"
-#include "FeatureFunction.h"
 #include "SearchStep.h"
-#include "SemanticSimilarityModel.h"
 #include "MMAXDocument.h"
 
 #include <cmath>

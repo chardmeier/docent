@@ -1,4 +1,4 @@
-#include "BleuModel.h"
+#include "models/BleuModel.h"
 
 #include "DocumentState.h"
 #include "NistXmlDocument.h"

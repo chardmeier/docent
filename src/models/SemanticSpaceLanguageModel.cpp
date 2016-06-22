@@ -24,7 +24,7 @@
 
 #include "DocumentState.h"
 #include "SemanticSpace.h"
-#include "SemanticSpaceLanguageModel.h"
+#include "models/SemanticSpaceLanguageModel.h"
 #include "PhrasePair.h"
 #include "PiecewiseIterator.h"
 #include "SearchStep.h"

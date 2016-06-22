@@ -23,6 +23,8 @@
 #ifndef docent_SemanticSimilarityModel_h
 #define docent_SemanticSimilarityModel_h
 
+#include "FeatureFunction.h"
+
 class SemanticSimilarityModel : public FeatureFunction {
 private:
 	mutable Logger logger_;

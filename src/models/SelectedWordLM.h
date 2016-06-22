@@ -23,8 +23,10 @@
 #ifndef docent_SelectedWordLM_h
 #define docent_SelectedWordLM_h
 
+#include "FeatureFunction.h"
+
 struct SelectedWordLMFactory {
-  static FeatureFunction *createNgramModel(const Parameters &);
+	static FeatureFunction *createNgramModel(const Parameters &);
 };
 
 #endif

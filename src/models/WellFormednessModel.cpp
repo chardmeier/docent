@@ -24,7 +24,7 @@
 #include "DocumentState.h"
 #include "FeatureFunction.h"
 #include "SearchStep.h"
-#include "WellFormednessModel.h"
+#include "models/WellFormednessModel.h"
 
 #include <boost/foreach.hpp>
 #include <boost/regex.hpp>

@@ -24,7 +24,7 @@
 #include "DocumentState.h"
 #include "FeatureFunction.h"
 #include "SearchStep.h"
-#include "OvixModel.h"
+#include "models/OvixModel.h"
 
 #include <boost/foreach.hpp>
 

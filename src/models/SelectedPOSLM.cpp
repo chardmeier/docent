@@ -1,5 +1,5 @@
 /*
- *  SelectedWordLM.cpp
+ *  SelectedPOSLM.cpp
  *
  *  Copyright 2012 by Joerg Tiedemann. All rights reserved.
  *
@@ -20,25 +20,27 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
+#include "SelectedPOSLM.h"
+
 #include "DocumentState.h"
-#include "FeatureFunction.h"
 #include "SearchStep.h"
-#include "SelectedWordLM.h"
+#include "MMAXDocument.h"
+
+#include <boost/regex.hpp>
+#include <boost/xpressive/xpressive.hpp>
 
 #include <cmath>
-//#include <fstream>
-//#include <sstream>
 #include <vector>
 
-#include "lm/binary_format.hh"  // from kenlm
+// from kenlm
+#include "lm/binary_format.hh"
 #include "lm/model.hh"
 
+using namespace boost::xpressive;
+
 template<class Model>
-class SelectedWordLM
-: public FeatureFunction
-{
-	friend class SelectedWordLMFactory;
+class SelectedPOSLM : public FeatureFunction {
+	friend class SelectedPOSLMFactory;
 
 private:
 	typedef typename Model::Vocabulary VocabularyType_;
@@ -49,9 +51,12 @@ private:
 
 	mutable Logger logger_;
 	Model *model_;
-	uint minWordLength;
+	std::string selectedPOS;
 
-	SelectedWordLM(
+	bool useRegExPOS;
+	sregex selectedPOSRegEx;
+
+	SelectedPOSLM(
 		const std::string &file,
 		const Parameters &params
 	);
@@ -62,7 +67,7 @@ private:
 	) const;
 
 public:
-	virtual ~SelectedWordLM();
+	virtual ~SelectedPOSLM();
 	virtual State *initDocument(
 		const DocumentState &doc,
 		Scores::iterator sbegin
@@ -99,56 +104,62 @@ public:
 	) const;
 };
 
+/*
+	selected words:
+	- phrNo = position of phrase in target language
+	- wordNo = position of word in current phrase
+	- srcWord = source language word
+	- trgWord = target language word
+	- srcNo = position or source language word in source sentence
+*/
 
-struct SelectedWord {
+struct SelectedWord
+{
 	SelectedWord(
 		uint pn,
 		uint wn,
 		std::string s,
-		std::string t
-	) : srcWord(""),
+		std::string t,
+		uint sn
+	) :	srcWord(""),
 		trgWord(""),
 		phrNo(0),
-		wordNo(0)
+		wordNo(0),
+		srcNo(0)
 	{
 		phrNo = pn;
 		wordNo = wn;
 		srcWord = s;
 		trgWord = t;
+		srcNo = sn;
 	};
-
-	/*
-	SelectedWord(uint pn, std::string t)  :
-		phrNo(0), wordNo(0), srcWord(""), trgWord("")
-	{
-		phrNo = pn;
-		trgWord = t;
-	};
-	*/
 
 	std::string srcWord, trgWord;
-	uint phrNo, wordNo;
+	uint phrNo, wordNo, srcNo;
 };
 
 
-struct SelectedWordLMState
+struct SelectedPOSLMState
 :	public FeatureFunction::State,
 	public FeatureFunction::StateModifications
 {
-	SelectedWordLMState(
+	SelectedPOSLMState(
 		uint nsents
-	) :	logger_("SelectedWordLM"),
+	) :	logger_("SelectedPOSLM"),
 		currentScore(0)
 	{
 		selectedWords.resize(nsents);
+		posTags.resize(nsents);
 	};
 
 	std::vector< std::vector< SelectedWord > > selectedWords;
+	std::vector< std::vector< std::string > > posTags;
 
 	mutable Logger logger_;
 	Float currentScore;
 
-	Float score() {
+	Float score()
+	{
 		return currentScore;
 	};
 
@@ -168,9 +179,8 @@ struct SelectedWordLMState
 		const uint size
 	) {
 		while(history.size() < size) {
-			std::vector<SelectedWord>::const_iterator
-				it = selectedWords[sentNo].end();
-			while(it != selectedWords[sentNo].begin()) {
+			std::vector<SelectedWord>::const_iterator it=selectedWords[sentNo].end();
+			while(it!=selectedWords[sentNo].begin()) {
 				it--;
 				history.push_back(it->trgWord);
 				if(history.size() == size)
@@ -190,8 +200,7 @@ struct SelectedWordLMState
 		const uint stopSentNo,
 		const uint stopPhrNo
 	) {
-		std::vector<SelectedWord>::const_iterator
-			it = selectedWords[sentNo].begin()+idx;
+		std::vector<SelectedWord>::const_iterator it=selectedWords[sentNo].begin()+idx;
 		while(future.size() < size) {
 			while(it != selectedWords[sentNo].end()) {
 				if(sentNo == stopSentNo && it->phrNo == stopPhrNo)
@@ -210,42 +219,61 @@ struct SelectedWordLMState
 		}
 	}
 
-	void ClearWords(const uint sentNo) {
+
+	void ClearWords(
+		const uint sentNo
+	) {
 		selectedWords[sentNo].clear();
 	};
 
 	void CopyWords(
-		const SelectedWordLMState& state,
+		const SelectedPOSLMState& state,
 		const uint sentno,
 		const uint start,
 		const uint end,
 		const int diff
 	) {
-		for(uint i = 0; i < state.selectedWords[sentno].size(); ++i) {
+		for(uint i=0; i<state.selectedWords[sentno].size(); i++) {
 			if(state.selectedWords[sentno][i].phrNo >= start) {
 				if(state.selectedWords[sentno][i].phrNo < end) {
 					selectedWords[sentno].push_back(state.selectedWords[sentno][i]);
-					if(diff != 0)
+					if(diff != 0) {
 						selectedWords[sentno][selectedWords[sentno].size()-1].phrNo += diff;
+					}
 				}
 			}
 		}
 	};
 
+	void AddPosTag(
+		const uint sentno,
+		const uint wordno,
+		const std::string& pos
+	) {
+		posTags[sentno].push_back(pos);
+	}
+
 	uint AddWord(
 		const uint sentno,
 		const uint phrno,
 		const AnchoredPhrasePair &app,
-		const uint minLength
+		const std::string pos,
+		const bool useRE,
+		const sregex posRE
 	) {
 		WordAlignment wa = app.second.get().getWordAlignment();
 		PhraseData sd = app.second.get().getSourcePhrase().get();
 		PhraseData td = app.second.get().getTargetPhrase().get();
 
+		uint wordno = app.first.find_first();
+		smatch what;
+
 		uint addCount=0;
-		for(uint j=0; j<sd.size(); ++j) {
-			// just for testing: words longer than 5 characters .... (should use some other criteria here!)
-			if((minLength==0) || (sd[j].size() >= minLength)) {
+		for(uint j = 0; j < sd.size(); ++j) {
+			// TODO: we could support other conditions here as well!
+			if(posTags[sentno][wordno] == pos
+				|| (useRE && regex_match(posTags[sentno][wordno], what, posRE))
+			) {
 				for(WordAlignment::const_iterator
 					wit = wa.begin_for_source(j);
 					wit != wa.end_for_source(j);
@@ -255,33 +283,35 @@ struct SelectedWordLMState
 						phrno,
 						*wit,
 						sd[j],
-						td[*wit]
+						td[*wit],
+						wordno
 					);
 					selectedWords[sentno].push_back(word);
 					addCount++;
-					// LOG(logger_, debug, "add word " << td[*wit] << " aligned to " << sd[j]);
+					LOG(logger_, debug, "add word " << td[*wit] << " aligned to " << sd[j]);
 				}
 			}
+			wordno++;
 		}
 		return addCount;
 	};
 
-	virtual SelectedWordLMState *clone() const {
-		return new SelectedWordLMState(*this);
+	virtual SelectedPOSLMState *clone()
+	const {
+		return new SelectedPOSLMState(*this);
 	}
 };
 
 
 FeatureFunction
-*SelectedWordLMFactory::createNgramModel(
+*SelectedPOSLMFactory::createNgramModel(
 	const Parameters &params
 ) {
 	std::string file = params.get<std::string>("lm-file");
 	lm::ngram::ModelType mtype;
 
 	std::string smtype = params.get<std::string>("model-type", "");
-
-	Logger logger("SelectedWordLM");
+	Logger logger("SelectedPOSLM");
 
 	if(!lm::ngram::RecognizeBinary(file.c_str(), mtype)) {
 		if(smtype.empty() || smtype == "hash-probing")
@@ -291,27 +321,23 @@ FeatureFunction
 		else if(smtype == "quant-trie-sorted")
 			mtype = lm::ngram::QUANT_TRIE_SORTED;
 		else {
-			LOG(logger, error, "Unsupported LM type " << smtype <<
-				" for file " << file);
+			LOG(logger, error, "Unsupported LM type " << smtype << " for file " << file);
 		}
 	}
 
 	switch(mtype) {
 	case lm::ngram::HASH_PROBING:
 		if(!smtype.empty() && smtype != "hash-probing")
-			LOG(logger, error, "Incorrect LM type in configuration "
-				"for file " << file);
-
-		return new SelectedWordLM<lm::ngram::ProbingModel>(file,params);
+			LOG(logger, error, "Incorrect LM type in configuration for file " << file);
+		return new SelectedPOSLM<lm::ngram::ProbingModel>(file,params);
 	case lm::ngram::TRIE_SORTED:
 		if(!smtype.empty() && smtype != "trie-sorted")
 			LOG(logger, error, "Incorrect LM type in configuration for file " << file);
-		return new SelectedWordLM<lm::ngram::TrieModel>(file,params);
+		return new SelectedPOSLM<lm::ngram::TrieModel>(file,params);
 	case lm::ngram::QUANT_ARRAY_TRIE:
 		if(!smtype.empty() && smtype != "quant-trie-sorted")
 			LOG(logger, error, "Incorrect LM type in configuration for file " << file);
-
-		return new SelectedWordLM<lm::ngram::QuantArrayTrieModel>(file,params);
+		return new SelectedPOSLM<lm::ngram::QuantArrayTrieModel>(file,params);
 	default:
 		LOG(logger, error, "Unsupported LM type for file " << file);
 		BOOST_THROW_EXCEPTION(FileFormatException());
@@ -320,23 +346,30 @@ FeatureFunction
 
 
 template<class Model>
-SelectedWordLM<Model>::SelectedWordLM(
+SelectedPOSLM<Model>::SelectedPOSLM(
 	const std::string &file,
 	const Parameters &params
-) : logger_("SelectedWordLM") {
+) :	logger_("SelectedPOSLM")
+{
 	model_ = new Model(file.c_str());
-	minWordLength = params.get<uint>("min-word-length");
-
+	selectedPOS = params.get<std::string>("selected-pos","");
+	useRegExPOS = false;
+	if(selectedPOS.empty()) {
+		selectedPOS = params.get<std::string>("selected-pos-regex","");
+		useRegExPOS = true;
+		selectedPOSRegEx = sregex::compile(selectedPOS);
+	}
 }
 
 template<class M>
-SelectedWordLM<M>::~SelectedWordLM() {
+SelectedPOSLM<M>::~SelectedPOSLM()
+{
 	delete model_;
 }
 
 template<class M>
 inline Float
-SelectedWordLM<M>::scoreNgram(
+SelectedPOSLM<M>::scoreNgram(
 	const StateType_ &state,
 	lm::WordIndex word,
 	WordState_ &out_state
@@ -350,17 +383,38 @@ SelectedWordLM<M>::scoreNgram(
 
 template<class M>
 FeatureFunction::State
-*SelectedWordLM<M>::initDocument(
+*SelectedPOSLM<M>::initDocument(
 	const DocumentState &doc,
 	Scores::iterator sbegin
 ) const {
 	const std::vector<PhraseSegmentation> &segs = doc.getPhraseSegmentations();
-	SelectedWordLMState *s = new SelectedWordLMState(segs.size());
+
+	boost::shared_ptr<const MMAXDocument> mmax = doc.getInputDocument();
+	const MarkableLevel &posLevel = mmax->getMarkableLevel("pos");
+
+	SelectedPOSLMState *s = new SelectedPOSLMState(segs.size());
+
+	// save all POS tags in the document state
+	BOOST_FOREACH(const Markable &m, posLevel) {
+		uint snt = m.getSentence();
+		const std::string &postag = m.getAttribute("tag");
+		const CoverageBitmap &cov = m.getCoverage();
+		uint wordno = cov.find_first();
+		s->AddPosTag(snt, wordno, postag);
+		LOG(logger_, debug, "POS tag for " << wordno << " in sent " << snt << " = " << postag);
+	}
 
 	for(uint i = 0; i < segs.size(); i++) {
 		uint phrCount=0;
 		BOOST_FOREACH(const AnchoredPhrasePair &app, segs[i]) {
-			s->AddWord(i, phrCount, app, minWordLength);
+			s->AddWord(
+				i,
+				phrCount,
+				app,
+				selectedPOS,
+				useRegExPOS,
+				selectedPOSRegEx
+			);
 			phrCount++;
 		}
 	}
@@ -368,6 +422,9 @@ FeatureFunction::State
 	StateType_ state(model_->BeginSentenceState()), out_state;
 	const VocabularyType_ &vocab = model_->GetVocabulary();
 
+	// TODO: should we only score one aligned word per source word?
+	// (we could use srcNo in selectedWord - would that be sound?)
+	// --> this would make the code much more complicated, especially down in score-update functions!
 	Float score;
 	for(uint i = 0; i != s->selectedWords.size(); ++i) {
 		for(uint j = 0; j != s->selectedWords[i].size(); ++j) {
@@ -385,7 +442,7 @@ FeatureFunction::State
 
 
 template<class M>
-void SelectedWordLM<M>::computeSentenceScores(
+void SelectedPOSLM<M>::computeSentenceScores(
 	const DocumentState &doc,
 	uint sentno,
 	Scores::iterator sbegin
@@ -398,15 +455,15 @@ void SelectedWordLM<M>::computeSentenceScores(
 
 template<class M>
 FeatureFunction::StateModifications
-*SelectedWordLM<M>::estimateScoreUpdate(
+*SelectedPOSLM<M>::estimateScoreUpdate(
 	const DocumentState &doc,
 	const SearchStep &step,
 	const State *state,
 	Scores::const_iterator psbegin,
 	Scores::iterator sbegin
 ) const {
-	const SelectedWordLMState *prevstate = dynamic_cast<const SelectedWordLMState *>(state);
-	SelectedWordLMState *s = prevstate->clone();
+	const SelectedPOSLMState *prevstate = dynamic_cast<const SelectedPOSLMState *>(state);
+	SelectedPOSLMState *s = prevstate->clone();
 
 	bool firstSent = true;
 	uint sentNo = 0;
@@ -424,45 +481,31 @@ FeatureFunction::StateModifications
 	StateType_ out_state;
 
 	// run through all modifications and check if we need to update the word list
-	const std::vector<SearchStep::Modification>
-		&mods = step.getModifications();
-	std::vector<SearchStep::Modification>::const_iterator
-		it = mods.begin();
-	while(it != mods.end()) {
+	const std::vector<SearchStep::Modification> &mods = step.getModifications();
+	std::vector<SearchStep::Modification>::const_iterator it = mods.begin();
+	while(it!=mods.end()) {
 		PhraseSegmentation::const_iterator from_it = it->from_it;
 		PhraseSegmentation::const_iterator to_it = it->to_it;
 
 		const PhraseSegmentation &current = doc.getPhraseSegmentation(it->sentno);
-		phrNo = std::distance(
-			current.begin(),
-			from_it
-		);
+		phrNo = std::distance(current.begin(), from_it);
 
 		if(firstSent || (sentNo != it->sentno)) {
 			sentNo = it->sentno;
 			firstSent = false;
 
 			LOG(logger_, debug, "word list before: " << s->GetWords(sentNo));
+
 			phrNoDiff = 0;
 
 			// start from scratch:
 			// copy words from all phrases before the current modification
 			s->ClearWords(sentNo);
-			s->CopyWords(
-				*prevstate,
-				sentNo,
-				0,
-				phrNo,
-				phrNoDiff
-			);
+			s->CopyWords(*prevstate,sentNo,0,phrNo,phrNoDiff);
 
 			// get the LM history before the modification (initialize LM states)
 			std::vector<std::string> history;
-			s->GetHistory(
-				history,
-				sentNo,
-				lmOrder-1
-			);
+			s->GetHistory(history,sentNo,lmOrder-1);
 
 			if(history.size() < lmOrder-1) {
 				// TODO: Do we need begin-of-sentence?
@@ -475,11 +518,7 @@ FeatureFunction::StateModifications
 
 			while(!history.empty()) {
 				// TODO: change state without scoring
-				model_->Score(
-					add_state,
-					vocab.Index(history.back()),
-					out_state
-				);
+				model_->Score(add_state,vocab.Index(history.back()),out_state);
 				add_state = out_state;
 				history.pop_back();
 			}
@@ -500,11 +539,7 @@ FeatureFunction::StateModifications
 			uint phr = std::distance(current.begin(), pit);
 
 			if(prevstate->selectedWords[sentNo].size() > 0) {
-				for(uint
-					i = 0;
-					i < prevstate->selectedWords[sentNo].size();
-					++i
-				) {
+				for(uint i=0; i<prevstate->selectedWords[sentNo].size(); i++) {
 					if(prevstate->selectedWords[sentNo][i].phrNo > phr)
 						break;
 					if(prevstate->selectedWords[sentNo][i].phrNo == phr) {
@@ -533,7 +568,14 @@ FeatureFunction::StateModifications
 		uint modLength = 0;
 		BOOST_FOREACH(const AnchoredPhrasePair &app, it->proposal) {
 			uint newPhrNo = phrNo+modLength+phrNoDiff;
-			uint added = s->AddWord(sentNo, newPhrNo, app, minWordLength);
+			uint added = s->AddWord(
+				sentNo,
+				newPhrNo,
+				app,
+				selectedPOS,
+				useRegExPOS,
+				selectedPOSRegEx
+			);
 			for(uint
 				j = s->selectedWords[sentNo].size() - added;
 				j < s->selectedWords[sentNo].size();
@@ -547,8 +589,7 @@ FeatureFunction::StateModifications
 				s->currentScore += score;
 				add_state = out_state;
 				LOG(logger_, debug, "(b) add score for "
-					<<  s->selectedWords[sentNo][j].trgWord
-					<< " (" << score << ")"
+					<<  s->selectedWords[sentNo][j].trgWord << " (" << score << ")"
 				);
 			}
 			modLength++;
@@ -564,18 +605,12 @@ FeatureFunction::StateModifications
 		it++;
 		uint currentSentNo = sentNo;
 		uint nextModSentNo = docSize-1;
-		uint nextModFrom = std::distance(
-			segs[segs.size()-1].begin(),
-			segs[segs.size()-1].end()
-		);
+		uint nextModFrom = std::distance(segs[segs.size()-1].begin(), segs[segs.size()-1].end());
 
-		if(it!=mods.end()) {
+		if(it != mods.end()) {
 			const PhraseSegmentation &next = doc.getPhraseSegmentation(it->sentno);
 			nextModSentNo = it->sentno;
-			nextModFrom = std::distance(
-				next.begin(),
-				it->from_it
-			);
+			nextModFrom = std::distance(next.begin(), it->from_it);
 		}
 
 		// don't forget to copy remaining selected words in currentSentNo!
@@ -606,14 +641,7 @@ FeatureFunction::StateModifications
 		// run through more context words as needed by LM until next modification point or end of document
 
 		std::vector<std::string> future;
-		s->GetFuture(
-			future,
-			sentNo,
-			wordIdx,
-			lmOrder-1,
-			nextModSentNo,
-			nextModFrom
-		);
+		s->GetFuture(future,sentNo,wordIdx,lmOrder-1,nextModSentNo,nextModFrom);
 
 		for(std::vector<std::string>::const_iterator
 			it = future.begin();
@@ -670,11 +698,7 @@ FeatureFunction::StateModifications
 		Float score;
 		for(uint i = 0; i < s->selectedWords.size(); ++i) {
 			for(uint j = 0; j < s->selectedWords[i].size(); ++j) {
-				score += model_->Score(
-					in_state,
-					vocab.Index(s->selectedWords[i][j].trgWord),
-					out_state
-				);
+				score += model_->Score(in_state,vocab.Index(s->selectedWords[i][j].trgWord),out_state);
 				in_state = out_state;
 			}
 		}
@@ -682,7 +706,6 @@ FeatureFunction::StateModifications
 			LOG(logger_, debug, "score difference: " << s->currentScore << " != " << score);
 	}
 	////////////////////////////////////////////////////////
-
 
 	LOG(logger_, debug, "new LM score " << s->currentScore);
 	*sbegin = s->score();
@@ -692,7 +715,7 @@ FeatureFunction::StateModifications
 
 template<class M>
 FeatureFunction::StateModifications
-*SelectedWordLM<M>::updateScore(
+*SelectedPOSLM<M>::updateScore(
 	const DocumentState &doc,
 	const SearchStep &step,
 	const State *state,
@@ -705,15 +728,14 @@ FeatureFunction::StateModifications
 
 template<class M>
 FeatureFunction::State
-*SelectedWordLM<M>::applyStateModifications(
+*SelectedPOSLM<M>::applyStateModifications(
 	FeatureFunction::State *oldState,
 	FeatureFunction::StateModifications *modif
 ) const {
-	SelectedWordLMState *os = dynamic_cast<SelectedWordLMState *>(oldState);
-	SelectedWordLMState *ms = dynamic_cast<SelectedWordLMState *>(modif);
+	SelectedPOSLMState *os = dynamic_cast<SelectedPOSLMState *>(oldState);
+	SelectedPOSLMState *ms = dynamic_cast<SelectedPOSLMState *>(modif);
 
 	os->currentScore = ms->currentScore;
 	os->selectedWords.swap(ms->selectedWords);
-
 	return oldState;
 }
