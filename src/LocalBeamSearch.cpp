@@ -35,15 +35,21 @@
 #include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
 
-struct LocalBeamSearchState : public SearchState {
+struct LocalBeamSearchState
+:	public SearchState
+{
 	NbestStorage beam;
 	uint rejected;
 	uint nsteps;
+	bool aborted;
 
 	LocalBeamSearchState(
 		boost::shared_ptr<DocumentState> doc,
 		uint beamSize
-	) :	beam(beamSize), rejected(0), nsteps(0)
+	) :	beam(beamSize),
+		rejected(0),
+		nsteps(0),
+		aborted(false)
 	{
 		beam.offer(doc);
 	}
@@ -88,8 +94,9 @@ void LocalBeamSearch::search(
 	uint accepted = 0;
 	uint i = 0;
 	while(
-		state.rejected < maxRejected_
+		!state.aborted
 		&& i < maxSteps
+		&& state.rejected < maxRejected_
 		&& state.nsteps < totalMaxSteps_
 		&& accepted < maxAccepted
 		&& nbest.getBestScore() < targetScore_
@@ -97,6 +104,10 @@ void LocalBeamSearch::search(
 		AcceptanceDecision accept(state.beam.getLowestScore());
 		boost::shared_ptr<DocumentState> doc = state.beam.pickRandom(random_);
 		SearchStep *step = generator_.createSearchStep(*doc);
+		if(step == NULL) {
+			state.aborted = true;
+			break;
+		}
 		doc->registerAttemptedMove(step);
 		if(step->isProvisionallyAcceptable(accept)) {
 			if(accept(step->getScore())) {
@@ -123,8 +134,7 @@ void LocalBeamSearch::search(
 	}
 
 	if(state.rejected >= maxRejected_)
-		LOG(logger_, normal, "Maximum number of rejections ("
-			<< maxRejected_ << ") reached.");
+		LOG(logger_, normal, "Maximum number of rejections (" << maxRejected_ << ") reached.");
 
 	if(i > maxSteps)
 		LOG(logger_, normal, "Search interrupted.");
@@ -146,8 +156,11 @@ void LocalBeamSearch::search(
 		const boost::shared_ptr<DocumentState> &doc = *beamit;
 		DocumentState::MoveCounts::const_iterator it = doc->getMoveCounts().begin();
 		while(it != doc->getMoveCounts().end()) {
-			LOG(logger_, normal, it->second.first << '\t' << it->second.second << '\t'
-				<< it->first->getDescription());
+			LOG(logger_, normal,
+				   it->second.first
+				<< '\t' << it->second.second
+				<< '\t' << it->first->getDescription()
+			);
 			++it;
 		}
 	}

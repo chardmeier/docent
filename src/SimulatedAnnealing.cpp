@@ -32,15 +32,20 @@
 
 #include <limits>
 
-struct SimulatedAnnealingSearchState : public SearchState {
+struct SimulatedAnnealingSearchState
+:	public SearchState
+{
 	boost::shared_ptr<DocumentState> document;
 	CoolingSchedule *schedule;
 	uint nsteps;
+	bool aborted;
 
 	SimulatedAnnealingSearchState(
 		boost::shared_ptr<DocumentState> doc,
 		const Parameters &params
-	) :	document(doc), nsteps(0)
+	) :	document(doc),
+		nsteps(0),
+		aborted(false)
 	{
 		schedule = CoolingSchedule::createCoolingSchedule(params);
 	}
@@ -76,7 +81,8 @@ void SimulatedAnnealing::search(
 	uint maxSteps,
 	uint maxAccepted
 ) const {
-	SimulatedAnnealingSearchState &state = dynamic_cast<SimulatedAnnealingSearchState &>(*sstate);
+	SimulatedAnnealingSearchState
+		&state = dynamic_cast<SimulatedAnnealingSearchState &>(*sstate);
 
 	LOG(logger_, debug, *state.document);
 
@@ -84,8 +90,11 @@ void SimulatedAnnealing::search(
 
 	uint accepted = 0;
 	uint i = 0;
-	while(!state.schedule->isDone()
-		&& i < maxSteps && state.nsteps < totalMaxSteps_
+	while(
+		!state.aborted
+		&& !state.schedule->isDone()
+		&& i < maxSteps
+		&& state.nsteps < totalMaxSteps_
 		&& accepted < maxAccepted
 		&& nbest.getBestScore() < targetScore_
 	) {
@@ -95,6 +104,10 @@ void SimulatedAnnealing::search(
 			state.document->getScore()
 		);
 		SearchStep *step = generator_.createSearchStep(*state.document);
+		if(step == NULL) {
+			state.aborted = true;
+			break;
+		}
 		state.document->registerAttemptedMove(step);
 		if(step->isProvisionallyAcceptable(accept)) {
 			if(accept(step->getScore())) {
@@ -105,8 +118,8 @@ void SimulatedAnnealing::search(
 				nbest.offer(state.document);
 				accepted++;
 			} else {
-				LOG(logger_, debug, "Discarding.");
 				state.schedule->step(step->getScore(), false);
+				LOG(logger_, debug, "Discarding.");
 				delete step;
 			}
 		} else {
@@ -117,6 +130,9 @@ void SimulatedAnnealing::search(
 		i++;
 		state.nsteps++;
 	}
+
+	if(state.aborted)
+		LOG(logger_, normal, "Document search aborted.");
 
 	if(state.schedule->isDone())
 		LOG(logger_, normal, "End of cooling schedule reached.");
