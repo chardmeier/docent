@@ -35,25 +35,48 @@ class SearchStep;
 
 class StateOperation {
 protected:
-	const std::vector<boost::shared_ptr<const PhrasePairCollection> > &getPhraseTranslations(const DocumentState &doc) const {
+	const std::vector<boost::shared_ptr<const PhrasePairCollection> >
+	&getPhraseTranslations(
+		const DocumentState &doc
+	) const {
 		return doc.phraseTranslations_;
 	}
 
-	const std::vector<FeatureFunction::State *> &getFeatureStates(const DocumentState &doc) const {
+	const std::vector<FeatureFunction::State *>
+	&getFeatureStates(
+		const DocumentState &doc
+	) const {
 		return doc.featureStates_;
 	}
 
 public:
 	virtual ~StateOperation() {}
+
+	/**
+	 * Returns a string with the name of the child class,
+	 * possibly complemented with configuration details.
+	 */
 	virtual std::string getDescription() const = 0;
-	virtual SearchStep *createSearchStep(const DocumentState &doc) const = 0;
+
+	/**
+	 * Returns NULL if it is recognized that the operation, for whichever reason
+	 * (e.g. the current random value) does not yield a meaningful new result this time.
+	 * The caller is welcome, however, to ask for a result again in a future iteration.
+	 */
+	virtual SearchStep
+	*createSearchStep(
+		const DocumentState &doc
+	) const = 0;
 };
 
 struct StateInitialiser {
 	virtual ~StateInitialiser() {}
 	virtual PhraseSegmentation initSegmentation(
 		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
-		const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const = 0;
+		const std::vector<Word> &sentence,
+		int documentNumber,
+		int sentenceNumber
+	) const = 0;
 };
 
 struct ChangePhraseTranslationOperation : public StateOperation {
