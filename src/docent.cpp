@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 			if(i + 1 >= argc)
 				usage();
 			Logger::setLogLevel(argv[++i], debug);
-		} else if
+		} else
 			args.push_back(argv[i]);
 	}
 
