@@ -39,7 +39,6 @@
 #include "MMAXDocument.h"
 #include "NbestStorage.h"
 #include "NistXmlTestset.h"
-#include "SimulatedAnnealing.h"
 
 class DocumentDecoder {
 private:

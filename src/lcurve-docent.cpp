@@ -37,9 +37,16 @@
 #include "MMAXDocument.h"
 #include "NbestStorage.h"
 #include "NistXmlTestset.h"
-#include "SimulatedAnnealing.h"
+#include "SearchAlgorithm.h"
 
-void usage();
+void usage() {
+	std::cerr << "Usage: lcurve-docent [-s xpath value] [-r xpath]"
+		" [--dumpstates] [-d moduleToDebug]"
+		" [-pf stateFileInitialisation] [-pl stateFileLast]"
+		" {-n input.xml | -m input.mmaxdir input.xml}"
+		" config.xml outstem" << std::endl;
+	exit(1);
+}
 
 template<class Testset>
 class SingleDocumentTestset {
@@ -94,18 +101,19 @@ void processTestset(
 	Testset &testset,
 	const std::string &outstem,
 	bool dumpStates,
-	const std::string& firstStateFilename,
-	const std::string& lastStateFilename
+	const std::string &firstStateFilename,
+	const std::string &lastStateFilename
 );
 std::string formatWordAlignment(const PhraseSegmentation &snt);
 
 void printState(
-	const std::string& filename,
-	const std::vector<std::vector<PhraseSegmentation> >& state
+	const std::string &filename,
+	const std::vector<std::vector<PhraseSegmentation> > &state
 );
 
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
 	std::vector<std::string> args;
 	typedef std::pair<std::string,std::string> ModificationPair;
 	std::vector<ModificationPair> xpset;
@@ -147,30 +155,30 @@ int main(int argc, char **argv) {
 		} else if(strcmp(argv[i], "-pf") == 0) {
 			if(i >= argc - 1)
 				usage();
-			 firstStateFilename = argv[++i];
+			firstStateFilename = argv[++i];
 		} else if(strcmp(argv[i], "-pl") == 0) {
 			if(i >= argc - 1)
 				usage();
-			 lastStateFilename = argv[++i];
-		} else if(strcmp(argv[i], "--dumpstates") == 0)
+			lastStateFilename = argv[++i];
+		} else if(strcmp(argv[i], "--dumpstates") == 0) {
 			dumpstates = true;
-		else
+		} else {
 			args.push_back(argv[i]);
+		}
 	}
 
 	if(nistxml.empty() || args.size() != 2)
 		usage();
 
 	const std::string &configFile = args[0];
-	const std::string &outstem = args[1];
 
 	ConfigurationFile config(configFile);
-
 	BOOST_FOREACH(const ModificationPair &m, xpset)
 		config.modifyNodes(m.first, m.second);
 	BOOST_FOREACH(const std::string &m, xpremove)
 		config.removeNodes(m);
 
+	const std::string &outstem = args[1];
 	if(!mmax.empty()) {
 		MMAXTestset testset(mmax, nistxml);
 		if(translateSingleDocument) {
@@ -189,14 +197,6 @@ int main(int argc, char **argv) {
 	return 0;
 }
 
-
-void usage() {
-	std::cerr << "Usage: lcurve-docent [-s xpath value] [-r xpath] "
-		"[--dumpstates]  [-pf stateFileInitialisation] [-pl stateFileLast] "
-		"{-n input.xml | -m input.mmaxdir input.xml} "
-			"config.xml outstem" << std::endl;
-	exit(1);
-}
 
 template<class Testset>
 void processTestset(
@@ -224,14 +224,14 @@ void processTestset(
 			std::cerr << "* " << docNum << "\t0\t" << doc->getScore() << std::endl;
 
 			PlainTextDocument ptout = doc->asPlainTextDocument();
-			for(uint j = 0; j < ptout.getNumberOfSentences(); j++) {
+			for(uint sentNr = 0; sentNr < ptout.getNumberOfSentences(); sentNr++) {
 				std::ostringstream os;
-				Scores sntscores = doc->computeSentenceScores(j);
+				Scores sntscores = doc->computeSentenceScores(sentNr);
 				os << std::inner_product(sntscores.begin(), sntscores.end(),
 					config.getFeatureWeights().begin(), Float(0))
 					<< " - " << sntscores
-					<< " - " << formatWordAlignment(doc->getPhraseSegmentation(j));
-				inputdocs[docNum]->annotateSentence(j, os.str());
+					<< " - " << formatWordAlignment(doc->getPhraseSegmentation(sentNr));
+				inputdocs[docNum]->annotateSentence(sentNr, os.str());
 			}
 			std::ostringstream tos;
 			tos << doc->getScore() << " - " << doc->getScores();
@@ -246,7 +246,7 @@ void processTestset(
 		of.close();
 
 		// Print the state after initialization if asked for
-		if (!firstStateFilename.empty()) {
+		if(!firstStateFilename.empty()) {
 			std::vector<std::vector<PhraseSegmentation> > state;
 			for(uint i = 0; i < states.size(); i++) {
 				state.push_back(states[i]->getLastDocumentState()->getPhraseSegmentations());
@@ -258,17 +258,22 @@ void processTestset(
 		std::vector<NbestStorage> nbest(inputdocs.size(), NbestStorage(1));
 
 		for(uint steps = 256; steps <= 134217728; steps *= 2) {
-			for(uint i = 0; i < inputdocs.size(); i++) {
-				std::cerr << "Document " << i << ", approaching " << steps << " steps." << std::endl;
-				algo.search(states[i], nbest[i], steps - steps_done, std::numeric_limits<uint>::max());
+			for(uint docNr = 0; docNr < inputdocs.size(); docNr++) {
+				std::cerr << "Document " << docNr << ", approaching " << steps << " steps." << std::endl;
+				algo.search(
+					states[docNr],
+					nbest[docNr],
+					steps - steps_done,
+					std::numeric_limits<uint>::max()
+				);
 				std::vector<boost::shared_ptr<const DocumentState> > out(1);
-				nbest[i].copyNbestList(out);
+				nbest[docNr].copyNbestList(out);
 				std::cerr << "Final score: " << out[0]->getScore() << std::endl;
-				std::cerr << "* " << i << '\t' << steps << '\t' << out[0]->getScore() << std::endl;
+				std::cerr << "* " << docNr << '\t' << steps << '\t' << out[0]->getScore() << std::endl;
 				PlainTextDocument ptout = out[0]->asPlainTextDocument();
-				for(uint j = 0; j < ptout.getNumberOfSentences(); j++) {
+				for(uint sentNr = 0; sentNr < ptout.getNumberOfSentences(); sentNr++) {
 					std::ostringstream os;
-					Scores sntscores = out[0]->computeSentenceScores(j);
+					Scores sntscores = out[0]->computeSentenceScores(sentNr);
 					os << std::inner_product(
 							sntscores.begin(), sntscores.end(),
 							config.getFeatureWeights().begin(),
@@ -276,19 +281,21 @@ void processTestset(
 						)
 						<< " - " << sntscores
 						<< " - " << formatWordAlignment(
-						out[0]->getPhraseSegmentation(j));
-					inputdocs[i]->annotateSentence(j, os.str());
+						out[0]->getPhraseSegmentation(sentNr));
+					inputdocs[docNr]->annotateSentence(sentNr, os.str());
 				}
 				std::ostringstream tos;
 				tos << out[0]->getScore() << " - " << out[0]->getScores();
-				inputdocs[i]->annotateDocument(tos.str());
-				inputdocs[i]->setTranslation(ptout);
+				inputdocs[docNr]->annotateDocument(tos.str());
+				inputdocs[docNr]->setTranslation(ptout);
 				if(dumpStates)
 					out[0]->dumpFeatureFunctionStates();
 			}
 			steps_done = steps;
 			std::ostringstream outname;
-			outname << outstem << '.' << std::setfill('0') << std::setw(9) << steps << ".xml";
+			outname << outstem << '.'
+				<< std::setfill('0') << std::setw(9) << steps
+				<< ".xml";
 			std::ofstream of(outname.str().c_str());
 			of.exceptions(std::ofstream::failbit | std::ofstream::badbit);
 			testset.outputTranslation(of);
@@ -296,13 +303,13 @@ void processTestset(
 		}
 
 		// Print the final best state if asked for
-		if (!lastStateFilename.empty()) {
+		if(!lastStateFilename.empty()) {
 			std::vector<std::vector<PhraseSegmentation> > state;
 			for(uint i = 0; i < nbest.size(); i++) {
 				std::cerr << "getting state for sentence " << i << std::endl;
 				state.push_back(nbest[i].getBestDocumentState()->getPhraseSegmentations());
 			}
-		  printState(lastStateFilename, state);
+			printState(lastStateFilename, state);
 		}
 
 		BOOST_FOREACH(SearchState *state, states)
@@ -313,7 +320,9 @@ void processTestset(
 	}
 }
 
-std::string formatWordAlignment(const PhraseSegmentation &snt) {
+std::string formatWordAlignment(
+	const PhraseSegmentation &snt
+) {
 	std::ostringstream out;
 	uint tgtoffset = 0;
 	BOOST_FOREACH(const AnchoredPhrasePair &app, snt) {
@@ -322,12 +331,14 @@ std::string formatWordAlignment(const PhraseSegmentation &snt) {
 		for(uint t = 0;
 			t < app.second.get().getTargetPhrase().get().size();
 			t++
-		)
+		) {
 			for(WordAlignment::const_iterator it = wa.begin_for_target(t);
 				it != wa.end_for_target(t);
 				++it
-			)
+			) {
 				out << (srcoffset + *it) << '-' << (tgtoffset + t) << ' ';
+			}
+		}
 		tgtoffset += app.second.get().getTargetPhrase().get().size();
 	}
 	std::string retstr = out.str();
@@ -337,8 +348,8 @@ std::string formatWordAlignment(const PhraseSegmentation &snt) {
 }
 
 void printState(
-	const std::string& filename,
-	const std::vector<std::vector<PhraseSegmentation> >& state
+	const std::string &filename,
+	const std::vector<std::vector<PhraseSegmentation> > &state
 ) {
 	std::ofstream ofs(filename.c_str());
 	boost::archive::text_oarchive oa(ofs);
