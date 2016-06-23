@@ -44,9 +44,17 @@ private:
 	StateInitialiser *initialiser_;
 
 public:
-	StateGenerator(const std::string &initMethod, const Parameters &params, Random random);
+	StateGenerator(
+		const std::string &initMethod,
+		const Parameters &params,
+		Random random
+	);
 	~StateGenerator();
-	void addOperation(Float weight, const std::string &type, const Parameters &params);
+	void addOperation(
+		Float weight,
+		const std::string &type,
+		const Parameters &params
+	);
 
 	PhraseSegmentation initSegmentation(
 		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
@@ -54,10 +62,22 @@ public:
 		int documentNumber,
 		int sentenceNumber
 	) const {
-		return initialiser_->initSegmentation(phraseTranslations, sentence, documentNumber, sentenceNumber);
+		return initialiser_->initSegmentation(
+			phraseTranslations,
+			sentence,
+			documentNumber,
+			sentenceNumber
+		);
 	}
 
-	SearchStep *createSearchStep(const DocumentState &doc) const;
+	/**
+	 * Returns NULL if 100 consecutive operations have returned NULL.
+	 * In that case the document should be considered unchangeable by the available operations,
+	 * and the search algorithm should pass over the document in coming iterations.
+	 */
+	SearchStep *createSearchStep(
+		const DocumentState &doc
+	) const;
 };
 
 #endif

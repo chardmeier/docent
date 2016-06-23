@@ -20,7 +20,8 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
+#include "StateGenerator.h"
+
 #include "BeamSearchAdapter.h"
 #include "DecoderConfiguration.h"
 #include "FeatureFunction.h"
@@ -29,7 +30,6 @@
 #include "PhraseTable.h"
 #include "Random.h"
 #include "SearchStep.h"
-#include "StateGenerator.h"
 
 #include <algorithm>
 #include <sstream>
@@ -37,8 +37,12 @@
 
 #include <boost/archive/text_iarchive.hpp>
 
-struct MonotonicStateInitialiser : public StateInitialiser {
-	MonotonicStateInitialiser(const Parameters &params) {}
+struct MonotonicStateInitialiser
+:	public StateInitialiser
+{
+	MonotonicStateInitialiser(
+		const Parameters &params
+	) {}
 	virtual PhraseSegmentation initSegmentation(
 		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
 		const std::vector<Word> &sentence,
@@ -70,7 +74,9 @@ private:
 	Logger logger_;
 	std::vector<std::vector<PhraseSegmentation> > segmentations_;
 public:
-	FileReadStateInitialiser(const Parameters &params);
+	FileReadStateInitialiser(
+		const Parameters &params
+	);
 	virtual PhraseSegmentation initSegmentation(
 		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
 		const std::vector<Word> &sentence,
@@ -93,7 +99,7 @@ MonotonicStateInitialiser::initSegmentation(
 
 BeamSearchStateInitialiser::BeamSearchStateInitialiser(
 	const Parameters &params
-)	: logger_("StateInitialiser")
+) :	logger_("StateInitialiser")
 {
 	std::string filename  = params.get<std::string>("file");
 	if(filename.empty()) {
@@ -124,7 +130,7 @@ BeamSearchStateInitialiser::initSegmentation(
 
 FileReadStateInitialiser::FileReadStateInitialiser(
 	const Parameters &params
-)	: logger_("StateInitialiser")
+) :	logger_("StateInitialiser")
 {
 	// get file name from params
 	std::string filename = params.get<std::string>("file");
@@ -164,7 +170,8 @@ StateGenerator::StateGenerator(
 	const std::string &initMethod,
 	const Parameters &params,
 	Random(random)
-) :	logger_("StateGenerator"), random_(random)
+) :	logger_("StateGenerator"),
+	random_(random)
 {
 	if(initMethod == "monotonic")
 		initialiser_ = new MonotonicStateInitialiser(params);
@@ -209,24 +216,39 @@ void StateGenerator::addOperation(
 	cumulativeOperationDistribution_.push_back(weight);
 }
 
-SearchStep *StateGenerator::createSearchStep(
+/**
+ * Returns NULL if 100 consecutive operations have returned NULL.
+ */
+SearchStep
+*StateGenerator::createSearchStep(
 	const DocumentState &doc
 ) const {
-	SearchStep *nextStep;
+	SearchStep *nextStep = NULL;
+	uint failed = 0;
 	for(;;) {
 		uint next_op = random_.drawFromCumulativeDistribution(cumulativeOperationDistribution_);
+		LOG(logger_, debug,
+			"Next operation: " << operations_[next_op].getDescription()
+			<< "; failed so far: " << failed
+		);
 		nextStep = operations_[next_op].createSearchStep(doc);
 
 		// NULL just indicates that our operator wasn't able to produce a reasonable set of changes
 		// for some reason.
-		if(nextStep == NULL)
+		if(nextStep == NULL) {
+			++failed;
+			if(failed >= 100) {
+				LOG(logger_, debug, "Too many failed search steps in document #" << doc.getDocNumber());
+				return NULL;
+			}
 			continue;
+		}
 
-		if(!nextStep->getModifications().empty())
-			break;
+		if(nextStep->getModifications().empty()) {
+			delete nextStep;
+			continue;
+		}
 
-		delete nextStep;
+		return nextStep;
 	}
-
-	return nextStep;
 }
