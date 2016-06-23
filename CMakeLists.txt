@@ -218,6 +218,14 @@ target_link_libraries(docent
 	${DECODER_LIBRARIES}
 )
 
+add_executable(docent-test
+	src/docent-test.cpp
+	src/PhrasePair.StreamOperators-normal.cpp
+)
+target_link_libraries(docent-test
+	${DECODER_LIBRARIES}
+)
+
 add_executable(detailed-docent
 	src/detailed-docent.cpp
 	src/PhrasePair.StreamOperators-detailed.cpp
