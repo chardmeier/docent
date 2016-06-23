@@ -45,12 +45,21 @@ private:
 	Float d_, T_, oldScore_;
 
 public:
-	AcceptanceDecision(Float threshold)
-		: logger_("AcceptanceDecision"),
-		  threshold_(threshold), d_(0), T_(0), oldScore_(0) {}
+	AcceptanceDecision(
+		Float threshold
+	) :	logger_("AcceptanceDecision"),
+		threshold_(threshold),
+		d_(0),
+		T_(0),
+		oldScore_(0)
+	{}
 
-	AcceptanceDecision(Random rnd, Float T, Float oldScore)
-		: logger_("AcceptanceDecision") {
+	AcceptanceDecision(
+		Random rnd,
+		Float T,
+		Float oldScore
+	) :	logger_("AcceptanceDecision")
+	{
 		// compute acceptance threshold for acceptance with probability exp((old - new) / T)
 		Float d = rnd.draw01();
 		threshold_ = T * log(d) + oldScore;
@@ -75,22 +84,48 @@ public:
 
 struct SearchState {
 	virtual ~SearchState() {}
-	virtual const boost::shared_ptr<DocumentState>& getLastDocumentState() = 0;
+	virtual const boost::shared_ptr<DocumentState>
+	&getLastDocumentState() = 0;
 };
 
 struct SearchAlgorithm {
-	static SearchAlgorithm *createSearchAlgorithm(const std::string &algo, const DecoderConfiguration &config,
-		const Parameters &params);
+	static SearchAlgorithm
+	*createSearchAlgorithm(
+		const std::string &algo,
+		const DecoderConfiguration &config,
+		const Parameters &params
+	);
 
 	virtual ~SearchAlgorithm() {}
-	virtual SearchState *createState(boost::shared_ptr<DocumentState> doc) const = 0;
-	virtual void search(SearchState *sstate, NbestStorage &nbest, uint maxSteps, uint maxAccepted) const = 0;
 
-	void search(SearchState *sstate, NbestStorage &nbest) const {
-		search(sstate, nbest, std::numeric_limits<uint>::max(), std::numeric_limits<uint>::max());
+	virtual SearchState
+	*createState(
+		boost::shared_ptr<DocumentState> doc
+	) const = 0;
+
+	virtual void search(
+		SearchState *sstate,
+		NbestStorage &nbest,
+		uint maxSteps,
+		uint maxAccepted
+	) const = 0;
+
+	void search(
+		SearchState *sstate,
+		NbestStorage &nbest
+	) const {
+		search(
+			sstate,
+			nbest,
+			std::numeric_limits<uint>::max(),
+			std::numeric_limits<uint>::max()
+		);
 	}
 
-	void search(boost::shared_ptr<DocumentState> doc, NbestStorage &nbest) const {
+	void search(
+		boost::shared_ptr<DocumentState> doc,
+		NbestStorage &nbest
+	) const {
 		SearchState *state = createState(doc);
 		search(state, nbest);
 		delete state;

@@ -25,8 +25,12 @@
 #include "LocalBeamSearch.h"
 #include "SimulatedAnnealing.h"
 
-SearchAlgorithm *SearchAlgorithm::createSearchAlgorithm(const std::string &algo,
-		const DecoderConfiguration &config, const Parameters &params) {
+SearchAlgorithm
+*SearchAlgorithm::createSearchAlgorithm(
+	const std::string &algo,
+	const DecoderConfiguration &config,
+	const Parameters &params
+) {
 	if(algo == "simulated-annealing")
 		return new SimulatedAnnealing(config, params);
 	else if(algo == "local-beam-search")
