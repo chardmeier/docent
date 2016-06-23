@@ -36,6 +36,7 @@
 #include <fstream>
 
 #include <boost/archive/text_iarchive.hpp>
+#include <boost/serialization/string.hpp>
 
 struct MonotonicStateInitialiser
 :	public StateInitialiser
