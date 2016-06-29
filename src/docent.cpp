@@ -83,7 +83,10 @@ int main(int argc, char **argv)
 }
 
 template<class Testset>
-void processTestset(const DecoderConfiguration &config, Testset &testset) {
+void processTestset(
+	const DecoderConfiguration &config,
+	Testset &testset
+) {
 	uint docNum = 0;
 	BOOST_FOREACH(typename Testset::value_type inputdoc, testset) {
 		boost::shared_ptr<DocumentState> doc =

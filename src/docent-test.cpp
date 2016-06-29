@@ -66,9 +66,11 @@ int main(int argc, char **argv)
 	std::string line;
 	uint docNum = 0;
 	while(getline(std::cin, line)) {
-		boost::shared_ptr<MMAXDocument> mmax = boost::make_shared<MMAXDocument>();
-		std::vector<std::string> tokens;
+		std::vector<Word> tokens;
 		boost::split(tokens, line, boost::is_any_of(" "));
+
+		boost::shared_ptr<MMAXDocument> mmax =
+			boost::make_shared<MMAXDocument>();
 		mmax->addSentence(tokens.begin(), tokens.end());
 
 		boost::shared_ptr<DocumentState> doc =

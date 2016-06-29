@@ -97,7 +97,7 @@ public:
 
 template<class Testset>
 void processTestset(
-	const ConfigurationFile &configFile,
+	const DecoderConfiguration &config,
 	Testset &testset,
 	const std::string &outstem,
 	bool dumpStates,
@@ -170,15 +170,14 @@ int main(int argc, char **argv)
 	if(nistxml.empty() || args.size() != 2)
 		usage();
 
-	const std::string &configFile = args[0];
-
-	ConfigurationFile config(configFile);
+	ConfigurationFile configFile(args[0]);
 	BOOST_FOREACH(const ModificationPair &m, xpset)
-		config.modifyNodes(m.first, m.second);
+		configFile.modifyNodes(m.first, m.second);
 	BOOST_FOREACH(const std::string &m, xpremove)
-		config.removeNodes(m);
+		configFile.removeNodes(m);
+	DecoderConfiguration config(configFile);
 
-	const std::string &outstem = args[1];
+	const std::string outstem = args[1];
 	if(!mmax.empty()) {
 		MMAXTestset testset(mmax, nistxml);
 		if(translateSingleDocument) {
@@ -200,7 +199,7 @@ int main(int argc, char **argv)
 
 template<class Testset>
 void processTestset(
-	const ConfigurationFile &configFile,
+	const DecoderConfiguration &config,
 	Testset &testset,
 	const std::string &outstem,
 	bool dumpStates,
@@ -208,8 +207,6 @@ void processTestset(
 	const std::string &lastStateFilename
 ) {
 	try {
-		DecoderConfiguration config(configFile);
-
 		std::vector<typename Testset::value_type> inputdocs;
 		inputdocs.reserve(testset.size());
 		inputdocs.insert(inputdocs.end(), testset.begin(), testset.end());
