@@ -34,7 +34,6 @@
 #include "Docent.h"
 #include "DecoderConfiguration.h"
 #include "DocumentState.h"
-#include "MMAXDocument.h"
 #include "NbestStorage.h"
 #include "SearchAlgorithm.h"
 

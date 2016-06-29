@@ -31,7 +31,7 @@
 #include "Docent.h"
 #include "DecoderConfiguration.h"
 #include "DocumentState.h"
-#include "MMAXDocument.h"
+#include "MMAXTestset.h"
 #include "NbestStorage.h"
 #include "NistXmlTestset.h"
 #include "SearchAlgorithm.h"

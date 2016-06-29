@@ -161,6 +161,8 @@ add_library(decoder STATIC
 	src/LocalBeamSearch.cpp
 	src/Logger.cpp
 	src/MMAXDocument.cpp
+	src/MMAXTestset.cpp
+	src/Markable.cpp
 	src/NbestStorage.cpp
 	src/NistXmlDocument.cpp
 	src/NistXmlRefset.cpp
