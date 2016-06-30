@@ -25,17 +25,21 @@
 #include "DecoderConfiguration.h"
 #include "FeatureFunction.h"
 #include "NistXmlCorpus.h"
+#include "NistXmlDocument.h"
 #include "PhrasePair.h"
 #include "PhrasePairCollection.h"
 #include "PhraseTable.h"
+#include "PlainTextDocument.h"
 #include "Random.h"
 #include "SearchStep.h"
 
 #include <algorithm>
 #include <sstream>
 #include <fstream>
+#include <vector>
 
 #include <boost/archive/text_iarchive.hpp>
+#include <boost/foreach.hpp>
 #include <boost/serialization/string.hpp>
 
 struct MonotonicStateInitialiser
@@ -73,7 +77,7 @@ public:
 class NistXmlStateInitialiser : public StateInitialiser {
 private:
 	Logger logger_;
-	NistXmlCorpus testset_;
+	std::vector<PlainTextDocument> documents_;
 public:
 	NistXmlStateInitialiser(
 		const Parameters &params
@@ -138,9 +142,16 @@ FileReadStateInitialiser::initSegmentation(
 
 NistXmlStateInitialiser::NistXmlStateInitialiser(
 	const Parameters &params
-) :	logger_("StateInitialiser"),
-	testset_(params.get<std::string>("file"), NistXmlCorpus::Tstset)
-{}
+) :	logger_("StateInitialiser")
+{
+	NistXmlCorpus testset = NistXmlCorpus(
+		params.get<std::string>("file"),
+		NistXmlCorpus::Tstset
+	);
+	documents_.reserve(testset.size());
+	BOOST_FOREACH(NistXmlCorpus::value_type doc, testset)
+		documents_.push_back(doc->asPlainTextDocument());
+}
 
 
 PhraseSegmentation
@@ -150,9 +161,55 @@ NistXmlStateInitialiser::initSegmentation(
 	int documentNumber,
 	int sentenceNumber
 ) const {
-	PhraseSegmentation phraseSegmentation;
+	if(sentence.empty())
+		return PhraseSegmentation();
 
-	return phraseSegmentation;
+	std::vector<AnchoredPhrasePair> ppvec;
+	phraseTranslations->copyPhrasePairs(std::back_inserter(ppvec));
+
+	CompareAnchoredPhrasePairs ppComparator;
+	std::sort(ppvec.begin(), ppvec.end(), ppComparator);
+
+	PhraseSegmentation seg;
+	PhraseData tgtpd;
+	for(PlainTextDocument::const_word_iterator
+		it = documents_[documentNumber].sentence_begin(sentenceNumber);
+		it != documents_[documentNumber].sentence_end(sentenceNumber);
+		++it
+	) {
+		if((*it).substr(0, 1) != "|") { // word
+			tgtpd.push_back(*it);
+			continue;
+		}
+		// end of hypothesis
+		Word token((*it).substr(1, (*it).length()-2));
+		std::vector<Word> srctokenrange; // metadata
+		boost::split(
+			srctokenrange,
+			token,
+			boost::is_any_of("-"),
+			boost::token_compress_on
+		);
+		PhraseData srcpd;
+		CoverageBitmap cov(sentence.size());
+		for(int i = atoi((*srctokenrange.begin()).c_str());
+			i <= atoi((*srctokenrange.end()).c_str());
+			++i
+		) {
+			srcpd.push_back(sentence[i]);
+			cov.set(i);
+		}
+		std::vector<AnchoredPhrasePair>::const_iterator
+			appit = std::lower_bound(
+				ppvec.begin(),
+				ppvec.end(),
+				CompareAnchoredPhrasePairs::PhrasePairKey(cov, srcpd, tgtpd),
+				ppComparator
+			);
+		seg.push_back(*appit);
+		tgtpd.clear();
+	}
+	return seg;
 }
 
 
