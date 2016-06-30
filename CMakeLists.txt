@@ -153,7 +153,6 @@ include_directories(
 	${MPI_INCLUDE_DIRS}
 )
 add_library(decoder STATIC
-	src/BeamSearchAdapter.cpp
 	src/CoolingSchedule.cpp
 	src/DecoderConfiguration.cpp
 	src/DocumentState.cpp
@@ -164,9 +163,8 @@ add_library(decoder STATIC
 	src/MMAXTestset.cpp
 	src/Markable.cpp
 	src/NbestStorage.cpp
+	src/NistXmlCorpus.cpp
 	src/NistXmlDocument.cpp
-	src/NistXmlRefset.cpp
-	src/NistXmlTestset.cpp
 	src/PhrasePair.cpp
 	src/PhrasePairCollection.cpp
 	src/PhraseTable.cpp
