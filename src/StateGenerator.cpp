@@ -22,9 +22,9 @@
 
 #include "StateGenerator.h"
 
-#include "BeamSearchAdapter.h"
 #include "DecoderConfiguration.h"
 #include "FeatureFunction.h"
+#include "NistXmlCorpus.h"
 #include "PhrasePair.h"
 #include "PhrasePairCollection.h"
 #include "PhraseTable.h"
@@ -53,14 +53,14 @@ struct MonotonicStateInitialiser
 };
 
 
-class BeamSearchStateInitialiser : public StateInitialiser {
+class FileReadStateInitialiser : public StateInitialiser {
 private:
 	Logger logger_;
-	BeamSearchAdapter *beamSearchAdapter_;
-
+	std::vector<std::vector<PhraseSegmentation> > segmentations_;
 public:
-	BeamSearchStateInitialiser(const Parameters &params);
-	virtual ~BeamSearchStateInitialiser();
+	FileReadStateInitialiser(
+		const Parameters &params
+	);
 	virtual PhraseSegmentation initSegmentation(
 		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
 		const std::vector<Word> &sentence,
@@ -70,12 +70,12 @@ public:
 };
 
 
-class FileReadStateInitialiser : public StateInitialiser {
+class NistXmlStateInitialiser : public StateInitialiser {
 private:
 	Logger logger_;
-	std::vector<std::vector<PhraseSegmentation> > segmentations_;
+	NistXmlCorpus testset_;
 public:
-	FileReadStateInitialiser(
+	NistXmlStateInitialiser(
 		const Parameters &params
 	);
 	virtual PhraseSegmentation initSegmentation(
@@ -95,37 +95,6 @@ MonotonicStateInitialiser::initSegmentation(
 	int sentenceNumber
 ) const {
 	return phraseTranslations->proposeSegmentation();
-}
-
-
-BeamSearchStateInitialiser::BeamSearchStateInitialiser(
-	const Parameters &params
-) :	logger_("StateInitialiser")
-{
-	std::string filename  = params.get<std::string>("file");
-	if(filename.empty()) {
-		LOG(logger_, error, "Missing parameter 'file'.");
-		BOOST_THROW_EXCEPTION(ConfigurationException());
-	}
-	beamSearchAdapter_ = new BeamSearchAdapter(filename);
-}
-
-BeamSearchStateInitialiser::~BeamSearchStateInitialiser()
-{
-	delete beamSearchAdapter_;
-}
-
-PhraseSegmentation
-BeamSearchStateInitialiser::initSegmentation(
-	boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
-	const std::vector<Word> &sentence,
-	int documentNumber,
-	int sentenceNumber
-) const {
-	return beamSearchAdapter_->search(
-		phraseTranslations,
-		sentence
-	);
 }
 
 
@@ -167,6 +136,26 @@ FileReadStateInitialiser::initSegmentation(
 }
 
 
+NistXmlStateInitialiser::NistXmlStateInitialiser(
+	const Parameters &params
+) :	logger_("StateInitialiser"),
+	testset_(params.get<std::string>("file"), NistXmlCorpus::Tstset)
+{}
+
+
+PhraseSegmentation
+NistXmlStateInitialiser::initSegmentation(
+	boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
+	const std::vector<Word> &sentence,
+	int documentNumber,
+	int sentenceNumber
+) const {
+	PhraseSegmentation phraseSegmentation;
+
+	return phraseSegmentation;
+}
+
+
 StateGenerator::StateGenerator(
 	const std::string &initMethod,
 	const Parameters &params,
@@ -176,8 +165,8 @@ StateGenerator::StateGenerator(
 {
 	if(initMethod == "monotonic")
 		initialiser_ = new MonotonicStateInitialiser(params);
-	else if(initMethod == "beam-search")
-		initialiser_ = new BeamSearchStateInitialiser(params);
+	else if(initMethod == "testset")
+		initialiser_ = new NistXmlStateInitialiser(params);
 	else if(initMethod == "saved-state")
 		initialiser_ = new FileReadStateInitialiser(params);
 	else {
