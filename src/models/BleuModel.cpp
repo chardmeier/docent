@@ -2,7 +2,7 @@
 
 #include "DocumentState.h"
 #include "NistXmlDocument.h"
-#include "NistXmlRefset.h"
+#include "NistXmlCorpus.h"
 #include "PlainTextDocument.h"
 #include "SearchStep.h"
 
@@ -42,12 +42,12 @@ BleuModel::BleuModel(
 
 	std::string fileName = params.get<std::string>("reference-file", "");
 	LOG(logger_, debug, "Reading file: " << fileName);
-	NistXmlRefset Refset = NistXmlRefset(fileName);
+	NistXmlCorpus refset = NistXmlCorpus(fileName, NistXmlCorpus::Refset);
 
-	LOG(logger_, debug, "Number of documents in Refset = " << Refset.size() << "\n");
+	LOG(logger_, debug, "Number of documents in Refset = " << refset.size() << "\n");
 
 	// Loop over the documents in the refset
-	for(iterator it = Refset.begin(); it != Refset.end(); ++it) {
+	for(iterator it = refset.begin(); it != refset.end(); ++it) {
 		uint doc_length = 0; // Number of words in the current ref doc
 		std::vector<uint> sent_lengths; // Number of words in each sentence of the current ref doc
 		std::vector<TokenHash_> sent_counts; // Ngram counts for each sentence of the current ref doc
