@@ -38,7 +38,7 @@ else()
 endif()
 
 ### Find out if we have MPI support
-find_package(MPI)
+find_package(MPI QUIET)
 
 
 ### Find Boost
