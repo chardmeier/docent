@@ -28,18 +28,17 @@
 #include "NistXmlDocument.h"
 #include "PhrasePair.h"
 #include "PhrasePairCollection.h"
-#include "PhraseTable.h"
 #include "PlainTextDocument.h"
 #include "Random.h"
 #include "SearchStep.h"
 
-#include <algorithm>
-#include <sstream>
 #include <fstream>
 #include <vector>
 
-#include <boost/archive/text_iarchive.hpp>
 #include <boost/foreach.hpp>
+#include <boost/lexical_cast.hpp>
+
+#include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/string.hpp>
 
 struct MonotonicStateInitialiser
@@ -192,12 +191,26 @@ NistXmlStateInitialiser::initSegmentation(
 		);
 		PhraseData srcpd;
 		CoverageBitmap cov(sentence.size());
-		for(int i = atoi((*srctokenrange.begin()).c_str());
-			i <= atoi((*srctokenrange.end()).c_str());
-			++i
-		) {
-			srcpd.push_back(sentence[i]);
-			cov.set(i);
+		try {
+			if(srctokenrange.size() != 2) {
+				BOOST_THROW_EXCEPTION(FileFormatException());
+			}
+			for(uint
+				i = boost::lexical_cast<uint>(srctokenrange.front());
+				i <= boost::lexical_cast<uint>(srctokenrange.back());
+				++i
+			) {
+				srcpd.push_back(sentence[i]);
+				cov.set(i);
+			}
+		} catch(boost::exception &) {
+			LOG(logger_, error,
+				"Invalid alignment data in raw-translation file "
+				"(document " << documentNumber << ", "
+				" sentence " << sentenceNumber << "): "
+				<< *it
+			);
+			throw;
 		}
 		std::vector<AnchoredPhrasePair>::const_iterator
 			appit = std::lower_bound(
