@@ -1,5 +1,5 @@
 /*
- *  NistXmlTestset.h
+ *  NistXmlCorpus.h
  *
  *  Copyright 2012 by Christian Hardmeier. All rights reserved.
  *
@@ -20,33 +20,35 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef docent_NistXmlTestset_h
-#define docent_NistXmlTestset_h
+#ifndef docent_NistXmlCorpus_h
+#define docent_NistXmlCorpus_h
 
 #include "Docent.h"
 
-#include <iosfwd>
 #include <vector>
 
 #include <DOM/Document.hpp>
 
 class NistXmlDocument;
 
-class NistXmlTestset {
+class NistXmlCorpus {
 public:
 	typedef boost::shared_ptr<NistXmlDocument> value_type;
 	typedef boost::shared_ptr<const NistXmlDocument> const_value_type;
 	typedef std::vector<value_type>::iterator iterator;
 	typedef std::vector<value_type>::const_iterator const_iterator;
+	enum SetChoice { Srcset, Tstset, Refset };
 
 private:
 	Logger logger_;
-
 	std::vector<value_type> documents_;
 	Arabica::DOM::Document<std::string> outdoc_;
 
 public:
-	NistXmlTestset(const std::string &file);
+	NistXmlCorpus(
+		const std::string &file,
+		SetChoice set = Srcset
+	);
 	void outputTranslation(std::ostream &os) const;
 
 	uint size() {

@@ -1,5 +1,5 @@
 /*
- *  NistXmlTestset.cpp
+ *  NistXmlCorpus.cpp
  *
  *  Copyright 2012 by Christian Hardmeier. All rights reserved.
  *
@@ -20,9 +20,8 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "NistXmlTestset.h"
+#include "NistXmlCorpus.h"
 
-#include "MMAXDocument.h"
 #include "NistXmlDocument.h"
 
 #include <iostream>
@@ -36,9 +35,10 @@
 #include <SAX/helpers/CatchErrorHandler.hpp>
 #include <XPath/XPath.hpp>
 
-NistXmlTestset::NistXmlTestset(
-	const std::string &file
-)	: logger_("NistXmlTestset")
+NistXmlCorpus::NistXmlCorpus(
+	const std::string &file,
+	SetChoice set
+) :	logger_("NistXmlCorpus")
 {
 	Arabica::SAX2DOM::Parser<std::string> domParser;
 	Arabica::SAX::InputSource<std::string> is(file);
@@ -55,22 +55,32 @@ NistXmlTestset::NistXmlTestset(
 	}
 	doc.getDocumentElement().normalize();
 
+	std::string xpath_str;
+	switch(set) {
+		case Srcset: xpath_str = "/mteval/srcset[0]/doc"; break;
+		case Tstset: xpath_str = "/mteval/tstset[0]/doc"; break;
+		case Refset: xpath_str = "/mteval/refset[0]/doc"; break;
+	}
 	Arabica::XPath::XPath<std::string> xp;
 	Arabica::XPath::NodeSet<std::string> docnodes = xp
-		.compile("/mteval/srcset/doc")
+		.compile(xpath_str)
 		.evaluateAsNodeSet(doc.getDocumentElement());
 	docnodes.to_document_order();
 	BOOST_FOREACH(Arabica::DOM::Node<std::string> n, docnodes) {
 		documents_.push_back(boost::make_shared<NistXmlDocument>(n));
 	}
 
-	//outdoc_ = static_cast<Arabica::DOM::Document<std::string> >(doc.cloneNode(true));
+	if(set != Srcset) {
+		outdoc_ = NULL;
+		return;
+	}
+
 	Arabica::SAX::InputSource<std::string> is2(file);
 	domParser.parse(is2);
 	outdoc_ = domParser.getDocument();
 
 	Arabica::DOM::Element<std::string> srcset =
-		static_cast<Arabica::DOM::Element<std::string> >(xp
+		static_cast< Arabica::DOM::Element<std::string> >(xp
 			.compile("/mteval/srcset")
 			.evaluateAsNodeSet(outdoc_.getDocumentElement())
 			[0]
@@ -95,7 +105,8 @@ NistXmlTestset::NistXmlTestset(
 	srcset.getParentNode().replaceChild(tstset, srcset);
 }
 
-void NistXmlTestset::outputTranslation(std::ostream &os) const
+void NistXmlCorpus::outputTranslation(std::ostream &os) const
 {
+	assert(outdoc_ != NULL);
 	os << outdoc_;
 }
