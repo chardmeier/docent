@@ -57,9 +57,9 @@ NistXmlCorpus::NistXmlCorpus(
 
 	std::string xpath_str;
 	switch(set) {
-		case Srcset: xpath_str = "/mteval/srcset[0]/doc"; break;
-		case Tstset: xpath_str = "/mteval/tstset[0]/doc"; break;
-		case Refset: xpath_str = "/mteval/refset[0]/doc"; break;
+		case Srcset: xpath_str = "/mteval/srcset[1]/doc"; break;
+		case Tstset: xpath_str = "/mteval/tstset[1]/doc"; break;
+		case Refset: xpath_str = "/mteval/refset[1]/doc"; break;
 	}
 	Arabica::XPath::XPath<std::string> xp;
 	Arabica::XPath::NodeSet<std::string> docnodes = xp
@@ -71,7 +71,6 @@ NistXmlCorpus::NistXmlCorpus(
 	}
 
 	if(set != Srcset) {
-		outdoc_ = NULL;
 		return;
 	}
 
@@ -79,14 +78,15 @@ NistXmlCorpus::NistXmlCorpus(
 	domParser.parse(is2);
 	outdoc_ = domParser.getDocument();
 
-	Arabica::DOM::Element<std::string> srcset =
-		static_cast< Arabica::DOM::Element<std::string> >(xp
+	Arabica::DOM::Element<std::string>
+		srcset = static_cast< Arabica::DOM::Element<std::string> >(xp
 			.compile("/mteval/srcset")
 			.evaluateAsNodeSet(outdoc_.getDocumentElement())
 			[0]
 		);
+	Arabica::DOM::Element<std::string>
+		tstset = outdoc_.createElement("tstset");
 
-	Arabica::DOM::Element<std::string> tstset = outdoc_.createElement("tstset");
 	int docno = 0;
 	while(srcset.hasChildNodes()) {
 		Arabica::DOM::Node<std::string> n = srcset.removeChild(srcset.getFirstChild());
@@ -107,6 +107,6 @@ NistXmlCorpus::NistXmlCorpus(
 
 void NistXmlCorpus::outputTranslation(std::ostream &os) const
 {
-	assert(outdoc_ != NULL);
+	assert(outdoc_ != 0);
 	os << outdoc_;
 }
