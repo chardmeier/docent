@@ -30,7 +30,6 @@
 #include "Random.h"
 
 #include <map>
-#include <iosfwd>
 #include <numeric>
 #include <vector>
 

@@ -43,12 +43,20 @@ public:
 		PhraseSegmentation::const_iterator to_it;
 		PhraseSegmentation proposal;
 
-		Modification(uint psentno, uint pfrom, uint pto,
-				PhraseSegmentation::const_iterator pfrom_it,
-				PhraseSegmentation::const_iterator pto_it,
-				const PhraseSegmentation &pproposal) :
-			sentno(psentno), from(pfrom), to(pto),
-			from_it(pfrom_it), to_it(pto_it), proposal(pproposal) {}
+		Modification(
+			uint psentno,
+			uint pfrom,
+			uint pto,
+			PhraseSegmentation::const_iterator pfrom_it,
+			PhraseSegmentation::const_iterator pto_it,
+			const PhraseSegmentation &pproposal
+		) :	sentno(psentno),
+			from(pfrom),
+			to(pto),
+			from_it(pfrom_it),
+			to_it(pto_it),
+			proposal(pproposal)
+		{}
 	};
 
 private:
@@ -109,7 +117,12 @@ public:
 		PhraseSegmentation::const_iterator new2,
 		const PhraseSegmentation &proposal
 	) {
-		modifications_.push_back(Modification(sentno, start, end, new1, new2, proposal));
+		modifications_.push_back(Modification(
+			sentno,
+			start, end,
+			new1, new2,
+			proposal
+		));
 		modificationsConsolidated_ = false;
 	}
 

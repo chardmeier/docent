@@ -25,7 +25,6 @@
 
 #include "Docent.h"
 
-#include <iosfwd>
 #include <vector>
 
 #include <DOM/Document.hpp>
