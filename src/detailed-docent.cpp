@@ -36,7 +36,7 @@
 #include "DocumentState.h"
 #include "MMAXTestset.h"
 #include "NbestStorage.h"
-#include "NistXmlTestset.h"
+#include "NistXmlCorpus.h"
 #include "SimulatedAnnealing.h"
 
 void usage();
@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
 			lastStateFilename
 		);
 	} else {
-		NistXmlTestset testset(nistxml);
+		NistXmlCorpus testset(nistxml);
 		processTestset(
 			config,
 			testset,

@@ -36,7 +36,7 @@
 #include "DocumentState.h"
 #include "MMAXTestset.h"
 #include "NbestStorage.h"
-#include "NistXmlTestset.h"
+#include "NistXmlCorpus.h"
 #include "SearchAlgorithm.h"
 
 void usage() {
@@ -186,9 +186,9 @@ int main(int argc, char **argv)
 		} else
 			processTestset(config, testset, outstem, dumpstates, firstStateFilename, lastStateFilename);
 	} else {
-		NistXmlTestset testset(nistxml);
+		NistXmlCorpus testset(nistxml);
 		if(translateSingleDocument) {
-			SingleDocumentTestset<NistXmlTestset> single(testset);
+			SingleDocumentTestset<NistXmlCorpus> single(testset);
 			processTestset(config, single, outstem, dumpstates, firstStateFilename, lastStateFilename);
 		} else
 			processTestset(config, testset, outstem, dumpstates, firstStateFilename, lastStateFilename);

@@ -33,7 +33,7 @@
 #include "DocumentState.h"
 #include "MMAXTestset.h"
 #include "NbestStorage.h"
-#include "NistXmlTestset.h"
+#include "NistXmlCorpus.h"
 #include "SearchAlgorithm.h"
 
 void usage() {
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 	std::string inputMMAX, inputXML;
 	if(args.size() == 2) {
 		inputXML = args[1];
-		NistXmlTestset testset(inputXML);
+		NistXmlCorpus testset(inputXML);
 		processTestset(config, testset);
 	} else if(args.size() == 3) {
 		inputMMAX = args[1];
