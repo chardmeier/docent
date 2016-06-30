@@ -128,7 +128,7 @@ private:
 		ar & BOOST_SERIALIZATION_NVP(name_);
 		ar & BOOST_SERIALIZATION_NVP(markables_);
 	}
-	MarkableLevel() : logger_("MarkableLevel") {} // for unpacking
+	MarkableLevel() : logger_("MMAXDocument") {} // for unpacking
 
 public:
 	typedef MarkableVector_::const_iterator const_iterator;

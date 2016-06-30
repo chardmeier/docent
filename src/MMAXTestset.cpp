@@ -28,7 +28,7 @@ MMAXTestset::MMAXTestset(
 	const std::string &directory,
 	const std::string &nistxml
 ) :	logger_("MMAXTestset"),
-	nistxml_(nistxml)
+	nistxmlcorpus_(nistxml)
 {
 	namespace fs = boost::filesystem;
 
@@ -43,9 +43,9 @@ MMAXTestset::MMAXTestset(
 
 	std::sort(mmaxFiles_.begin(), mmaxFiles_.end());
 
-	if(mmaxFiles_.size() != nistxml_.size()) {
+	if(mmaxFiles_.size() != nistxmlcorpus_.size()) {
 		LOG(logger_, error, "MMAX test set has " << mmaxFiles_.size()
-			<< " documents, NIST file has " << nistxml_.size()
+			<< " documents, NIST file has " << nistxmlcorpus_.size()
 		);
 		BOOST_THROW_EXCEPTION(FileFormatException());
 	}

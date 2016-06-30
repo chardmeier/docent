@@ -26,7 +26,7 @@
 #include "Docent.h"
 #include "Markable.h"
 #include "MMAXDocument.h"
-#include "NistXmlTestset.h"
+#include "NistXmlCorpus.h"
 
 #include <boost/make_shared.hpp>
 
@@ -79,7 +79,7 @@ private:
 
 	Logger logger_;
 
-	NistXmlTestset nistxml_;
+	NistXmlCorpus nistxmlcorpus_;
 	MMAXFileVector_ mmaxFiles_;
 
 public:
@@ -89,31 +89,31 @@ public:
 
 	typedef MMAXTestsetIterator<
 			MMAXDocument,
-			NistXmlTestset::iterator,
+			NistXmlCorpus::iterator,
 			MMAXFileVector_::const_iterator
 		> iterator;
 	typedef MMAXTestsetIterator<
 			const MMAXDocument,
-			NistXmlTestset::const_iterator,
+			NistXmlCorpus::const_iterator,
 			MMAXFileVector_::const_iterator
 		> const_iterator;
 
 	MMAXTestset(const std::string &directory, const std::string &nistxml);
 
 	iterator begin() {
-		return iterator(nistxml_.begin(), mmaxFiles_.begin());
+		return iterator(nistxmlcorpus_.begin(), mmaxFiles_.begin());
 	}
 
 	iterator end() {
-		return iterator(nistxml_.end(), mmaxFiles_.end());
+		return iterator(nistxmlcorpus_.end(), mmaxFiles_.end());
 	}
 
 	const_iterator begin() const {
-		return const_iterator(nistxml_.begin(), mmaxFiles_.begin());
+		return const_iterator(nistxmlcorpus_.begin(), mmaxFiles_.begin());
 	}
 
 	const_iterator end() const {
-		return const_iterator(nistxml_.end(), mmaxFiles_.end());
+		return const_iterator(nistxmlcorpus_.end(), mmaxFiles_.end());
 	}
 
 	uint size() const {
@@ -121,7 +121,7 @@ public:
 	}
 
 	void outputTranslation(std::ostream &os) const {
-		nistxml_.outputTranslation(os);
+		nistxmlcorpus_.outputTranslation(os);
 	}
 };
 
