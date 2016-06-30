@@ -124,10 +124,17 @@ private:
 	const Arabica::DOM::Node<std::string> parentNode_;
 
 	bool getString(const std::string &name, std::string &outstr) const {
-		for(Arabica::DOM::Node<std::string> c = parentNode_.getFirstChild(); c != 0; c = c.getNextSibling()) {
-			if(c.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE || c.getNodeName() != "p")
+		for(Arabica::DOM::Node<std::string>
+			c = parentNode_.getFirstChild();
+			c != 0;
+			c = c.getNextSibling()
+		) {
+			if(c.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE
+				|| c.getNodeName() != "p"
+			)
 				continue;
-			Arabica::DOM::Element<std::string> pnode = static_cast<Arabica::DOM::Element<std::string> >(c);
+			Arabica::DOM::Element<std::string>
+				pnode = static_cast<Arabica::DOM::Element<std::string> >(c);
 			std::string pname = pnode.getAttribute("name");
 			if(pname == "") {
 				LOG(logger_, error, "Lacking required attribute 'name' on p element.");

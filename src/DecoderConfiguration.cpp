@@ -88,16 +88,18 @@ ConfigurationFile::modifyNodes(
 	const std::string &value
 ) {
 	Arabica::XPath::XPath<std::string> xp;
-	Arabica::XPath::NodeSet<std::string> nodes =
-		xp.compile(xpath).evaluateAsNodeSet(doc_.getDocumentElement());
+	Arabica::XPath::NodeSet<std::string> nodes = xp
+		.compile(xpath)
+		.evaluateAsNodeSet(doc_.getDocumentElement());
 
 	if(nodes.empty())
 		LOG(logger_, error, "XPath expression " << xpath << " returns empty node set.");
 
 	BOOST_FOREACH(Arabica::DOM::Node<std::string> &n, nodes) {
 		if(n.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE) {
-			LOG(logger_, error, "XPath expression " << xpath <<
-				" returns non-element nodes.");
+			LOG(logger_, error,
+				"XPath expression " << xpath << " returns non-element nodes."
+			);
 			BOOST_THROW_EXCEPTION(ConfigurationException());
 		}
 
@@ -127,7 +129,8 @@ ConfigurationFile::removeNodes(
 }
 
 
-Arabica::DOM::Document<std::string> ConfigurationFile::getXMLDocument() const {
+Arabica::DOM::Document<std::string> ConfigurationFile::getXMLDocument()
+const {
 	return doc_;
 }
 
@@ -137,7 +140,8 @@ DecoderConfiguration::DecoderConfiguration(
 ) : logger_("DecoderConfiguration"), random_(Random::create())
 {
 	uint step = 0;
-	for(Arabica::DOM::Node<std::string> n = file.getXMLDocument().getDocumentElement().getFirstChild();
+	for(Arabica::DOM::Node<std::string>
+		n = file.getXMLDocument().getDocumentElement().getFirstChild();
 		n != 0;
 		n = n.getNextSibling()
 	) {
@@ -167,7 +171,6 @@ DecoderConfiguration::DecoderConfiguration(
 		} else
 			LOG(logger_, error, "Unknown configuration section: " << n.getNodeName());
 	}
-
 	return;
 
 error:
@@ -180,8 +183,14 @@ DecoderConfiguration::~DecoderConfiguration() {
 	delete search_;
 }
 
-void DecoderConfiguration::setupRandomGenerator(Arabica::DOM::Node<std::string> n) {
-	for(Arabica::DOM::Node<std::string> c = n.getFirstChild(); c != 0; c = c.getNextSibling()) {
+void DecoderConfiguration::setupRandomGenerator(
+	Arabica::DOM::Node<std::string> n
+) {
+	for(Arabica::DOM::Node<std::string>
+		c = n.getFirstChild();
+		c != 0;
+		c = c.getNextSibling()
+	) {
 		if(c.getNodeType() == Arabica::DOM::Node<std::string>::TEXT_NODE) {
 			uint seed = boost::lexical_cast<uint>(c.getNodeValue());
 			random_.seed(seed);
@@ -192,9 +201,10 @@ void DecoderConfiguration::setupRandomGenerator(Arabica::DOM::Node<std::string> 
 	random_.seed();
 }
 
-void DecoderConfiguration::setupStateGenerator(Arabica::DOM::Node<std::string> n) {
+void DecoderConfiguration::setupStateGenerator(
+	Arabica::DOM::Node<std::string> n
+) {
 	Arabica::DOM::Node<std::string> c = n.getFirstChild();
-
 	while(c != 0
 		&& (c.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE
 			|| c.getNodeName() != "initial-state"
@@ -208,7 +218,8 @@ void DecoderConfiguration::setupStateGenerator(Arabica::DOM::Node<std::string> n
 		BOOST_THROW_EXCEPTION(ConfigurationException());
 	}
 
-	Arabica::DOM::Element<std::string> istateNode = static_cast<Arabica::DOM::Element<std::string> >(c);
+	Arabica::DOM::Element<std::string>
+		istateNode = static_cast<Arabica::DOM::Element<std::string> >(c);
 	std::string type = istateNode.getAttribute("type");
 	if(type == "") {
 		LOG(logger_, error, "Lacking required attribute 'type' on initial-state element.");
@@ -218,35 +229,52 @@ void DecoderConfiguration::setupStateGenerator(Arabica::DOM::Node<std::string> n
 	stateGenerator_ = new StateGenerator(type, Parameters(logger_, istateNode), random_);
 
 	for(c = n.getFirstChild(); c != 0; c = c.getNextSibling()) {
-		if(c.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE || c.getNodeName() != "operation")
+		if(c.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE
+			|| c.getNodeName() != "operation"
+		)
 			continue;
-		Arabica::DOM::Element<std::string> onode = static_cast<Arabica::DOM::Element<std::string> >(c);
+		Arabica::DOM::Element<std::string>
+			onode = static_cast<Arabica::DOM::Element<std::string> >(c);
 		type = onode.getAttribute("type");
 		std::string weight = onode.getAttribute("weight");
 		if(type == "" || weight == "") {
 			LOG(logger_, error, "Lacking required attribute on operation element.");
 			BOOST_THROW_EXCEPTION(ConfigurationException());
 		}
-
-		stateGenerator_->addOperation(boost::lexical_cast<Float>(weight), type, Parameters(logger_, onode));
+		stateGenerator_->addOperation(
+			boost::lexical_cast<Float>(weight),
+			type,
+			Parameters(logger_, onode)
+		);
 	}
 }
 
-void DecoderConfiguration::setupSearch(Arabica::DOM::Node<std::string> n) {
+void DecoderConfiguration::setupSearch(
+	Arabica::DOM::Node<std::string> n
+) {
 	Arabica::DOM::Element<std::string> e = static_cast<Arabica::DOM::Element<std::string> >(n);
 	std::string algo = e.getAttribute("algorithm");
 	search_ = SearchAlgorithm::createSearchAlgorithm(algo, *this, Parameters(logger_, e));
 }
 
-void DecoderConfiguration::setupModels(Arabica::DOM::Node<std::string> n) {
+void DecoderConfiguration::setupModels(
+	Arabica::DOM::Node<std::string> n
+) {
 	FeatureFunctionFactory ffFactory(random_);
 	uint scoreIndex = 0;
 	std::set<std::string> ids;
-	for(Arabica::DOM::Node<std::string> c = n.getFirstChild(); c != 0; c = c.getNextSibling()) {
-		if(c.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE || c.getNodeName() != "model")
+	for(Arabica::DOM::Node<std::string>
+		c = n.getFirstChild();
+		c != 0;
+		c = c.getNextSibling()
+	) {
+		if(c.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE
+			|| c.getNodeName() != "model"
+		)
 			continue;
 
-		Arabica::DOM::Element<std::string> mnode = static_cast<Arabica::DOM::Element<std::string> >(c);
+		Arabica::DOM::Element<std::string>
+			mnode = static_cast<Arabica::DOM::Element<std::string> >(c);
 		std::string type = mnode.getAttribute("type");
 		std::string id = mnode.getAttribute("id");
 		if(type == "" || id == "") {
@@ -276,13 +304,22 @@ void DecoderConfiguration::setupModels(Arabica::DOM::Node<std::string> n) {
 	}
 }
 
-void DecoderConfiguration::setupWeights(Arabica::DOM::Node<std::string> n) {
+void DecoderConfiguration::setupWeights(
+	Arabica::DOM::Node<std::string> n
+) {
 	boost::dynamic_bitset<> coveredWeights(getTotalNumberOfScores());
 	featureWeights_.resize(getTotalNumberOfScores());
-	for(Arabica::DOM::Node<std::string> c = n.getFirstChild(); c != 0; c = c.getNextSibling()) {
-		if(c.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE || c.getNodeName() != "weight")
+	for(Arabica::DOM::Node<std::string>
+		c = n.getFirstChild();
+		c != 0;
+		c = c.getNextSibling()
+	) {
+		if(c.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE
+			|| c.getNodeName() != "weight"
+		)
 			continue;
-		Arabica::DOM::Element<std::string> wnode = static_cast<Arabica::DOM::Element<std::string> >(c);
+		Arabica::DOM::Element<std::string>
+			wnode = static_cast<Arabica::DOM::Element<std::string> >(c);
 		std::string id = wnode.getAttribute("model");
 		if(id == "") {
 			LOG(logger_, error, "Lacking required attribute 'model' on weight element.");
