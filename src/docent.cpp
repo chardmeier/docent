@@ -38,6 +38,7 @@
 
 void usage() {
 	std::cerr << "Usage: docent [-d moduleToDebug]"
+		" [-t moses-translations.xml]"
 		" config.xml [input.mmax-dir] input.xml"
 		<< std::endl;
 	exit(1);
@@ -51,13 +52,17 @@ processTestset(
 
 int main(int argc, char **argv)
 {
-	std::string configFile;
+	std::string configFile, mosesResultFilename;
 	std::vector<std::string> args;
 	for(int i = 1; i < argc; i++) {
 		if(!strcmp(argv[i], "-d")) {
-			if(i + 1 >= argc)
+			if(i >= argc - 1)
 				usage();
 			Logger::setLogLevel(argv[++i], debug);
+		} else if(strcmp(argv[i], "-t") == 0) {
+			if(i >= argc - 1)
+				usage();
+			mosesResultFilename = argv[++i];
 		} else
 			args.push_back(argv[i]);
 	}
@@ -66,6 +71,18 @@ int main(int argc, char **argv)
 		usage();
 
 	ConfigurationFile cf(args[0]);
+	if(!mosesResultFilename.empty()) {
+		cf.modifyAttribute(
+			"/docent/state-generator/initial-state",
+			"type",
+			"testset"
+		);
+		cf.modifyOrAddProperty(
+			"/docent/state-generator/initial-state",
+			"file",
+			mosesResultFilename
+		);
+	}
 	DecoderConfiguration config(cf);
 
 	std::string inputMMAX, inputXML;

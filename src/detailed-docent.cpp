@@ -68,8 +68,7 @@ int main(int argc, char **argv) {
 	uint sampleInterval = 100; //default
 	uint burnIn = 1000; //default
 	uint maxSteps = 100000; //134217728; //default
-
-	std::string firstStateFilename, lastStateFilename;
+	std::string firstStateFilename, lastStateFilename, mosesResultFilename;
 
 	for(int i = 1; i < argc; i++) {
 		if(strcmp(argv[i], "-m") == 0) {
@@ -81,6 +80,10 @@ int main(int argc, char **argv) {
 			if(i >= argc - 1)
 				usage();
 			nistxml = argv[++i];
+		} else if(strcmp(argv[i], "-t") == 0) {
+			if(i >= argc - 1)
+				usage();
+			mosesResultFilename = argv[++i];
 		}  else if(strcmp(argv[i], "-s") == 0) {
 			if(i >= argc - 2)
 				usage();
@@ -125,20 +128,31 @@ int main(int argc, char **argv) {
 	if(nistxml.empty() || args.size() != 2)
 		usage();
 
-	const std::string &configFile = args[0];
+	const std::string &configFileName = args[0];
 	const std::string &outstem = args[1];
 
-	ConfigurationFile config(configFile);
-
+	ConfigurationFile configFile(configFileName);
 	BOOST_FOREACH(const ModificationPair &m, xpset)
-		config.modifyNodes(m.first, m.second);
+		configFile.modifyNodes(m.first, m.second);
 	BOOST_FOREACH(const std::string &m, xpremove)
-		config.removeNodes(m);
+		configFile.removeNodes(m);
+	if(!mosesResultFilename.empty()) {
+		configFile.modifyAttribute(
+			"/docent/state-generator/initial-state",
+			"type",
+			"testset"
+		);
+		configFile.modifyOrAddProperty(
+			"/docent/state-generator/initial-state",
+			"file",
+			mosesResultFilename
+		);
+	}
 
 	if(!mmax.empty()) {
 		MMAXTestset testset(mmax, nistxml);
 		processTestset(
-			config,
+			configFile,
 			testset,
 			outstem,
 			dumpstates,
@@ -151,7 +165,7 @@ int main(int argc, char **argv) {
 	} else {
 		NistXmlCorpus testset(nistxml);
 		processTestset(
-			config,
+			configFile,
 			testset,
 			outstem,
 			dumpstates,
@@ -176,11 +190,12 @@ void printState(
 }
 
 void usage() {
-	std::cerr << "Usage: detailed-docent [-s xpath value] [-r xpath] "
-		"[--dumpstates] [-si sampleInterval] [-b burnIn] [-x maxSteps] "
-		"[-pf stateFileInitialisation] [-pl stateFileLast] "
-		"{-n input.xml | -m input.mmaxdir input.xml} "
-		"config.xml outstem" << std::endl;
+	std::cerr << "Usage: detailed-docent [-s xpath value] [-r xpath]"
+		" [--dumpstates] [-si sampleInterval] [-b burnIn] [-x maxSteps]"
+		" [-pf stateFileInitialisation] [-pl stateFileLast]"
+		" [-t moses-translations.xml]"
+		" {-n input.xml | -m input.mmaxdir input.xml}"
+		" config.xml outstem" << std::endl;
 	exit(1);
 }
 
