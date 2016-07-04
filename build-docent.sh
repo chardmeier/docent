@@ -39,11 +39,6 @@ export CPATH=$BOOST_ROOT/include${CPATH:+:$CPATH}
 
 set -e
 
-## patch Arabica spurious-rebuild bug
-cd "$Code/external/arabica"
-patch -p1 ../arabica-norebuild.patch
-cd -
-
 mkdir -p "$Target"
 cd       "$Target"
 
