@@ -44,6 +44,7 @@ void usage() {
 		" [--dumpstates] [-d moduleToDebug]"
 		" [-pf stateFileInitialisation] [-pl stateFileLast]"
 		" {-n input.xml | -m input.mmaxdir input.xml}"
+		" [-t moses-translations.xml]"
 		" config.xml outstem" << std::endl;
 	exit(1);
 }
@@ -118,10 +119,10 @@ int main(int argc, char **argv)
 	typedef std::pair<std::string,std::string> ModificationPair;
 	std::vector<ModificationPair> xpset;
 	std::vector<std::string> xpremove;
-	std::string mmax, nistxml;
 	bool translateSingleDocument = false;
 	bool dumpstates = false;
-	std::string firstStateFilename, lastStateFilename;
+	std::string mmax, nistxml;
+	std::string firstStateFilename, lastStateFilename, mosesResultFilename;
 
 	for(int i = 1; i < argc; i++) {
 		if(strcmp(argv[i], "-m") == 0) {
@@ -133,6 +134,10 @@ int main(int argc, char **argv)
 			if(i >= argc - 1)
 				usage();
 			nistxml = argv[++i];
+		} else if(strcmp(argv[i], "-t") == 0) {
+			if(i >= argc - 1)
+				usage();
+			mosesResultFilename = argv[++i];
 		} else if(strcmp(argv[i], "-s") == 0) {
 			if(i >= argc - 2)
 				usage();
@@ -175,6 +180,18 @@ int main(int argc, char **argv)
 		configFile.modifyNodes(m.first, m.second);
 	BOOST_FOREACH(const std::string &m, xpremove)
 		configFile.removeNodes(m);
+	if(!mosesResultFilename.empty()) {
+		configFile.modifyAttribute(
+			"/docent/state-generator/initial-state",
+			"type",
+			"testset"
+		);
+		configFile.modifyOrAddProperty(
+			"/docent/state-generator/initial-state",
+			"file",
+			mosesResultFilename
+		);
+	}
 	DecoderConfiguration config(configFile);
 
 	const std::string outstem = args[1];
