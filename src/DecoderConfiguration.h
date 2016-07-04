@@ -39,7 +39,6 @@
 #include <DOM/Element.hpp>
 
 class FeatureFunctionInstantiation;
-class Parameters;
 class PhraseTable;
 class SearchAlgorithm;
 class StateGenerator;
@@ -53,9 +52,23 @@ private:
 public:
 	ConfigurationFile(const std::string &file);
 
-	Parameters  getParametersForModule(const std::string &xpath) const;
-	void modifyNodes(const std::string &xpath, const std::string &value);
-	void removeNodes(const std::string &xpath);
+	void modifyNodes(
+		const std::string &xpath,
+		const std::string &value
+	);
+	void modifyOrAddProperty(
+		const std::string &parentXpath,
+		const std::string &name,
+		const std::string &value
+	);
+	void modifyAttribute(
+		const std::string &xpath,
+		const std::string &attr,
+		const std::string &value
+	);
+	void removeNodes(
+		const std::string &xpath
+	);
 
 	Arabica::DOM::Document<std::string> getXMLDocument() const;
 };

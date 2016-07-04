@@ -62,26 +62,6 @@ ConfigurationFile::ConfigurationFile(
 }
 
 
-Parameters
-ConfigurationFile::getParametersForModule(
-	const std::string &xpath
-) const
-{
-	Arabica::XPath::XPath<std::string> xp;
-	Arabica::XPath::NodeSet<std::string> nodes = xp
-		.compile(xpath)
-		.evaluateAsNodeSet(doc_.getDocumentElement());
-
-	if(nodes.empty())
-		LOG(logger_, error, "XPath expression " << xpath << " returns empty node set.");
-
-	Arabica::DOM::Element<std::string> node = static_cast<
-		Arabica::DOM::Element<std::string>
-	>(nodes[0]);
-	return Parameters(logger_, node);
-}
-
-
 void
 ConfigurationFile::modifyNodes(
 	const std::string &xpath,
@@ -93,13 +73,11 @@ ConfigurationFile::modifyNodes(
 		.evaluateAsNodeSet(doc_.getDocumentElement());
 
 	if(nodes.empty())
-		LOG(logger_, error, "XPath expression " << xpath << " returns empty node set.");
+		LOG(logger_, error, "XPath expression '" << xpath << "' returns empty node set.");
 
 	BOOST_FOREACH(Arabica::DOM::Node<std::string> &n, nodes) {
 		if(n.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE) {
-			LOG(logger_, error,
-				"XPath expression " << xpath << " returns non-element nodes."
-			);
+			LOG(logger_, error, "XPath expression '" << xpath << "' returns non-element nodes.");
 			BOOST_THROW_EXCEPTION(ConfigurationException());
 		}
 
@@ -107,6 +85,73 @@ ConfigurationFile::modifyNodes(
 		n2.appendChild(doc_.createTextNode(value));
 		n.getParentNode().insertBefore(n2, n);
 		n.getParentNode().removeChild(n);
+	}
+
+	doc_.getDocumentElement().normalize();
+}
+
+
+void
+ConfigurationFile::modifyOrAddProperty(
+	const std::string &parentXpath,
+	const std::string &name,
+	const std::string &value
+) {
+	Arabica::XPath::XPath<std::string> xp;
+	Arabica::XPath::NodeSet<std::string> nodes = xp
+		.compile(parentXpath)
+		.evaluateAsNodeSet(doc_.getDocumentElement());
+
+	if(nodes.empty())
+		LOG(logger_, error, "XPath expression '" << parentXpath << "' returns empty node set.");
+
+	BOOST_FOREACH(Arabica::DOM::Node<std::string> &parent, nodes) {
+		if(parent.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE) {
+			LOG(logger_, error, "XPath expression '" << parentXpath << "' returns non-element nodes.");
+			BOOST_THROW_EXCEPTION(ConfigurationException());
+		}
+		Arabica::XPath::NodeSet<std::string> children = xp
+			.compile("./p[@name=\""+name+"\"]")
+			.evaluateAsNodeSet(parent);
+		BOOST_FOREACH(Arabica::DOM::Node<std::string> c, children) {
+			parent.removeChild(c);
+		}
+
+		Arabica::DOM::Element<std::string>
+			prop = doc_.createElement("p");
+		prop.setAttribute("name", name);
+		prop.appendChild(doc_.createTextNode(value));
+		parent.appendChild(prop);
+	}
+
+	doc_.getDocumentElement().normalize();
+}
+
+
+void
+ConfigurationFile::modifyAttribute(
+	const std::string &xpath,
+	const std::string &attr,
+	const std::string &value
+) {
+	Arabica::XPath::XPath<std::string> xp;
+	Arabica::XPath::NodeSet<std::string> nodes = xp
+		.compile(xpath)
+		.evaluateAsNodeSet(doc_.getDocumentElement());
+
+	if(nodes.empty())
+		LOG(logger_, error, "XPath expression '" << xpath << "' returns empty node set.");
+
+	BOOST_FOREACH(Arabica::DOM::Node<std::string> &node, nodes) {
+		if(node.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE) {
+			LOG(logger_, error, "XPath expression '" << xpath << "' returns non-element nodes.");
+		}
+		Arabica::DOM::Element<std::string> element =
+			static_cast< Arabica::DOM::Element<std::string> >(node);
+		if(value.empty())
+			element.removeAttribute(attr);
+		else
+			element.setAttribute(attr, value);
 	}
 
 	doc_.getDocumentElement().normalize();
