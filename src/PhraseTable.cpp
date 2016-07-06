@@ -34,6 +34,7 @@
 #include "quering.hh"  // from ProbingPT
 
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 #include <boost/function.hpp>
 #include <boost/iterator/transform_iterator.hpp>
@@ -52,14 +53,24 @@
 PhraseTable::PhraseTable(
 	const Parameters &params,
 	Random random
-) : logger_("PhraseTable"), random_(random)
+) :	logger_("PhraseTable"),
+	random_(random)
 {
 	filename_ = params.get<std::string>("file");
 	nscores_ = params.get<uint>("nscores", 5);
 	maxPhraseLength_ = params.get<uint>("max-phrase-length", 7);
 	annotationCount_ = params.get<uint>("annotation-count", 0);
 
-	backend_ = new QueryEngine(filename_.c_str());
+	if(!boost::filesystem::is_directory(filename_)) {
+		LOG(logger_, error, "phrase table not found: '" << filename_ << "'");
+		BOOST_THROW_EXCEPTION(FileFormatException());
+	}
+	try {
+		backend_ = new QueryEngine(filename_.c_str());
+	} catch(std::exception &) {
+		LOG(logger_, error, "incomplete or invalid phrase table in '" << filename_ << "'");
+		BOOST_THROW_EXCEPTION(FileFormatException());
+	}
 }
 
 PhraseTable::~PhraseTable() {
