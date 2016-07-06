@@ -27,55 +27,47 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 
-### Portability hacks
-if(APPLE)
-	# Darwin ld doesn't support, and doesn't seem to need, start-/end-group
-	set(LD_START_GROUP "")
-	set(LD_END_GROUP "")
-else()
-	set(LD_START_GROUP -Wl,--start-group)
-	set(LD_END_GROUP -Wl,--end-group)
-endif()
-
-### Find out if we have MPI support
-find_package(MPI QUIET)
-
-
 ### Find Boost
-if(DEFINED ENV{BOOST_ROOT} AND NOT DEFINED BOOST_ROOT)
+if((NOT DEFINED BOOST_ROOT) AND (DEFINED ENV{BOOST_ROOT}) AND (ENV{BOOST_ROOT} STRGREATER ""))
 	set(BOOST_ROOT $ENV{BOOST_ROOT})
 endif()
 
 if(DEFINED BOOST_ROOT)
+	set(Boost_NO_SYSTEM_PATHS TRUE)
 	set(Arabica_WITH_BOOST "--with-boost=${BOOST_ROOT}/include")
 else()
 	message("BOOST_ROOT isn't set. If you encounter build problems, consider setting it.")
-	set(Arabica_WITH_BOOST "")
+	set(Arabica_WITH_BOOST "--with-boost")
 endif()
 
-set(Boost_NO_SYSTEM_PATHS TRUE)
+find_package(Boost 1.44 COMPONENTS
+	exception filesystem random regex serialization system thread
+	REQUIRED
+)
+
+
+### Find out if we have MPI support
+find_package(MPI QUIET)
 
 if(MPI_FOUND)
 	find_package(Boost 1.44 COMPONENTS mpi)
 	if(NOT Boost_MPI_FOUND)
-		message(WARNING "Found MPI but not boost::mpi. Building without MPI support.")
+		message(WARNING "Found MPI but not boost::mpi, so mpi-docent won't be built.")
 		set(MPI_FOUND FALSE)
 	endif()
 else()
-	message("You don't seem to have MPI installed, so mpi-docent won't be built. "
-		"The other binaries won't be affected.")
+	message(
+		"You don't seem to have MPI installed, so mpi-docent won't be built. "
+		"The other binaries won't be affected."
+	)
 endif()
 
-find_package(Boost 1.44 COMPONENTS thread random serialization regex system filesystem REQUIRED)
-
-find_package(ZLIB REQUIRED)
-
-check_library_exists(-lrt clock_gettime "" HAVE_LIBRT)
-if(HAVE_LIBRT)
-	set(LIBRT_LIBRARIES -lrt)
-else()
-	set(LIBRT_LIBRARIES "")
-endif()
+#check_library_exists(-lrt clock_gettime "" HAVE_LIBRT)
+#if(HAVE_LIBRT)
+#	set(LIBRT_LIBRARIES -lrt)
+#else()
+#	set(LIBRT_LIBRARIES "")
+#endif()
 
 
 ### Build libstemmer_c
@@ -133,7 +125,7 @@ add_library(probingpt STATIC
 )
 add_dependencies(probingpt
 	kenlm
-	kenlm_util
+#	kenlm_util
 )
 
 
@@ -191,20 +183,12 @@ add_dependencies(decoder
 	stemmer
 	arabica
 	kenlm
-	kenlm_builder
-	kenlm_filter
-	kenlm_interpolate
-	kenlm_util
 )
 
 set(DECODER_LIBRARIES
 	decoder
 	stemmer
 	kenlm
-	kenlm_builder
-	kenlm_filter
-	kenlm_interpolate
-	kenlm_util
 	probingpt
 	${Arabica_LIBRARIES}
 	${Boost_LIBRARIES}
