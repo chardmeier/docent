@@ -100,7 +100,7 @@ set(KenLM_ROOT ${CMAKE_SOURCE_DIR}/external/kenlm)
 set(BUILD_TESTING OFF)
 
 include_directories(${KenLM_ROOT})
-add_subdirectory(${KenLM_ROOT})
+add_subdirectory(${KenLM_ROOT} EXCLUDE_FROM_ALL)
 
 
 ### Build ProbingPT
