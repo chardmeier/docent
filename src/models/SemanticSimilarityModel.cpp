@@ -27,10 +27,10 @@
 #include "MMAXDocument.h"
 
 #include <cmath>
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 #include <vector>
-#include <malloc.h>
 
 /*
   selected words:

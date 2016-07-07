@@ -23,8 +23,6 @@
 #ifndef docent_Docent_h
 #define docent_Docent_h
 
-#include "Logger.h"
-
 #include <algorithm>
 #include <list>
 #include <string>
@@ -170,5 +168,7 @@ namespace err_info {
 	typedef boost::error_info<struct tag_Filename,std::string> Filename;
 	typedef boost::error_info<struct tag_Parameter,std::string> Parameter;
 }
+
+#include "Logger.h"
 
 #endif
