@@ -28,6 +28,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
+#include <boost/make_shared.hpp>
 
 #include <DOM/io/Stream.hpp>
 #include <DOM/SAX2DOM/SAX2DOM.hpp>

@@ -26,6 +26,7 @@
 #include "Docent.h"
 
 #include <iostream>
+#include <vector>
 
 #include <boost/unordered_map.hpp>
 

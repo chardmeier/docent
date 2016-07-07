@@ -28,6 +28,7 @@
 #include <mpi.h>
 
 #include <boost/foreach.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/mpi/communicator.hpp>
 #include <boost/mpi/nonblocking.hpp>
 #include <boost/serialization/utility.hpp>
@@ -39,6 +40,7 @@
 #include "MMAXDocument.h"
 #include "NbestStorage.h"
 #include "NistXmlCorpus.h"
+#include "SearchAlgorithm.h"
 
 class DocumentDecoder {
 private:

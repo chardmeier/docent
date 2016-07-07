@@ -28,8 +28,6 @@
 #include "SearchStep.h"
 #include "StateGenerator.h"
 
-#include <boost/make_shared.hpp>
-
 #include <limits>
 
 struct SimulatedAnnealingSearchState

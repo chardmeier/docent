@@ -26,6 +26,7 @@
 #include "PlainTextDocument.h"
 
 #include <boost/algorithm/string.hpp>
+#include <boost/make_shared.hpp>
 
 struct SegNodeFilter : public Arabica::DOM::Traversal::NodeFilter<std::string>
 {
