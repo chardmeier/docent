@@ -41,7 +41,7 @@ else()
 endif()
 
 find_package(Boost 1.44 COMPONENTS
-	exception filesystem random regex serialization system thread
+	filesystem random regex serialization system thread
 	REQUIRED
 )
 
@@ -61,13 +61,6 @@ else()
 		"The other binaries won't be affected."
 	)
 endif()
-
-#check_library_exists(-lrt clock_gettime "" HAVE_LIBRT)
-#if(HAVE_LIBRT)
-#	set(LIBRT_LIBRARIES -lrt)
-#else()
-#	set(LIBRT_LIBRARIES "")
-#endif()
 
 
 ### Build libstemmer_c
@@ -125,7 +118,35 @@ add_library(probingpt STATIC
 )
 add_dependencies(probingpt
 	kenlm
-#	kenlm_util
+)
+
+
+add_executable(QueryProbingPT
+	${ProbingPT_ROOT}/QueryProbingPT.cpp
+	${KenLM_ROOT}/util/file_piece.cc
+	${KenLM_ROOT}/util/mmap.cc
+	${KenLM_ROOT}/util/parallel_read.cc
+)
+target_link_libraries(QueryProbingPT
+	kenlm
+	probingpt
+	boost_serialization
+	boost_system
+	boost_thread
+)
+
+add_executable(CreateProbingPT
+	${ProbingPT_ROOT}/CreateProbingPT.cpp
+	${KenLM_ROOT}/util/file_piece.cc
+	${KenLM_ROOT}/util/mmap.cc
+	${KenLM_ROOT}/util/parallel_read.cc
+)
+target_link_libraries(CreateProbingPT
+	kenlm
+	probingpt
+	boost_serialization
+	boost_system
+	boost_thread
 )
 
 
@@ -230,6 +251,9 @@ if(MPI_FOUND)
 	add_executable(mpi-docent
 		src/mpi-docent.cpp
 		src/PhrasePair.StreamOperators-normal.cpp
+	)
+	include_directories(
+		${MPI_CXX_INCLUDE_PATH}
 	)
 
 	if(MPI_COMPILE_FLAGS)
