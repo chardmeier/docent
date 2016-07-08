@@ -30,7 +30,7 @@ if [[ -z "$BOOST_ROOT" ]]; then
     usage
 fi
 if [[ ! "$Code" =~ */[Bb]oost* ]]; then
-    if [[ -f "$Code/Jamroot" ]]; then
+    if [[ ! -f "$Code/Jamroot" ]]; then
         echo >&2 "$0: ERROR: There is no file 'Jamroot' in '$Code', that does not seem to be the Boost code directory."
         exit 1
     fi
