@@ -40,7 +40,7 @@
 
 class FeatureFunctionInstantiation;
 class PhraseTable;
-class SearchAlgorithm;
+struct SearchAlgorithm;
 class StateGenerator;
 
 class ConfigurationFile {
