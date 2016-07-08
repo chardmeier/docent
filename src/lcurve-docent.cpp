@@ -226,7 +226,11 @@ void processTestset(
 	try {
 		std::vector<typename Testset::value_type> inputdocs;
 		inputdocs.reserve(testset.size());
-		inputdocs.insert(inputdocs.end(), testset.begin(), testset.end());
+		// one inputdocs.insert(...) would be more elegant, but fails to compile on clang 7.3.0
+		// with "call to 'make_move_iterator' is ambiguous", hence this more verbatim loop
+		BOOST_FOREACH(const typename Testset::value_type &inputdoc, testset)
+			inputdocs.push_back(inputdoc);
+
 		std::vector<SearchState *> states;
 		states.reserve(testset.size());
 		const SearchAlgorithm &algo = config.getSearchAlgorithm();
