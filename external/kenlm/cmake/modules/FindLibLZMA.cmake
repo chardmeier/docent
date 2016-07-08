@@ -47,7 +47,7 @@ endif()
 # it can be found in http://tukaani.org/xz/
 # Avoid using old codebase
 if (LIBLZMA_LIBRARY)
-   include(${CMAKE_CURRENT_LIST_DIR}/CheckLibraryExists.cmake)
+   include(CheckLibraryExists.cmake)
    CHECK_LIBRARY_EXISTS(${LIBLZMA_LIBRARY} lzma_auto_decoder "" LIBLZMA_HAS_AUTO_DECODER)
    CHECK_LIBRARY_EXISTS(${LIBLZMA_LIBRARY} lzma_easy_encoder "" LIBLZMA_HAS_EASY_ENCODER)
    CHECK_LIBRARY_EXISTS(${LIBLZMA_LIBRARY} lzma_lzma_preset "" LIBLZMA_HAS_LZMA_PRESET)
