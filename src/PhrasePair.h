@@ -335,11 +335,10 @@ public std::binary_function<
 
 private:
 	PhrasePairKey peel(const AnchoredPhrasePair &a) const {
-		using namespace boost;
-		return make_tuple(
-			cref(a.first),
-			cref(a.second.get().getSourcePhrase().get()),
-			cref(a.second.get().getTargetPhrase().get())
+		return boost::make_tuple(
+			boost::cref(a.first),
+			boost::cref(a.second.get().getSourcePhrase().get()),
+			boost::cref(a.second.get().getTargetPhrase().get())
 		);
 	}
 };
