@@ -33,6 +33,7 @@ if((NOT DEFINED BOOST_ROOT) AND (DEFINED ENV{BOOST_ROOT}) AND (ENV{BOOST_ROOT} S
 endif()
 
 if(DEFINED BOOST_ROOT)
+	set(Boost_NO_BOOST_CMAKE TRUE)
 	set(Boost_NO_SYSTEM_PATHS TRUE)
 	set(Arabica_WITH_BOOST "--with-boost=${BOOST_ROOT}/include")
 else()
