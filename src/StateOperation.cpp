@@ -437,7 +437,10 @@ SearchStep
 		++oe;
 
 	CoverageBitmap tgt(pcoll.getSentenceLength());
-	std::for_each(os, oe, tgt |= bind<const CoverageBitmap &>(&AnchoredPhrasePair::first, _1));
+	std::for_each(
+		os, oe,
+		tgt |= boost::lambda::bind<const CoverageBitmap &>(&AnchoredPhrasePair::first, _1)
+	);
 
 	LOG(logger_, debug, "Resegmenting " << tgt);
 

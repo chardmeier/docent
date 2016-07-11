@@ -92,7 +92,7 @@ public:
 				base_ = from_ + nelems_ * stride_;
 		}
 
-		const uint dereference() const {
+		uint dereference() const {
 			return (base_ - from_) / stride_;
 		}
 

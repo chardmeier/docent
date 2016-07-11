@@ -39,8 +39,8 @@
 #include <boost/function.hpp>
 #include <boost/iterator/transform_iterator.hpp>
 #include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
 #include <boost/lambda/algorithm.hpp>
+#include <boost/lambda/bind.hpp>
 #include <boost/lambda/numeric.hpp>
 
 #include <iostream>
@@ -242,12 +242,8 @@ PhraseTable::getPhrasesForSentence(
 
 				// Scores
 				Scores scores;
-				std::transform(
-					find.prob.begin(),
-					find.prob.end(),
-					std::back_inserter(scores),
-					bind(log, _1)
-				);
+				BOOST_FOREACH(Float prob, find.prob)
+					scores.push_back(std::log(prob));
 
 				PhrasePair pp(PhrasePairData(
 					srcphrase, factors[0], annotationPhrases, wa, scores

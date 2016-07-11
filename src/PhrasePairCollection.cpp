@@ -78,21 +78,21 @@ PhrasePairCollection::proposeSegmentation(
 		phrasePairList_.begin(),
 		phrasePairList_.end(),
 		std::back_inserter(ppairs),
-		!bind(
+		!boost::lambda::bind(
 			&CoverageBitmap::is_subset_of,
-			bind<const CoverageBitmap &>(&AnchoredPhrasePair::first, _1),
+			boost::lambda::bind<const CoverageBitmap &>(&AnchoredPhrasePair::first, _1),
 			range
 		)
 	);
 	std::sort(
 		ppairs.begin(),
 		ppairs.end(),
-		bind(
+		boost::lambda::bind(
 			&CoverageBitmap::find_first,
-			bind<const CoverageBitmap &>(&AnchoredPhrasePair::first, _1)
-		) < bind(
+			boost::lambda::bind<const CoverageBitmap &>(&AnchoredPhrasePair::first, _1)
+		) < boost::lambda::bind(
 			&CoverageBitmap::find_first,
-			bind<const CoverageBitmap &>(&AnchoredPhrasePair::first, _2)
+			boost::lambda::bind<const CoverageBitmap &>(&AnchoredPhrasePair::first, _2)
 		)
 	);
 	success = proposeSegmentationLeftRight(range, ppairs.begin(), ppairs.end(), seg);
@@ -129,9 +129,9 @@ bool PhrasePairCollection::proposeSegmentationLeftRight(
 	std::vector<AnchoredPhrasePair>::const_iterator it1 = std::find_if(
 		startit,
 		endit,
-		bind(
+		boost::lambda::bind(
 			&CoverageBitmap::test,
-			bind<const CoverageBitmap &>(&AnchoredPhrasePair::first, _1),
+			boost::lambda::bind<const CoverageBitmap &>(&AnchoredPhrasePair::first, _1),
 			firstBit
 		)
 	);
@@ -145,9 +145,9 @@ bool PhrasePairCollection::proposeSegmentationLeftRight(
 
 	std::vector<AnchoredPhrasePair>::const_iterator it2 = std::find_if(
 		it1, endit,
-		bind(
+		boost::lambda::bind(
 			&CoverageBitmap::find_first,
-			bind<const CoverageBitmap &>(&AnchoredPhrasePair::first, _1)
+			boost::lambda::bind<const CoverageBitmap &>(&AnchoredPhrasePair::first, _1)
 		) > firstBit
 	);
 	uint noptions = std::distance(it1, it2);
@@ -184,9 +184,9 @@ bool PhrasePairCollection::proposeSegmentationLeftRight(
 		std::vector<AnchoredPhrasePair>::const_iterator it2new = std::find_if(
 			it2,
 			endit,
-			bind(
+			boost::lambda::bind(
 				&CoverageBitmap::find_first,
-				bind<const CoverageBitmap &>(&AnchoredPhrasePair::first, _1)
+				boost::lambda::bind<const CoverageBitmap &>(&AnchoredPhrasePair::first, _1)
 			) >= i
 		);
 
@@ -211,9 +211,9 @@ bool PhrasePairCollection::proposeSegmentationRandomChoice(
 		return true;
 
 	typedef boost::function<bool(const AnchoredPhrasePair &)> FilterPred;
-	FilterPred filterPredicate = bind(
+	FilterPred filterPredicate = boost::lambda::bind(
 		&CoverageBitmap::is_subset_of,
-		bind<const CoverageBitmap &>(&AnchoredPhrasePair::first, _1),
+		boost::lambda::bind<const CoverageBitmap &>(&AnchoredPhrasePair::first, _1),
 		range
 	);
 	boost::filter_iterator<FilterPred,PhraseSegmentation::const_iterator> fit1 = boost::make_filter_iterator(
@@ -235,7 +235,9 @@ bool PhrasePairCollection::proposeSegmentationRandomChoice(
 			seg.push_front(*ph);
 			return true;
 		}
-		sublist.remove_if(bind(&AnchoredPhrasePair::first, _1) == ph->first);
+		sublist.remove_if(
+			boost::lambda::bind(&AnchoredPhrasePair::first, _1) == ph->first
+		);
 	}
 
 	return false;
@@ -248,7 +250,8 @@ const AnchoredPhrasePair
 	using namespace boost::lambda;
 
 	typedef boost::function<bool(const AnchoredPhrasePair &)> FilterPred;
-	FilterPred filterPredicate = bind<const CoverageBitmap &>(&AnchoredPhrasePair::first, _1) == old.first;
+	FilterPred filterPredicate =
+		boost::lambda::bind<const CoverageBitmap &>(&AnchoredPhrasePair::first, _1) == old.first;
 	boost::filter_iterator<FilterPred,PhraseSegmentation::const_iterator> fit1 =
 		boost::make_filter_iterator(filterPredicate, phrasePairList_.begin(), phrasePairList_.end());
 	boost::filter_iterator<FilterPred,PhraseSegmentation::const_iterator> fit2 =

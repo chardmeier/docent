@@ -352,8 +352,14 @@ FeatureFunction::StateModifications *SentenceLengthModel::estimateScoreUpdate(co
 		Float outlen = Float(countTargetWords(doc.getPhraseSegmentation(sentno)));
 		s -= score(doc.getInputSentenceLength(sentno), outlen);
 
-		std::for_each(from_it, to_it, outlen -= bind(WordPenaltyCounter(), _1));
-		std::for_each(proposal.begin(), proposal.end(), outlen += bind(WordPenaltyCounter(), _1));
+		std::for_each(
+			from_it, to_it,
+			outlen -= boost::lambda::bind(WordPenaltyCounter(), _1)
+		);
+		std::for_each(
+			proposal.begin(), proposal.end(),
+			outlen += boost::lambda::bind(WordPenaltyCounter(), _1)
+		);
 		s += score(doc.getInputSentenceLength(sentno), outlen);
 	}
 	return NULL;

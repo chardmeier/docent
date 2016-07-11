@@ -90,8 +90,14 @@ FeatureFunction::StateModifications *SentenceParityModel::estimateScoreUpdate(co
 		const PhraseSegmentation &proposal = it->proposal;
 		
 		using namespace boost::lambda;
-		std::for_each(from_it, to_it, s->outputLength[sentno] -= bind(counter, _1));
-		std::for_each(proposal.begin(), proposal.end(), s->outputLength[sentno] += bind(counter, _1));
+		std::for_each(
+			from_it, to_it,
+			s->outputLength[sentno] -= boost::lambda::bind(counter, _1)
+		);
+		std::for_each(
+			proposal.begin(), proposal.end(),
+			s->outputLength[sentno] += boost::lambda::bind(counter, _1)
+		);
 	}
 
 	*sbegin = s->score();
