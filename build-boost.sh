@@ -29,7 +29,7 @@ if [[ -z "$BOOST_ROOT" ]]; then
     echo >&2 "$0: You must set the BOOST_ROOT variable or use argument '-b' to specify the installation target."
     usage
 fi
-if [[ ! "$Code" =~ .*/[Bb]oost.* ]]; then
+if [[ "$Code" != */[Bb]oost* ]]; then
     if [[ ! -f "$Code/Jamroot" ]]; then
         echo >&2 "$0: ERROR: There is no file 'Jamroot' in '$Code', that does not seem to be the Boost code directory."
         exit 1
@@ -47,6 +47,7 @@ export LIBRARY_PATH=$BOOST_ROOT/lib${LIBRARY_PATH:+:$LIBRARY_PATH}
 export CPATH=$BOOST_ROOT/include${CPATH:+:$CPATH}
 export LD_LIBRARY_PATH=$BOOST_ROOT/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
 cd "$Code/"
+NC=$(nproc)
 ./bootstrap.sh --prefix=$BOOST_ROOT
-./b2 --prefix=$BOOST_ROOT --libdir=$BOOST_ROOT/lib --layout=tagged link=static,shared threading=multi install
-./b2 --prefix=$BOOST_ROOT --libdir=$BOOST_ROOT/lib                 link=static,shared threading=multi install
+./b2 --prefix=$BOOST_ROOT --libdir=$BOOST_ROOT/lib -j $NC --layout=tagged link=static,shared threading=multi install
+./b2 --prefix=$BOOST_ROOT --libdir=$BOOST_ROOT/lib -j $NC                 link=static,shared threading=multi install
