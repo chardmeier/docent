@@ -29,7 +29,7 @@ if [[ -z "$BOOST_ROOT" ]]; then
     echo >&2 "$0: You must set the BOOST_ROOT variable or use argument '-b' to specify the installation target."
     usage
 fi
-if [[ ! "$Code" =~ */[Bb]oost* ]]; then
+if [[ ! "$Code" =~ .*/[Bb]oost.* ]]; then
     if [[ ! -f "$Code/Jamroot" ]]; then
         echo >&2 "$0: ERROR: There is no file 'Jamroot' in '$Code', that does not seem to be the Boost code directory."
         exit 1
