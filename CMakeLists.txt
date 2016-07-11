@@ -35,10 +35,8 @@ endif()
 if(DEFINED BOOST_ROOT)
 	set(Boost_NO_BOOST_CMAKE TRUE)
 	set(Boost_NO_SYSTEM_PATHS TRUE)
-	set(Arabica_WITH_BOOST "--with-boost=${BOOST_ROOT}/include")
 else()
 	message("BOOST_ROOT isn't set. If you encounter build problems, consider setting it.")
-	set(Arabica_WITH_BOOST "--with-boost")
 endif()
 
 find_package(Boost 1.44 COMPONENTS
@@ -91,7 +89,7 @@ set(Arabica_ROOT ${CMAKE_SOURCE_DIR}/external/arabica)
 set(Arabica_LIBRARIES arabica)
 set(BUILD_ARABICA_EXAMPLES OFF)
 
-add_subdirectory(${Arabica_ROOT})
+add_subdirectory(${Arabica_ROOT} EXCLUDE_FROM_ALL)
 get_property(Arabica_INCLUDE_DIRS DIRECTORY external/arabica PROPERTY INCLUDE_DIRECTORIES)
 
 
@@ -122,32 +120,30 @@ add_dependencies(probingpt
 )
 
 
+link_directories(
+	${Boost_LIBRARY_DIRS}
+)
+include_directories(
+	${Boost_INCLUDE_DIRS}
+	${KenLM_ROOT}
+)
+
 add_executable(QueryProbingPT
 	${ProbingPT_ROOT}/QueryProbingPT.cpp
-	${KenLM_ROOT}/util/file_piece.cc
-	${KenLM_ROOT}/util/mmap.cc
-	${KenLM_ROOT}/util/parallel_read.cc
 )
 target_link_libraries(QueryProbingPT
 	kenlm
 	probingpt
 	boost_serialization
-	boost_system
-	boost_thread
 )
 
 add_executable(CreateProbingPT
 	${ProbingPT_ROOT}/CreateProbingPT.cpp
-	${KenLM_ROOT}/util/file_piece.cc
-	${KenLM_ROOT}/util/mmap.cc
-	${KenLM_ROOT}/util/parallel_read.cc
 )
 target_link_libraries(CreateProbingPT
 	kenlm
 	probingpt
 	boost_serialization
-	boost_system
-	boost_thread
 )
 
 
