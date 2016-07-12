@@ -3,20 +3,30 @@
 function usage()
 {
     cat >&2 <<"EOF"
-./build-boost.sh -c CODEDIR [-b BUILDPREFIX]
-or from Boost code directory: $DOCENTDIR/build-boost.sh [-b BUILDPREFIX]
+./build-boost.sh [OPTIONS]-c CODEDIR [-b BUILDPREFIX] [-j JOBS]
+or from Boost code directory: $DOCENTDIR/build-boost.sh []
 Build the Boost libraries.
-CODEDIR defaults to the current working directory, BUILDPREFIX is taken
-from the $BOOST_ROOT environment variable, if it is already set.
+
+OPTIONS:
+  -b BUILDPREFIX  prefix where to build Boost (will contain directories 'include'
+          and 'lib') (default: environment variable BOOST_ROOT if available)
+  -c CODEDIR      location of the unpacked Boost source code
+          (default: current directory)
+  -j JOBS         build JOBS targets simultaneously
+          (default: number of processor cores on your machine)
+
+  -h  display this help and exit
 EOF
     exit 130
 }
 
 Code="$PWD"
-while getopts "b:c:-h" arg; do
+NProc=$(nproc)
+while getopts "b:c:j:-h" arg; do
     case $arg in
         b)  BOOST_ROOT="$OPTARG" ;;
         c)  Code="$OPTARG" ;;
+        j)  NProc="$OPTARG" ;;
 
         -)  break ;;
         h|\?)  usage ;;
@@ -40,14 +50,10 @@ fi
 
 set -e
 
-mkdir -p  "$BOOST_ROOT/lib"
-ln -s lib "$BOOST_ROOT/lib64"
+mkdir -p "$BOOST_ROOT/lib"
+[[ -d "$BOOST_ROOT/lib64" ]] || ln -s lib "$BOOST_ROOT/lib64"
 
-export LIBRARY_PATH=$BOOST_ROOT/lib${LIBRARY_PATH:+:$LIBRARY_PATH}
-export CPATH=$BOOST_ROOT/include${CPATH:+:$CPATH}
-export LD_LIBRARY_PATH=$BOOST_ROOT/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
 cd "$Code/"
-NC=$(nproc)
 ./bootstrap.sh --prefix=$BOOST_ROOT
-./b2 --prefix=$BOOST_ROOT --libdir=$BOOST_ROOT/lib -j $NC --layout=tagged link=static,shared threading=multi install
-./b2 --prefix=$BOOST_ROOT --libdir=$BOOST_ROOT/lib -j $NC                 link=static,shared threading=multi install
+./b2 --prefix=$BOOST_ROOT --libdir=$BOOST_ROOT/lib -j ${NProc:-1} --layout=tagged link=static,shared threading=multi install
+./b2 --prefix=$BOOST_ROOT --libdir=$BOOST_ROOT/lib -j ${NProc:-1}                 link=static,shared threading=multi install
