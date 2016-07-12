@@ -40,7 +40,7 @@ using namespace boost::xpressive;
 
 template<class Model>
 class SelectedPOSLM : public FeatureFunction {
-	friend class SelectedPOSLMFactory;
+	friend struct SelectedPOSLMFactory;
 
 private:
 	typedef typename Model::Vocabulary VocabularyType_;

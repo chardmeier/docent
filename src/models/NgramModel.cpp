@@ -44,7 +44,7 @@ template<class M> struct NgramDocumentModifications;
 
 template<class Model>
 class NgramModel : public FeatureFunction {
-	friend class NgramModelFactory;
+	friend struct NgramModelFactory;
 	friend struct NgramDocumentState<NgramModel<Model> >;
 	friend struct NgramDocumentModifications<NgramModel<Model> >;
 

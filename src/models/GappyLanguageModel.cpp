@@ -56,7 +56,7 @@
 
 template<class Model>
 class GappyLanguageModel : public FeatureFunction {
-	friend class GappyLanguageModelFactory;
+	friend struct GappyLanguageModelFactory;
 
 private:
 	typedef typename Model::Vocabulary VocabularyType_;

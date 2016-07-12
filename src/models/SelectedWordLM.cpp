@@ -35,7 +35,7 @@ template<class Model>
 class SelectedWordLM
 : public FeatureFunction
 {
-	friend class SelectedWordLMFactory;
+	friend struct SelectedWordLMFactory;
 
 private:
 	typedef typename Model::Vocabulary VocabularyType_;

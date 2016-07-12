@@ -110,7 +110,7 @@ typedef boost::shared_ptr<SemanticSpace::DenseVector> WordVectorPointer;
 typedef std::list<WordVectorPointer> SemList;
 
 class SemanticSpaceLanguageModel : public FeatureFunction {
-	friend class SemanticSpaceLanguageModelFactory;
+	friend struct SemanticSpaceLanguageModelFactory;
 	friend struct SSLMDocumentState;
 	friend struct SSLMDocumentModifications;
 	friend struct SSLMModificationState;
