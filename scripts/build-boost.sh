@@ -30,7 +30,7 @@ while getopts "b:c:j:-h" arg; do
 
         -)  break ;;
         h|\?)  usage ;;
-        *)  die -10 "Internal error: unhandled argument, please report: $arg"
+        *)  echo >&2 "Internal error: unhandled argument, please report: $arg"; exit 10
     esac
 done
 shift $((OPTIND-1))
@@ -50,10 +50,18 @@ fi
 
 set -e
 
+B2Args=(
+    --prefix="$BOOST_ROOT"
+    --libdir="$BOOST_ROOT/lib"
+    -j ${NProc:-1}
+    link=static,shared threading=multi
+    install
+)
+
 mkdir -p "$BOOST_ROOT/lib"
 [[ -d "$BOOST_ROOT/lib64" ]] || ln -s lib "$BOOST_ROOT/lib64"
 
 cd "$Code/"
-./bootstrap.sh --prefix=$BOOST_ROOT
-./b2 --prefix=$BOOST_ROOT --libdir=$BOOST_ROOT/lib -j ${NProc:-1} --layout=tagged link=static,shared threading=multi install
-./b2 --prefix=$BOOST_ROOT --libdir=$BOOST_ROOT/lib -j ${NProc:-1}                 link=static,shared threading=multi install
+./bootstrap.sh --prefix="$BOOST_ROOT"
+./b2 --layout=tagged "${B2Args[@]}"
+./b2                 "${B2Args[@]}"
