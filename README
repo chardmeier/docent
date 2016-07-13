@@ -4,7 +4,7 @@ Christian Hardmeier
 26 September 2012
 
 Sebastian Schleussner
-25 May 2016
+13 July 2016
 
 Docent is a decoder for phrase-based Statistical Machine Translation (SMT).
 Unlike most existing SMT decoders, it treats complete documents, rather than
@@ -31,6 +31,7 @@ following paper:
 Requests and comments about this software can be addressed to
 	docent@stp.lingfil.uu.se
 
+
 DOCENT LICENSE
 ==============
 All code included in docent, except for the contents of the 'external'
@@ -48,6 +49,7 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with Docent. If not, see <http://www.gnu.org/licenses/>.
+
 
 SNOWBALL STEMMER LICENSE
 ========================
@@ -70,83 +72,16 @@ that it is covered by the BSD license.
 We have not bothered to insert the licensing arrangement into the text of the
 Snowball software."
 
+
 BUILD INSTRUCTIONS
 ==================
-Building docent can be a fairly complicated process because of its library
-dependencies and the fact that it links against Moses and shares some of its
-dependencies with it. Compared to the first public version, the build process
-has been much simplified (thanks to Tomas Hudik for helping me find problems!),
-but it may still need some tweaking for your system.
+See file doc/Build.txt
 
-1. Initialising Git submodules
-
-The software package Arabica (XML parser) is referenced by Docent as a Git submodule.
-Therefore you have to clone the repository the following way:
-	git clone --recursive https://github.com/chardmeier/docent
-Alternatively, after a conventional cloning, issue the commands:
-	git submodule init; git submodule update
-
-The build process of Arabica is driven automatically by Docent's cmake script.
-
-2. Installing prerequisite components
-
-Download the following software components and build and install them into
-directories of your choice according to the build instructions provided with
-each package:
-
-- cmake (build system)
-	Versions tested: 2.8.4, 2.8.9
-	Source: http://www.cmake.org/
-
-Make sure you have cmake in your PATH.
-
-- Autotools
-	Versions tested:
-	- autoconf 2.68, 2.69
-	- automake 1.9.6, 1.12.4
-	- libtool 2.2.10, 2.4.2
-	Source: ftp://ftp.gnu.org/gnu and mirrors
-
-Arabica requires you to have recent versions of autoconf, automake and libtool
-installed on your system. If you have outdated versions of them or experience
-problems building Arabica, consider installing the latest versions. Make sure
-you have these tools in your PATH.
-
-- Boost (C++ library)
-	Versions tested: 1.48.0, 1.50.0
-	Source: http://www.boost.org/
-
-Watch out, many Linux boxes have old versions of boost lying around in
-system-wide directories. Boost is a major source of build problems, especially
-since Docent links against Moses, which also uses Boost and requires a
-non-standard naming scheme (--layout=tagged). Unless your distribution has a
-very recent Boost version preinstalled, I recommend installing Boost in a prefix
-directory of its own and set the BOOST_ROOT variable as explained below.
-
-3. Building Docent
-
-Docent can be built in a debuggable DEBUG and an optimised RELEASE
-configuration. You will probably need both of them, so it's easiest to build
-them in two separate directories.
-
-Start by setting the BOOST_ROOT environment variable to Boost's prefix
-directory:
-
-- BOOST_ROOT=<your Boost prefix directory>
-- export BOOST_ROOT
-
-Then run the following commands from Docent's top directory:
-
-- mkdir DEBUG RELEASE
-- cd DEBUG
-- cmake -DCMAKE_BUILD_TYPE=DEBUG ..
-- make
-- cd ../RELEASE
-- cmake -DCMAKE_BUILD_TYPE=RELEASE ..
-- make
 
 USAGE
 =====
+See also file doc/Usage.txt
+
 1. File input formats
 
 Docent accepts the NIST-XML and the MMAX formats for document input. Output is
