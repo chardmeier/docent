@@ -4,20 +4,93 @@ USAGE INSTRUCTIONS
 1. File formats
 ---------------
 
-# Configuration
+1.1. Configuration
+~~~~~~~~~~~~~~~~~~
+
+NOTE: In this section, The term "parameter" denotes a named value to passed to
+the consuming module; in the file it must be supplied in the following form:
+    <p name="IDENTIFIER">value</p>
 
 The configuration file is an XML file with the root 'docent' and has to contain
-the following sections in exactly that order:
+the sections given in the list below, in precisely that order. See the files in
+doc/config/ for examples and starting points.
 
-  - random
-  - state-generator
-  - search
-  - models
-  - weights
+  - <random>
+    Usually empty; may contain an integer with which to seed the random generator
+    if you want to reproduce the states of an earlier run for debugging purposes
+    (the current random-number seed is printed to STDERR at program start).
+
+  - <state-generator>
+    Child elements:
+    - <initial-state type="{monotonic|saved-state|testset}">
+      How the translation of every sentence is initialised at program start.
+      * With type="monotonic", selects a random combination of anchored phrase
+        pairs (from the phrase table) that cover the whole sentence.
+      * With type="saved-state", reads the phrases stored by an earlier Docent run.
+        Provide the file name as a parameter with the name "file".
+      * With type="testset", reads the results of a Moses run from a file.
+        Provide the file name as a parameter with the name "file".
+        This mode can also be achieved via the command line (of `docent`,
+        `detailed-docent`, and `lcurve-docent`) with the argument '-t FILE'.
+    - <operation type="..." weight="...">
+      Operation to be applied to a state to generate a new one. Can be given
+      multiple times. 'type' is one of:
+      * "change-phrase-translation"
+	  * "permute-phrases"  (parameter: "phrase-permutation-decay")
+	  * "linearise-phrases"  (parameter: "phrase-linearisation-decay")
+	  * "swap-phrases"  (parameter: "swap-distance-decay")
+	  * "move-phrases"  (parameters: "block-size-decay", "right-move-preference",
+          "left-distance-decay", "right-distance-decay")
+	  * "resegment"  (parameter: "phrase-resegmentation-decay"),
+      and 'weight' (in interval [0,1], the sum of all weights must equal 1)
+      specifies the likelihood of the given operation to be performed in any
+      particular iteration (decoding step).
+
+  - <search algorithm="{simulated-annealing|local-beam-search}">
+    The algorithm used for searching.
+    * algorithm="simulated-annealing" (parameters: "max-steps", "target-score",
+      "schedule" (hill-climbing, aarts-laarhoven, or geometric-decay))
+    * algorithm="local-beam-search"  (parameters: "max-steps", "target-score",
+      "max-rejected", "beam-size")
+
+  - <models>
+    The models or 'feature functions' that together compute the score of each
+    new decoding step, determining whether it is better than the one before and
+    thereby should be retained. See the code in src/FeatureFunction.* and
+    src/models/ for a full list of implemented models and their respective
+    parameters.
+    Child nodes have the following form:
+        <model type="..." id="...">
+    'type' is the model name recognised by the loading method; 'id' is an
+    identifier used for associating each model with its respective weight(s)
+    in the section below.
+
+    The phrase table is the one special model that always must be present.
+    It takes the following parameters:
+    * "file": relative or absolute name of the directory containing the ProbingPT
+      phrase-table files
+    * "nscores": number of scores in the given phrase table, default: 4
+    * "filter-limit": maximum number of "best" translations considered for each
+      phrase, default: 30
+    * "filter-score-index": index (starting at 0, must be smaller than "nscores")
+      of that score value by which the phrase translations are sorted before the
+      highest N are retained (default: 2, i.e. the fraction of occurrences of the
+      source phrase that was translated by the given target phrase in the training
+      corpus).
+
+  - <weights>
+    For each model, as many weights as the model declares (one or several -- e.g.
+    in the case of the phrase-table model, as many as there are scores in the phrase
+    table) must be defined here, in the form:
+        <weight model="..." score="...">...</weight>
+    where 'model' corresponds to the 'id' tag in the models section above, 'score'
+    is a per-model index starting at 0, and the value is a positive float number.
 
 See the stub files in doc/config to get started with your own configuration.
 
-# Input and Output
+
+1.2. Input and Output
+~~~~~~~~~~~~~~~~~~~~~
 
 The crucial difference between Moses and similar tools on the one hand and Docent
 on the other, is that Docent, above the usual *sentence* segmentation level, also
@@ -33,7 +106,7 @@ takes place.
 
 An MTeval XML file with a 'tstset' node is also used for the side transport
 (parameter '-t') through which raw Moses translations can be provided as the
-starting state for Docent's decoding
+starting state for Docent's decoding.
 
 The XML schema file 'doc/mteval.xsd' can be used with e.g. 'xmllint' for verifying
 the format compliance of such XML files.
@@ -129,6 +202,14 @@ related to the binary ProbingPT phrase-table format used by the current Docent:
 APPENDIX: Troubleshooting
 --------
 
-NOTE: See doc/Build.txt for tips regarding problems with *compiling* (building) Docent.
+NOTE: See doc/Build.txt for tips regarding problems with *compiling*
+(building) Docent.
 
-...
+- It is an error for the initial translation contains a phrase that does not
+  appear in Docent's phrase table. That can typically happen if the raw translation
+  was created in Moses with a different phrase table than the one configured in
+  Docent. Make sure to use the same in both (you are not forced to use the
+  ProbingPT format in Moses, but do use the same raw data).
+
+- The phrase table has to be in the ProbingPT format and must have been created
+  on a binary-compatible system (preferentially the system you are running on).

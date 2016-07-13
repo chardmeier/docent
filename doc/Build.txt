@@ -138,6 +138,7 @@ and not needed for execution.
     cd DEBUG
     cmake -DCMAKE_BUILD_TYPE=DEBUG ..
     make
+    cd -
   If Boost is installed in a non-standard directory, alter the 'cmake' call to:
     cmake -DCMAKE_BUILD_TYPE=DEBUG -DBOOST_ROOT=/path/to/Boost ..
 
@@ -153,6 +154,7 @@ and not needed for execution.
     cd RELEASE
     cmake - DCMAKE_BUILD_TYPE=RELEASE ..
     make
+    cd -
 
 - With our script:
     scripts/build-docent.sh -m RELEASE
