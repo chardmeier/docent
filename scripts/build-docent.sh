@@ -36,7 +36,8 @@ while getopts "b:c:D:j:m:t:-h" arg; do
 
         -)  break ;;
         h|\?)  usage ;;
-        *)  echo >&2 "Internal error: unhandled argument, please report: $arg"; exit 10
+        *)  echo >&2 "Internal error: unhandled argument, please report: $arg"
+            exit 10
     esac
 done
 shift $((OPTIND-1))
@@ -53,5 +54,5 @@ mkdir -p "$Target"
 cd       "$Target"
 
 ## build
-cmake "${CMakeOptions[@]} "$Code"
+cmake "${CMakeOptions[@]}" "$Code"
 make -j ${NProc:-1} "$@"
