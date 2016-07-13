@@ -71,7 +71,7 @@ PhraseTable::PhraseTable(
 	random_(random)
 {
 	filename_         = params.get<std::string>("file");
-	nscores_          = params.get<uint>("nscores", 5);
+	nscores_          = params.get<uint>("nscores", 4);
 	maxPhraseLength_  = params.get<uint>("max-phrase-length" , 7);
 	annotationCount_  = params.get<uint>("annotation-count"  , 0);
 	filterLimit_      = params.get<uint>("filter-limit"      , 30);
