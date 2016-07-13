@@ -38,10 +38,6 @@
 #include <boost/foreach.hpp>
 #include <boost/function.hpp>
 #include <boost/iterator/transform_iterator.hpp>
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/algorithm.hpp>
-#include <boost/lambda/bind.hpp>
-#include <boost/lambda/numeric.hpp>
 
 #include <iostream>
 #include <ostream>
@@ -50,16 +46,44 @@
 #include <iterator>
 
 
+struct PhrasePairComparator {
+private:
+	uint index_;
+public:
+	PhrasePairComparator(
+		const uint filter_index
+	) :	index_(filter_index) {}
+
+	bool operator()(
+		const PhrasePairData& a,
+		const PhrasePairData& b
+	) {
+		return a.getScores()[index_]
+			>  b.getScores()[index_];
+	}
+};
+
+
 PhraseTable::PhraseTable(
 	const Parameters &params,
 	Random random
 ) :	logger_("PhraseTable"),
 	random_(random)
 {
-	filename_ = params.get<std::string>("file");
-	nscores_ = params.get<uint>("nscores", 5);
-	maxPhraseLength_ = params.get<uint>("max-phrase-length", 7);
-	annotationCount_ = params.get<uint>("annotation-count", 0);
+	filename_         = params.get<std::string>("file");
+	nscores_          = params.get<uint>("nscores", 5);
+	maxPhraseLength_  = params.get<uint>("max-phrase-length" , 7);
+	annotationCount_  = params.get<uint>("annotation-count"  , 0);
+	filterLimit_      = params.get<uint>("filter-limit"      , 30);
+	filterScoreIndex_ = params.get<uint>("filter-score-index", 2);
+
+	if(filterScoreIndex_ >= nscores_) {
+		LOG(logger_, error,
+			"'filter-score-index' (" << filterScoreIndex_ << ") must be less than "
+			"'nscores' (" << nscores_ << ")"
+		);
+		BOOST_THROW_EXCEPTION(ConfigurationException());
+	}
 
 	if(!boost::filesystem::is_directory(filename_)) {
 		LOG(logger_, error, "phrase table not found: '" << filename_ << "'");
@@ -154,7 +178,6 @@ PhraseTable::getPhrasesForSentence(
 	const std::vector<Word> &sentence
 ) const
 {
-	using namespace boost::lambda;
 	LOG(logger_, verbose, "getPhrasesForSentence " << sentence);
 	boost::shared_ptr<PhrasePairCollection> ptc(
 		new PhrasePairCollection(sentence.size(), random_)
@@ -186,6 +209,7 @@ PhraseTable::getPhrasesForSentence(
 				continue;
 
 			std::vector<target_text> finds(query_result.second);
+			std::vector<PhrasePairData> pps;
 			BOOST_FOREACH(target_text find, finds) {  // All PHRASES
 				std::string phrase(getTargetWordsFromIDs(find.target_phrase, &vocabids));
 				boost::trim(phrase);
@@ -245,12 +269,31 @@ PhraseTable::getPhrasesForSentence(
 				BOOST_FOREACH(Float prob, find.prob)
 					scores.push_back(std::log(prob));
 
-				PhrasePair pp(PhrasePairData(
+				PhrasePairData pp(
 					srcphrase, factors[0], annotationPhrases, wa, scores
-				));
-				ptc->addPhrasePair(cov, pp);
-				uncovered -= cov;
+				);
+				pps.push_back(pp);
 			}
+			std::vector<PhrasePairData>::iterator pps_end;
+			if((filterLimit_ > 0) && (pps.size() <= filterLimit_)) {
+				pps_end = pps.end();
+			} else {
+				pps_end = pps.begin() + filterLimit_;
+				PhrasePairComparator comp(filterScoreIndex_);
+				std::nth_element(
+					pps.begin(), pps.end(),
+					pps_end,
+					comp
+				);
+			}
+			for(std::vector<PhrasePairData>::iterator
+				it = pps.begin();
+				it != pps_end;
+				++it
+			) {
+				ptc->addPhrasePair(cov, PhrasePair(*it));
+			}
+			uncovered -= cov;
 		}
 	}
 
