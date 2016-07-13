@@ -24,133 +24,18 @@
 #define docent_MMAXDocument_h
 
 #include "Docent.h"
-#include "NistXmlTestset.h"
+#include "Markable.h"
+#include "NistXmlDocument.h"
+#include "PlainTextDocument.h"
 
 #include <boost/filesystem/path.hpp>
-#include <boost/foreach.hpp>
 #include <boost/iterator_adaptors.hpp>
 #include <boost/serialization/map.hpp>
 #include <boost/serialization/nvp.hpp>
 #include <boost/serialization/shared_ptr.hpp>
 #include <boost/serialization/utility.hpp>
 #include <boost/serialization/vector.hpp>
-#include <boost/make_shared.hpp>
 #include <boost/unordered_map.hpp>
-
-class Markable {
-	friend bool operator<(const Markable &m1, const Markable &m2);
-
-private:
-	uint sentence_;
-	CoverageBitmap coverage_;
-	typedef std::pair<std::string,std::string> AttributePair_;
-	std::vector<AttributePair_> attributes_;
-	std::vector<Word> words_;
-
-	friend class boost::serialization::access;
-	template<class Archive>
-	void serialize(Archive & ar, const unsigned int version) {
-		ar & BOOST_SERIALIZATION_NVP(sentence_);
-		ar & BOOST_SERIALIZATION_NVP(coverage_);
-		ar & BOOST_SERIALIZATION_NVP(attributes_);
-		ar & BOOST_SERIALIZATION_NVP(words_);
-	}
-	Markable() {} // for unpacking
-
-public:
-	template<class InputIterator>
-	Markable(uint sentence, const CoverageBitmap &cov, InputIterator words_begin, InputIterator words_end) :
-		sentence_(sentence), coverage_(cov), words_(words_begin, words_end) {}
-
-	Markable(uint sentence, const CoverageBitmap &cov) :
-		sentence_(sentence), coverage_(cov) {} // for comparisons
-
-	uint getSentence() const {
-		return sentence_;
-	}
-
-	const CoverageBitmap &getCoverage() const {
-		return coverage_;
-	}
-
-	const std::vector<Word> &getWords() const {
-		return words_;
-	}
-
-	void setAttribute(const std::string &attr, const std::string &value) {
-		BOOST_FOREACH(AttributePair_ &ap, attributes_)
-			if(ap.first == attr) {
-				ap.second = value;
-				return;
-			}
-
-		attributes_.push_back(std::make_pair(attr, value));
-	}
-
-	const std::string &getAttribute(const std::string &attr) const {
-		static const std::string EMPTY_STRING = "";
-
-		BOOST_FOREACH(const AttributePair_ &ap, attributes_)
-			if(ap.first == attr)
-				return ap.second;
-
-		return EMPTY_STRING;
-	}
-};
-
-inline bool operator<(const Markable &m1, const Markable &m2) {
-	return std::make_pair(m1.sentence_, m1.coverage_) < std::make_pair(m2.sentence_, m2.coverage_);
-}
-
-class MMAXDocument;
-
-class MarkableLevel {
-private:
-	typedef std::vector<Markable> MarkableVector_;
-	typedef boost::unordered_map<std::string,uint> MarkableIDMap_;
-
-	Logger logger_;
-
-	std::string name_;
-	MarkableVector_ markables_;
-	MarkableIDMap_ idmap_;
-
-	friend class boost::serialization::access;
-	template<class Archive>
-	void serialize(Archive & ar, const unsigned int version) {
-		ar & BOOST_SERIALIZATION_NVP(name_);
-		ar & BOOST_SERIALIZATION_NVP(markables_);
-	}
-	MarkableLevel() : logger_("MarkableLevel") {} // for unpacking
-
-public:
-	typedef MarkableVector_::const_iterator const_iterator;
-
-	MarkableLevel(const MMAXDocument &mmax, const std::string &name, const std::string &file);
-
-	const std::string &getName() const {
-		return name_;
-	}
-
-	const_iterator begin() const {
-		return markables_.begin();
-	}
-
-	const_iterator end() const {
-		return markables_.end();
-	}
-
-	const Markable *getMarkableByID(const std::string &markableID) const {
-		MarkableIDMap_::const_iterator it = idmap_.find(markableID);
-		if(it == idmap_.end())
-			return NULL;
-		else
-			return &markables_[it->second];
-	}
-
-	const Markable &getUniqueMarkableForCoverage(uint sentence, const CoverageBitmap &coverage) const;
-	std::vector<Markable> getMarkablesForCoverage(uint sentence, const CoverageBitmap &coverage) const;
-};
 
 class MMAXDocument {
 	friend class MarkableLevel;
@@ -158,7 +43,10 @@ class MMAXDocument {
 private:
 	Logger logger_;
 
-	typedef std::map<std::string,std::pair<std::string,const MarkableLevel *> > LevelMap_;
+	typedef std::map<
+		std::string,
+		std::pair<std::string, const MarkableLevel*>
+	> LevelMap_;
 	typedef std::vector<uint> SentenceVector_;
 	typedef std::vector<Word> WordVector_;
 
@@ -181,7 +69,10 @@ private:
 	std::string getTextValue(Node n) const;
 
 	void load(const boost::filesystem::path &mmax);
-	void loadBasedata(const boost::filesystem::path &mmax, const boost::filesystem::path &basedataPath);
+	void loadBasedata(
+		const boost::filesystem::path &mmax,
+		const boost::filesystem::path &basedataPath
+	);
 	void loadSentenceLevel(const std::string &sentenceLevel);
 
 public:
@@ -192,7 +83,10 @@ public:
 	MMAXDocument(const MMAXDocument &o);
 	MMAXDocument(const std::string &file);
 	MMAXDocument(const boost::filesystem::path &file);
-	MMAXDocument(const boost::filesystem::path &file, const boost::shared_ptr<NistXmlDocument> &nistxml);
+	MMAXDocument(
+		const boost::filesystem::path &file,
+		const boost::shared_ptr<NistXmlDocument> &nistxml
+	);
 
 	MMAXDocument &operator=(const MMAXDocument &o);
 
@@ -204,7 +98,7 @@ public:
 	uint getNumberOfSentences() const {
 		return sentences_.size() - 1;
 	}
-	
+
 	word_iterator sentence_begin(uint s) {
 		assert(s < sentences_.size() - 1);
 		return words_.begin() + sentences_[s];
@@ -233,7 +127,11 @@ public:
 	template<class OutputIterator>
 	void copyWordsForSentence(uint s, OutputIterator oit) const {
 		assert(s < sentences_.size() - 1);
-		std::copy(words_.begin() + sentences_[s], words_.begin() + sentences_[s + 1] - 1, oit);
+		std::copy(
+			words_.begin() + sentences_[s],
+			words_.begin() + sentences_[s + 1] - 1,
+			oit
+		);
 	}
 
 	const MarkableLevel &getMarkableLevel(const std::string &name) const;
@@ -259,84 +157,5 @@ inline void MMAXDocument::addSentence(Iterator from, Iterator to) {
 	words_.insert(words_.end(), from, to);
 	sentences_.push_back(words_.size());
 }
-
-template<class Value,class NistIterator,class MMAXIterator>
-class MMAXTestsetIterator : public boost::iterator_facade<MMAXTestsetIterator<Value,NistIterator,MMAXIterator>,
-		boost::shared_ptr<Value>,boost::single_pass_traversal_tag,boost::shared_ptr<Value> > {
-private:
-	friend class MMAXTestset;
-	friend class boost::iterator_core_access;
-	template<class,class,class> friend class MMAXTestsetIterator;
-
-	NistIterator nistit_;
-	MMAXIterator mmaxit_;
-
-	MMAXTestsetIterator(NistIterator nistit, MMAXIterator mmaxit)
-		: nistit_(nistit), mmaxit_(mmaxit) {}
-
-	template<class OtherValue,class OtherNistIterator,class OtherMMAXIterator>
-	MMAXTestsetIterator(const MMAXTestsetIterator<OtherValue,OtherNistIterator,OtherMMAXIterator> &o)
-		: nistit_(o.nistit_), mmaxit_(o.mmaxit_) {}
-
-	boost::shared_ptr<Value> dereference() const {
-		return boost::make_shared<Value>(*mmaxit_, *nistit_);
-	}
-
-	template<class OtherValue,class OtherNistIterator,class OtherMMAXIterator>
-	bool equal(const MMAXTestsetIterator<OtherValue,OtherNistIterator,OtherMMAXIterator> &o) const {
-		return mmaxit_ == o.mmaxit_ && nistit_ == o.nistit_;
-	}
-
-	void increment() {
-		++mmaxit_;
-		++nistit_;
-	}
-};
-
-class MMAXTestset {
-private:
-	typedef std::vector<boost::filesystem::path> MMAXFileVector_;
-
-	Logger logger_;
-
-	NistXmlTestset nistxml_;
-	MMAXFileVector_ mmaxFiles_;
-
-public:
-	typedef uint size_type;
-	typedef boost::shared_ptr<MMAXDocument> value_type;
-	typedef boost::shared_ptr<const MMAXDocument> const_value_type;
-
-	typedef MMAXTestsetIterator<MMAXDocument,NistXmlTestset::iterator,
-					MMAXFileVector_::const_iterator> iterator;
-	typedef MMAXTestsetIterator<const MMAXDocument,NistXmlTestset::const_iterator,
-					MMAXFileVector_::const_iterator> const_iterator;
-
-	MMAXTestset(const std::string &directory, const std::string &nistxml);
-
-	iterator begin() {
-		return iterator(nistxml_.begin(), mmaxFiles_.begin());
-	}
-
-	iterator end() {
-		return iterator(nistxml_.end(), mmaxFiles_.end());
-	}
-
-	const_iterator begin() const {
-		return const_iterator(nistxml_.begin(), mmaxFiles_.begin());
-	}
-
-	const_iterator end() const {
-		return const_iterator(nistxml_.end(), mmaxFiles_.end());
-	}
-
-	uint size() const {
-		return mmaxFiles_.size();
-	}
-
-	void outputTranslation(std::ostream &os) const {
-		nistxml_.outputTranslation(os);
-	}
-};
 
 #endif

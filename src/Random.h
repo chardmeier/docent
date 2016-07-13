@@ -46,7 +46,7 @@ private:
 
 public:
 	typedef boost::variate_generator<RandomGenerator_ &,boost::uniform_int<uint> > UintGenerator;
-	
+
 private:
 	Logger logger_;
 
@@ -57,19 +57,18 @@ private:
 
 	RandomImplementation(const RandomImplementation &o);
 	RandomImplementation &operator=(const RandomImplementation &);
-	
 	RandomImplementation();
 
 public:
 	void seed(uint seed);
 
 	inline uint drawFromRange(uint noptions) const;
-	
+
 	inline uint drawFromCumulativeDistribution(const std::vector<Float> &distribution) const;
 	inline uint drawFromDiscreteDistribution(const std::vector<Float> &distribution) const;
-	
+
 	inline uint drawFromGeometricDistribution(Float decay, uint cap = std::numeric_limits<uint>::max()) const;
-	
+
 	inline Float draw01() const;
 	inline bool flipCoin(Float p = .5) const;
 
@@ -77,6 +76,7 @@ public:
 		return const_cast<UintGenerator &>(uintGenerator_);
 	}
 };
+
 
 class Random {
 private:
@@ -87,36 +87,45 @@ private:
 	// call setup() in order to make it valid.
 	// The default constructor is private to make sure we don't inadvertently
 	// create an unseeded random generator. Using the copy constructor is ok.
-	Random() : impl_(new RandomImplementation()) {}
+	Random()
+		: impl_(new RandomImplementation()) {}
 
 public:
 	typedef RandomImplementation::UintGenerator UintGenerator;
 
 	// default copy constructor
-
 	static Random create() {
 		return Random();
 	}
 
 	void seed();
 	void seed(uint seed);
-	
-	uint drawFromRange(uint noptions) const {
+
+	uint drawFromRange(
+		uint noptions
+	) const {
 		return impl_->drawFromRange(noptions);
 	}
-	
-	uint drawFromCumulativeDistribution(const std::vector<Float> &distribution) const {
+
+	uint drawFromCumulativeDistribution(
+		const std::vector<Float> &distribution
+	) const {
 		return impl_->drawFromCumulativeDistribution(distribution);
 	}
 
-	uint drawFromDiscreteDistribution(const std::vector<Float> &distribution) const {
+	uint drawFromDiscreteDistribution(
+		const std::vector<Float> &distribution
+	) const {
 		return impl_->drawFromDiscreteDistribution(distribution);
 	}
-	
-	uint drawFromGeometricDistribution(Float decay, uint cap = std::numeric_limits<uint>::max()) const {
+
+	uint drawFromGeometricDistribution(
+		Float decay,
+		uint cap = std::numeric_limits<uint>::max()
+	) const {
 		return impl_->drawFromGeometricDistribution(decay, cap);
 	}
-	
+
 	Float draw01() const {
 		return impl_->draw01();
 	}
@@ -130,25 +139,43 @@ public:
 	}
 };
 
-uint RandomImplementation::drawFromRange(uint noptions) const {
+
+uint RandomImplementation::drawFromRange(
+	uint noptions
+) const {
 	assert(noptions > 0);
 	boost::uniform_int<uint> distr(0, noptions-1);
 	return distr(generator_);
 }
 
-uint RandomImplementation::drawFromCumulativeDistribution(const std::vector<Float> &cumulative) const {
-    boost::uniform_real<Float> dist(0, cumulative.back());
-    return std::lower_bound(cumulative.begin(), cumulative.end(), dist(generator_)) - cumulative.begin();
+uint RandomImplementation::drawFromCumulativeDistribution(
+	const std::vector<Float> &cumulative
+) const {
+	boost::uniform_real<Float> dist(0, cumulative.back());
+	return std::lower_bound(
+			cumulative.begin(),
+			cumulative.end(),
+			dist(generator_)
+		)
+		- cumulative.begin();
 }
 
-uint RandomImplementation::drawFromDiscreteDistribution(const std::vector<Float> &distribution) const {
+uint RandomImplementation::drawFromDiscreteDistribution(
+	const std::vector<Float> &distribution
+) const {
 	std::vector<Float> cumulative;
-	std::partial_sum(distribution.begin(), distribution.end(),
-                     std::back_inserter(cumulative));
+	std::partial_sum(
+		distribution.begin(),
+		distribution.end(),
+		std::back_inserter(cumulative)
+	);
 	return drawFromCumulativeDistribution(cumulative);
 }
 
-uint RandomImplementation::drawFromGeometricDistribution(Float decay, uint cap) const {
+uint RandomImplementation::drawFromGeometricDistribution(
+	Float decay,
+	uint cap
+) const {
 	boost::geometric_distribution<uint,Float> dist(decay);
 	return std::min(dist(generator_), cap);
 }
@@ -163,4 +190,3 @@ bool RandomImplementation::flipCoin(Float p) const {
 }
 
 #endif
-

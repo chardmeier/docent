@@ -50,7 +50,7 @@ private:
 	Float bestScore_;
 	
 	static bool compareScores(boost::shared_ptr<const DocumentState> a, boost::shared_ptr<const DocumentState> b);
-	
+
 public:
 	NbestStorage(uint size);
 
@@ -83,7 +83,7 @@ public:
 		}
 		return nbest_[best_index];
 	}
-	
+
 	typedef std::vector<boost::shared_ptr<DocumentState> >::const_iterator const_iterator;
 
 	const_iterator begin() const {

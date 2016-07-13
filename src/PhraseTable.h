@@ -31,11 +31,8 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
 
-namespace Moses {
-	class PhraseDictionaryTree;
-}
-
 class PhrasePairCollection;
+class QueryEngine; // from ProbingPT
 
 class PhraseTable : public FeatureFunction, boost::noncopyable {
 private:
@@ -45,7 +42,7 @@ private:
 	uint nscores_;
 	uint maxPhraseLength_;
 	uint annotationCount_;
-	Moses::PhraseDictionaryTree *backend_;
+	QueryEngine *backend_;
 	bool loadAlignments_;
 
 	Scores scorePhraseSegmentation(const PhraseSegmentation &ps) const;
@@ -53,26 +50,46 @@ private:
 public:
 	PhraseTable(const Parameters &params, Random random);
 	virtual ~PhraseTable();
-	
-	virtual FeatureFunction::State *initDocument(const DocumentState &doc, Scores::iterator sbegin) const;
-	
-	virtual StateModifications *estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
-		Scores::const_iterator psbegin, Scores::iterator sbegin) const;
-	virtual StateModifications *updateScore(const DocumentState &doc, const SearchStep &step, const State *state,
-		StateModifications *estmods, Scores::const_iterator psbegin, Scores::iterator estbegin) const;
-	
+
+	virtual FeatureFunction::State *initDocument(
+		const DocumentState &doc,
+		Scores::iterator sbegin
+	) const;
+
+	virtual StateModifications *estimateScoreUpdate(
+		const DocumentState &doc,
+		const SearchStep &step,
+		const State *state,
+		Scores::const_iterator psbegin,
+		Scores::iterator sbegin
+	) const;
+	virtual StateModifications *updateScore(
+		const DocumentState &doc,
+		const SearchStep &step,
+		const State *state,
+		StateModifications *estmods,
+		Scores::const_iterator psbegin,
+		Scores::iterator estbegin
+	) const;
+
 	virtual uint getNumberOfScores() const {
 		return nscores_;
 	}
-	
-	virtual void computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const;
 
-	boost::shared_ptr<const PhrasePairCollection> getPhrasesForSentence(const std::vector<Word> &sentence) const;
-	
+	virtual void computeSentenceScores(
+		const DocumentState &doc,
+		uint sentno,
+		Scores::iterator sbegin
+	) const;
+
+	boost::shared_ptr<const PhrasePairCollection> getPhrasesForSentence(
+		const std::vector<Word> &sentence
+	) const;
+
 	bool operator==(const PhraseTable &o) const {
 		return filename_ == o.filename_;
 	}
-	
+
 	friend std::size_t hash_value(const PhraseTable &p) {
 		boost::hash<std::string> hasher;
 		return hasher(p.filename_);
@@ -80,4 +97,3 @@ public:
 };
 
 #endif
-

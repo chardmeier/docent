@@ -30,26 +30,37 @@
 #include <iterator>
 #include <list>
 
+class PhraseTable;
+
 class PhrasePairCollection {
 	friend class PhraseTable;
 
 private:
 	Logger logger_;
 
-	const PhraseTable &phraseTable_;
 	Random random_;
 
 	uint sentenceLength_;
 	typedef std::list<AnchoredPhrasePair> PhrasePairList_;
 	PhrasePairList_ phrasePairList_;
 
-	PhrasePairCollection(const PhraseTable &phraseTable, uint sentenceLength, Random random);
+	PhrasePairCollection(
+		uint sentenceLength,
+		Random random
+	);
 	void addPhrasePair(CoverageBitmap cov, PhrasePair phrasePair);
 
-	bool proposeSegmentationLeftRight(const CoverageBitmap &range,
-		std::vector<AnchoredPhrasePair>::const_iterator startit, std::vector<AnchoredPhrasePair>::const_iterator endit,
-		PhraseSegmentation &seg) const;
-	bool proposeSegmentationRandomChoice(CoverageBitmap range, const PhrasePairList_ &list, PhraseSegmentation &seg) const;
+	bool proposeSegmentationLeftRight(
+		const CoverageBitmap &range,
+		std::vector<AnchoredPhrasePair>::const_iterator startit,
+		std::vector<AnchoredPhrasePair>::const_iterator endit,
+		PhraseSegmentation &seg
+	) const;
+	bool proposeSegmentationRandomChoice(
+		CoverageBitmap range,
+		const PhrasePairList_ &list,
+		PhraseSegmentation &seg
+	) const;
 
 public:
 	uint getSentenceLength() const {
@@ -59,10 +70,6 @@ public:
 	template<class Iterator>
 	void copyPhrasePairs(Iterator to_it) const {
 		std::copy(phrasePairList_.begin(), phrasePairList_.end(), to_it);
-	}
-
-	const PhraseTable &getPhraseTable() const {
-		return phraseTable_;
 	}
 
 	PhraseSegmentation proposeSegmentation() const;

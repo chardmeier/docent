@@ -45,7 +45,10 @@ private:
 	uint rejectionCounter_;
 	
 public:
-	HillclimbingSchedule(const Parameters &params) : rejectionCounter_(0) {
+	HillclimbingSchedule(
+		const Parameters &params
+	) :	rejectionCounter_(0)
+	{
 		maxRejected_ = params.get<uint>("hill-climbing:max-rejected", 1000);
 	}
 
@@ -73,21 +76,28 @@ private:
 	bool stepOnAcceptance_;
 
 public:
-	GeometricDecaySchedule(const Parameters &params) : step_(0) {
+	GeometricDecaySchedule(
+		const Parameters &params
+	) :	step_(0) {
 		logStartTemperature_ = log(params.get<Float>("geometric-decay:start-temperature"));
 		logDecayFactor_ = log(params.get<Float>("geometric-decay:decay-factor"));
 		stepOnAcceptance_ = params.get<bool>("geometric-decay:step-on-acceptance", false);
 	}
 
-	virtual Float getTemperature() const {
+	virtual Float getTemperature()
+	const {
 		return exp(logStartTemperature_ + step_ * logDecayFactor_);
 	}
 
-	virtual bool isDone() const {
+	virtual bool isDone()
+	const {
 		return logStartTemperature_ + step_ * logDecayFactor_ < -30;
 	}
 	
-	virtual void step(Float score, bool accept) {
+	virtual void step(
+		Float score,
+		bool accept
+	) {
 		if(accept || !stepOnAcceptance_)
 			step_++;
 	}
@@ -102,7 +112,7 @@ private:
 	Float initialAcceptanceRatio_;
 	uint chainLength_;
 	uint initSteps_;
-	
+
 	boost::circular_buffer<Float> muBuffer_;
 	Float mu1_;
 	uint m1_, m2_;
@@ -110,15 +120,19 @@ private:
 	uint stepsInChain_;
 	Float lastScore_;
 	std::vector<Float> chainCosts_;
-	
+
 	Float lastTemperature_;
 	Float temperature_;
 
-	void adaptInitialTemperature(Float score);
+	void adaptInitialTemperature(
+		Float score
+	);
 	void startNextChain();
 
 public:
-	AartsLaarhovenSchedule(const Parameters &params);
+	AartsLaarhovenSchedule(
+		const Parameters &params
+	);
 
 	virtual Float getTemperature() const;
 	virtual bool isDone() const;
@@ -126,4 +140,3 @@ public:
 };
 
 #endif
-

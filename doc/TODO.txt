@@ -1,0 +1,9 @@
+Ideas
+=====
+
+* Phrase-table filtering:
+  Pick "top N" according to scalar product of scores and PT weights
+
+* Phrase-table config:
+  Have ProbingPT export its "nscores" value (ideally combined with pull request to upstream)
+  and use that value instead of "nscores" in config file

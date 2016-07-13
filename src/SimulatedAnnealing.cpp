@@ -20,41 +20,51 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
+#include "SimulatedAnnealing.h"
 
 #include "CoolingSchedule.h"
 #include "NbestStorage.h"
 #include "Random.h"
 #include "SearchStep.h"
-#include "SimulatedAnnealing.h"
 #include "StateGenerator.h"
-
-#include <boost/make_shared.hpp>
 
 #include <limits>
 
-struct SimulatedAnnealingSearchState : public SearchState {
+struct SimulatedAnnealingSearchState
+:	public SearchState
+{
 	boost::shared_ptr<DocumentState> document;
 	CoolingSchedule *schedule;
 	uint nsteps;
+	bool aborted;
 
-	SimulatedAnnealingSearchState(boost::shared_ptr<DocumentState> doc, const Parameters &params)
-			: document(doc), nsteps(0) {
+	SimulatedAnnealingSearchState(
+		boost::shared_ptr<DocumentState> doc,
+		const Parameters &params
+	) :	document(doc),
+		nsteps(0),
+		aborted(false)
+	{
 		schedule = CoolingSchedule::createCoolingSchedule(params);
 	}
 
 	~SimulatedAnnealingSearchState() {
 		delete schedule;
 	}
-	
+
 	const boost::shared_ptr<DocumentState>& getLastDocumentState() {
 		return document;
 	}
 };
 
-SimulatedAnnealing::SimulatedAnnealing(const DecoderConfiguration &config, const Parameters &params)
-		: logger_("SimulatedAnnealing"), random_(config.getRandom()),
-		  generator_(config.getStateGenerator()), parameters_(params) {
+SimulatedAnnealing::SimulatedAnnealing(
+	const DecoderConfiguration &config,
+	const Parameters &params
+) :	logger_("SimulatedAnnealing"),
+	random_(config.getRandom()),
+	generator_(config.getStateGenerator()),
+	parameters_(params)
+{
 	totalMaxSteps_ = params.get<uint>("max-steps");
 	targetScore_ = params.get<Float>("target-score", std::numeric_limits<Float>::infinity());
 }
@@ -63,8 +73,14 @@ SearchState *SimulatedAnnealing::createState(boost::shared_ptr<DocumentState> do
 	return new SimulatedAnnealingSearchState(doc, parameters_);
 }
 
-void SimulatedAnnealing::search(SearchState *sstate, NbestStorage &nbest, uint maxSteps, uint maxAccepted) const {
-	SimulatedAnnealingSearchState &state = dynamic_cast<SimulatedAnnealingSearchState &>(*sstate);
+void SimulatedAnnealing::search(
+	SearchState *sstate,
+	NbestStorage &nbest,
+	uint maxSteps,
+	uint maxAccepted
+) const {
+	SimulatedAnnealingSearchState
+		&state = dynamic_cast<SimulatedAnnealingSearchState &>(*sstate);
 
 	LOG(logger_, debug, *state.document);
 
@@ -72,10 +88,24 @@ void SimulatedAnnealing::search(SearchState *sstate, NbestStorage &nbest, uint m
 
 	uint accepted = 0;
 	uint i = 0;
-	while(!state.schedule->isDone() && i < maxSteps && state.nsteps < totalMaxSteps_ &&
-			accepted < maxAccepted && nbest.getBestScore() < targetScore_) {
-		AcceptanceDecision accept(random_, state.schedule->getTemperature(), state.document->getScore());
+	while(
+		!state.aborted
+		&& !state.schedule->isDone()
+		&& i < maxSteps
+		&& state.nsteps < totalMaxSteps_
+		&& accepted < maxAccepted
+		&& nbest.getBestScore() < targetScore_
+	) {
+		AcceptanceDecision accept(
+			random_,
+			state.schedule->getTemperature(),
+			state.document->getScore()
+		);
 		SearchStep *step = generator_.createSearchStep(*state.document);
+		if(step == NULL) {
+			state.aborted = true;
+			break;
+		}
 		state.document->registerAttemptedMove(step);
 		if(step->isProvisionallyAcceptable(accept)) {
 			if(accept(step->getScore())) {
@@ -86,8 +116,8 @@ void SimulatedAnnealing::search(SearchState *sstate, NbestStorage &nbest, uint m
 				nbest.offer(state.document);
 				accepted++;
 			} else {
-				LOG(logger_, debug, "Discarding.");
 				state.schedule->step(step->getScore(), false);
+				LOG(logger_, debug, "Discarding.");
 				delete step;
 			}
 		} else {
@@ -98,7 +128,10 @@ void SimulatedAnnealing::search(SearchState *sstate, NbestStorage &nbest, uint m
 		i++;
 		state.nsteps++;
 	}
-	
+
+	if(state.aborted)
+		LOG(logger_, normal, "Document search aborted.");
+
 	if(state.schedule->isDone())
 		LOG(logger_, normal, "End of cooling schedule reached.");
 
@@ -110,14 +143,17 @@ void SimulatedAnnealing::search(SearchState *sstate, NbestStorage &nbest, uint m
 
 	if(state.nsteps >= totalMaxSteps_)
 		LOG(logger_, normal, "Maximum number of steps (" << totalMaxSteps_ << ") reached.");
-	
+
 	if(nbest.getBestScore() > targetScore_)
 		LOG(logger_, normal, "Found solution with better than target score.");
 
 	DocumentState::MoveCounts::const_iterator it = state.document->getMoveCounts().begin();
 	while(it != state.document->getMoveCounts().end()) {
-		LOG(logger_, normal, it->second.first << '\t' << it->second.second << '\t'
-			<< it->first->getDescription());
+		LOG(logger_, normal,
+			   it->second.first << '\t'
+			<< it->second.second << '\t'
+			<< it->first->getDescription()
+		);
 		++it;
 	}
 }

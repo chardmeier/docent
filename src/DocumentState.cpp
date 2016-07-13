@@ -20,16 +20,11 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
 #include "DocumentState.h"
-#include "DecoderConfiguration.h"
-#include "FeatureFunction.h"
+
 #include "MMAXDocument.h"
-#include "PhrasePair.h"
 #include "PhrasePairCollection.h"
 #include "PhraseTable.h"
-#include "PlainTextDocument.h"
-#include "Random.h"
 #include "SearchStep.h"
 #include "StateGenerator.h"
 
@@ -42,21 +37,36 @@
 #include <boost/lambda/construct.hpp>
 #include <boost/lambda/if.hpp>
 
-DocumentState::DocumentState(const DecoderConfiguration &config, const boost::shared_ptr<const MMAXDocument> &inputdoc, int docNumber) :
-		logger_("DocumentState"),
-		configuration_(&config), docNumber_(docNumber), inputdoc_(inputdoc),
-		scores_(configuration_->getTotalNumberOfScores()), generation_(0) {
+DocumentState::DocumentState(
+	const DecoderConfiguration &config,
+	const boost::shared_ptr<const MMAXDocument> &inputdoc,
+	int docNumber
+) :	logger_("DocumentState"),
+	configuration_(&config),
+	docNumber_(docNumber),
+	inputdoc_(inputdoc),
+	scores_(configuration_->getTotalNumberOfScores()),
+	generation_(0)
+{
 	init();
 }
 
-DocumentState::DocumentState(const DecoderConfiguration &config, const boost::shared_ptr<const NistXmlDocument> &inputdoc, int docNumber) :
-		logger_("DocumentState"),
-		configuration_(&config), docNumber_(docNumber), inputdoc_(inputdoc->asMMAXDocument()),
-		scores_(configuration_->getTotalNumberOfScores()), generation_(0) {
+DocumentState::DocumentState(
+	const DecoderConfiguration &config,
+	const boost::shared_ptr<const NistXmlDocument> &inputdoc,
+	int docNumber
+) :	logger_("DocumentState"),
+	configuration_(&config),
+	docNumber_(docNumber),
+	inputdoc_(inputdoc->asMMAXDocument()),
+	scores_(configuration_->getTotalNumberOfScores()),
+	generation_(0)
+{
 	init();
 }
 
-void DocumentState::init() {
+void DocumentState::init()
+{
 	sentences_.reserve(inputdoc_->getNumberOfSentences());
 	phraseTranslations_.reserve(inputdoc_->getNumberOfSentences());
 	std::vector<Float> *sntlen = new std::vector<Float>();
@@ -67,7 +77,12 @@ void DocumentState::init() {
 	for(uint i = 0; i < inputdoc_->getNumberOfSentences(); i++) {
 		std::vector<Word> snt(inputdoc_->sentence_begin(i), inputdoc_->sentence_end(i));
 		phraseTranslations_.push_back(ttable.getPhrasesForSentence(snt));
-		PhraseSegmentation ps = generator.initSegmentation(phraseTranslations_[i], snt, docNumber_, i);
+		PhraseSegmentation ps = generator.initSegmentation(
+			phraseTranslations_[i],
+			snt,
+			docNumber_,
+			i
+		);
 		sentences_.push_back(ps);
 		cumlength += snt.size();
 		sntlen->push_back(cumlength);
@@ -76,28 +91,45 @@ void DocumentState::init() {
 
 	Scores::iterator scoreit = scores_.begin();
 	const DecoderConfiguration::FeatureFunctionList &ff = configuration_->getFeatureFunctions();
-	for(DecoderConfiguration::FeatureFunctionList::const_iterator it = ff.begin(); it != ff.end();
-			scoreit += it->getNumberOfScores(), ++it)
+	for(DecoderConfiguration::FeatureFunctionList::const_iterator it = ff.begin();
+		it != ff.end();
+		scoreit += it->getNumberOfScores(), ++it
+	) {
 		featureStates_.push_back(it->initDocument(*this, scoreit));
+	}
 }
 
-DocumentState::DocumentState(const DocumentState &o)
-	: logger_("DocumentState"),
-	  configuration_(o.configuration_), docNumber_(o.docNumber_), inputdoc_(o.inputdoc_),
-	  sentences_(o.sentences_), phraseTranslations_(o.phraseTranslations_),
-	  cumulativeSentenceLength_(o.cumulativeSentenceLength_), scores_(o.scores_),
-	  generation_(o.generation_) {
+DocumentState::DocumentState(
+	const DocumentState &o
+) :	logger_("DocumentState"),
+	configuration_(o.configuration_),
+	docNumber_(o.docNumber_),
+	inputdoc_(o.inputdoc_),
+	sentences_(o.sentences_),
+	phraseTranslations_(o.phraseTranslations_),
+	cumulativeSentenceLength_(o.cumulativeSentenceLength_),
+	scores_(o.scores_),
+	generation_(o.generation_)
+{
 	using namespace boost::lambda;
-	std::transform(o.featureStates_.begin(), o.featureStates_.end(), std::back_inserter(featureStates_),
-		if_then_else_return(_1, bind(&FeatureFunction::State::clone, _1),
-			static_cast<FeatureFunction::State *>(NULL)));
+	std::transform(
+		o.featureStates_.begin(),
+		o.featureStates_.end(),
+		std::back_inserter(featureStates_),
+		if_then_else_return(
+			_1,
+			bind(&FeatureFunction::State::clone, _1),
+			static_cast<FeatureFunction::State *>(NULL)
+		)
+	);
 }
 
-DocumentState &DocumentState::operator=(const DocumentState &o) {
+DocumentState &DocumentState::operator=(const DocumentState &o)
+{
 	using namespace boost::lambda;
-	
-	if(&o == this)
+	if(&o == this) {
 		return *this;
+	}
 
 	configuration_ = o.configuration_;
 	inputdoc_ = o.inputdoc_;
@@ -108,12 +140,20 @@ DocumentState &DocumentState::operator=(const DocumentState &o) {
 	scores_ = o.scores_;
 	generation_ = o.generation_;
 	std::vector<FeatureFunction::State *> ffs;
-	std::transform(o.featureStates_.begin(), o.featureStates_.end(), std::back_inserter(ffs),
-		if_then_else_return(_1, bind(&FeatureFunction::State::clone, _1),
-			static_cast<FeatureFunction::State *>(NULL)));
+	std::transform(
+		o.featureStates_.begin(),
+		o.featureStates_.end(),
+		std::back_inserter(ffs),
+		if_then_else_return(
+			_1,
+			bind(&FeatureFunction::State::clone, _1),
+			static_cast<FeatureFunction::State *>(NULL)
+		)
+	);
 	uint onf = featureStates_.size();
-	if(ffs.size() > featureStates_.size())
+	if(ffs.size() > featureStates_.size()) {
 		featureStates_.resize(ffs.size());
+	}
 	std::swap_ranges(ffs.begin(), ffs.end(), featureStates_.begin());
 	std::for_each(featureStates_.begin() + onf, featureStates_.end(), bind(delete_ptr(), _1));
 	featureStates_.resize(ffs.size());
@@ -121,32 +161,42 @@ DocumentState &DocumentState::operator=(const DocumentState &o) {
 	return *this;
 }
 
-DocumentState::~DocumentState() {
+DocumentState::~DocumentState()
+{
 	using namespace boost::lambda;
 	std::for_each(featureStates_.begin(), featureStates_.end(), bind(delete_ptr(), _1));
 }
 
-Scores DocumentState::computeSentenceScores(uint i) const {
+Scores DocumentState::computeSentenceScores(uint i) const
+{
 	Scores s(configuration_->getTotalNumberOfScores());
 	Scores::iterator scoreit = s.begin();
 	const DecoderConfiguration::FeatureFunctionList &ff = configuration_->getFeatureFunctions();
-	for(DecoderConfiguration::FeatureFunctionList::const_iterator it = ff.begin(); it != ff.end();
-			scoreit += it->getNumberOfScores(), ++it)
+	for(DecoderConfiguration::FeatureFunctionList::const_iterator it = ff.begin();
+		it != ff.end();
+		scoreit += it->getNumberOfScores(), ++it
+	) {
 		it->computeSentenceScores(*this, i, scoreit);
+	}
 	return s;
 }
 
-void DocumentState::registerAttemptedMove(const SearchStep *step) {
+void DocumentState::registerAttemptedMove(const SearchStep *step)
+{
 	moveCount_[step->getOperation()].first++;
 }
 
-void DocumentState::applyModifications(SearchStep *step) {
+void DocumentState::applyModifications(SearchStep *step)
+{
 	assert(&step->getDocumentState() == this && step->getDocumentGeneration() == generation_);
 
 	moveCount_[step->getOperation()].second++;
 
 	std::vector<SearchStep::Modification> &mods = step->getModifications();
-	for(std::vector<SearchStep::Modification>::iterator it = mods.begin(); it != mods.end(); ++it) {
+	for(std::vector<SearchStep::Modification>::iterator it = mods.begin();
+		it != mods.end();
+		++it
+	) {
 		uint sentno = it->sentno;
 		PhraseSegmentation &sent = sentences_[sentno];
 		PhraseSegmentation::const_iterator c_from_it = it->from_it;
@@ -163,11 +213,6 @@ void DocumentState::applyModifications(SearchStep *step) {
 	}
 	scores_ = step->getScores();
 
-/*
-	BOOST_FOREACH(const PhraseSegmentation &sent, sentences_)
-		debugSentenceCoverage(sent);
-*/
-
 	const DecoderConfiguration::FeatureFunctionList &ffs = configuration_->getFeatureFunctions();
 	const std::vector<FeatureFunction::StateModifications *> &smods = step->getStateModifications();
 	for(uint i = 0; i < ffs.size(); i++)
@@ -175,11 +220,12 @@ void DocumentState::applyModifications(SearchStep *step) {
 			featureStates_[i] = ffs[i].applyStateModifications(featureStates_[i], smods[i]);
 
 	delete step;
-	
+
 	generation_++;
 }
 
-PlainTextDocument DocumentState::asPlainTextDocument() const {
+PlainTextDocument DocumentState::asPlainTextDocument() const
+{
 	std::vector<std::vector<Word> > out(sentences_.size());
 
 	for(uint i = 0; i < sentences_.size(); i++)
@@ -191,13 +237,15 @@ PlainTextDocument DocumentState::asPlainTextDocument() const {
 	return PlainTextDocument(out);
 }
 
-void DocumentState::dumpFeatureFunctionStates() const {
+void DocumentState::dumpFeatureFunctionStates() const
+{
 	const DecoderConfiguration::FeatureFunctionList &ffs = configuration_->getFeatureFunctions();
 	for(uint i = 0; i < ffs.size(); i++)
 		ffs[i].dumpFeatureFunctionState(*this, featureStates_[i]);
 }
 
-void DocumentState::debugSentenceCoverage(const PhraseSegmentation &seg) const {
+void DocumentState::debugSentenceCoverage(const PhraseSegmentation &seg) const
+{
 	CoverageBitmap bm(seg.front().first.size());
 	BOOST_FOREACH(const AnchoredPhrasePair &app, seg) {
 		if((bm & app.first).any()) {
@@ -212,9 +260,16 @@ void DocumentState::debugSentenceCoverage(const PhraseSegmentation &seg) const {
 	}
 }
 
-std::ostream &operator<<(std::ostream &os, const DocumentState &doc) {
+std::ostream &operator<<(std::ostream &os, const DocumentState &doc)
+{
 	os << "DOCUMENT STATE:\n";
-	std::copy(doc.sentences_.begin(), doc.sentences_.end(), std::ostream_iterator<PhraseSegmentation>(os));
-	os << doc.scores_ << " * " << doc.configuration_->getFeatureWeights() << " = " << doc.getScore() << '\n';
+	std::copy(
+		doc.sentences_.begin(),
+		doc.sentences_.end(),
+		std::ostream_iterator<PhraseSegmentation>(os)
+	);
+	os	<< doc.scores_
+		<< " * " << doc.configuration_->getFeatureWeights()
+		<< " = " << doc.getScore() << '\n';
 	return os;
 }

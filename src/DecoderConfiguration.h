@@ -38,10 +38,9 @@
 #include <DOM/Document.hpp>
 #include <DOM/Element.hpp>
 
-class BeamSearchAdapter;
 class FeatureFunctionInstantiation;
 class PhraseTable;
-class SearchAlgorithm;
+struct SearchAlgorithm;
 class StateGenerator;
 
 class ConfigurationFile {
@@ -53,8 +52,23 @@ private:
 public:
 	ConfigurationFile(const std::string &file);
 
-	void modifyNodes(const std::string &xpath, const std::string &value);
-	void removeNodes(const std::string &xpath);
+	void modifyNodes(
+		const std::string &xpath,
+		const std::string &value
+	);
+	void modifyOrAddProperty(
+		const std::string &parentXpath,
+		const std::string &name,
+		const std::string &value
+	);
+	void modifyAttribute(
+		const std::string &xpath,
+		const std::string &attr,
+		const std::string &value
+	);
+	void removeNodes(
+		const std::string &xpath
+	);
 
 	Arabica::DOM::Document<std::string> getXMLDocument() const;
 };
@@ -66,9 +80,9 @@ public:
 private:
 	Logger logger_;
 	Random random_;
-	
+
 	boost::shared_ptr<const PhraseTable> phraseTable_;
-	
+
 	FeatureFunctionList featureFunctions_;
 	std::vector<Float> featureWeights_;
 	uint nscores_;
@@ -89,23 +103,23 @@ public:
 	Random getRandom() const {
 		return random_;
 	}
-	
+
 	const PhraseTable &getPhraseTable() const {
 		return *phraseTable_;
 	}
-	
+
 	const FeatureFunctionList &getFeatureFunctions() const {
 		return featureFunctions_;
 	}
-	
+
 	const std::vector<Float> &getFeatureWeights() const {
 		return featureWeights_;
 	}
-	
+
 	uint getTotalNumberOfScores() const {
 		return nscores_;
 	}
-	
+
 	const StateGenerator &getStateGenerator() const {
 		return *stateGenerator_;
 	}
@@ -115,6 +129,7 @@ public:
 	}
 };
 
+
 class Parameters {
 private:
 	Logger logger_;
@@ -122,21 +137,33 @@ private:
 	const Arabica::DOM::Node<std::string> parentNode_;
 
 	bool getString(const std::string &name, std::string &outstr) const {
-		for(Arabica::DOM::Node<std::string> c = parentNode_.getFirstChild(); c != 0; c = c.getNextSibling()) {
-			if(c.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE || c.getNodeName() != "p")
+		for(Arabica::DOM::Node<std::string>
+			c = parentNode_.getFirstChild();
+			c != 0;
+			c = c.getNextSibling()
+		) {
+			if(c.getNodeType() != Arabica::DOM::Node<std::string>::ELEMENT_NODE
+				|| c.getNodeName() != "p"
+			)
 				continue;
-			Arabica::DOM::Element<std::string> pnode = static_cast<Arabica::DOM::Element<std::string> >(c);
+			Arabica::DOM::Element<std::string>
+				pnode = static_cast<Arabica::DOM::Element<std::string> >(c);
 			std::string pname = pnode.getAttribute("name");
 			if(pname == "") {
 				LOG(logger_, error, "Lacking required attribute 'name' on p element.");
 				BOOST_THROW_EXCEPTION(ConfigurationException());
 			}
 			if(pname == name) {
-				for(Arabica::DOM::Node<std::string> v = pnode.getFirstChild(); v != 0; v = v.getNextSibling())
+				for(Arabica::DOM::Node<std::string>
+					v = pnode.getFirstChild();
+					v != 0;
+					v = v.getNextSibling()
+				) {
 					if(v.getNodeType() == Arabica::DOM::Node<std::string>::TEXT_NODE) {
 						outstr = v.getNodeValue();
 						return true;
 					}
+				}
 				LOG(logger_, error, "No value for parameter " << name << ".");
 			}
 		}
@@ -164,7 +191,7 @@ private:
 	}
 
 public:
-	Parameters(Logger &logger, const Arabica::DOM::Node<std::string> parent) :
+	Parameters(const Logger &logger, const Arabica::DOM::Node<std::string> parent) :
 		logger_(logger), parentNode_(parent) {}
 
 	template<typename T>
@@ -184,7 +211,6 @@ public:
 		else
 			return defaultValue;
 	}
-
 };
 
 template<>
@@ -206,4 +232,3 @@ inline bool Parameters::get<bool>(const std::string &name, const bool &defaultVa
 }
 
 #endif
-

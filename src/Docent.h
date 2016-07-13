@@ -23,8 +23,6 @@
 #ifndef docent_Docent_h
 #define docent_Docent_h
 
-#define HAVE_BOOST // for moses. We always have boost.
-
 #include <algorithm>
 #include <list>
 #include <string>
@@ -104,7 +102,7 @@ namespace serialization {
 			boost::flyweights::flyweight<T,A1,A2,A3,A4,A5> &t,
 			const unsigned int file_version){
 		boost::serialization::split_free(ar, t, file_version);
-	}	
+	}
 
 }} //end namespace boost serialization
 
@@ -174,4 +172,3 @@ namespace err_info {
 #include "Logger.h"
 
 #endif
-

@@ -1,0 +1,215 @@
+USAGE INSTRUCTIONS
+==================
+
+1. File formats
+---------------
+
+1.1. Configuration
+~~~~~~~~~~~~~~~~~~
+
+NOTE: In this section, The term "parameter" denotes a named value to passed to
+the consuming module; in the file it must be supplied in the following form:
+    <p name="IDENTIFIER">value</p>
+
+The configuration file is an XML file with the root 'docent' and has to contain
+the sections given in the list below, in precisely that order. See the files in
+doc/config/ for examples and starting points.
+
+  - <random>
+    Usually empty; may contain an integer with which to seed the random generator
+    if you want to reproduce the states of an earlier run for debugging purposes
+    (the current random-number seed is printed to STDERR at program start).
+
+  - <state-generator>
+    Child elements:
+    - <initial-state type="{monotonic|saved-state|testset}">
+      How the translation of every sentence is initialised at program start.
+      * With type="monotonic", selects a random combination of anchored phrase
+        pairs (from the phrase table) that cover the whole sentence.
+      * With type="saved-state", reads the phrases stored by an earlier Docent run.
+        Provide the file name as a parameter with the name "file".
+      * With type="testset", reads the results of a Moses run from a file.
+        Provide the file name as a parameter with the name "file".
+        This mode can also be achieved via the command line (of `docent`,
+        `detailed-docent`, and `lcurve-docent`) with the argument '-t FILE'.
+    - <operation type="..." weight="...">
+      Operation to be applied to a state to generate a new one. Can be given
+      multiple times. 'type' is one of:
+      * "change-phrase-translation"
+	  * "permute-phrases"  (parameter: "phrase-permutation-decay")
+	  * "linearise-phrases"  (parameter: "phrase-linearisation-decay")
+	  * "swap-phrases"  (parameter: "swap-distance-decay")
+	  * "move-phrases"  (parameters: "block-size-decay", "right-move-preference",
+          "left-distance-decay", "right-distance-decay")
+	  * "resegment"  (parameter: "phrase-resegmentation-decay"),
+      and 'weight' (in interval [0,1], the sum of all weights must equal 1)
+      specifies the likelihood of the given operation to be performed in any
+      particular iteration (decoding step).
+
+  - <search algorithm="{simulated-annealing|local-beam-search}">
+    The algorithm used for searching.
+    * algorithm="simulated-annealing" (parameters: "max-steps", "target-score",
+      "schedule" (hill-climbing, aarts-laarhoven, or geometric-decay))
+    * algorithm="local-beam-search"  (parameters: "max-steps", "target-score",
+      "max-rejected", "beam-size")
+
+  - <models>
+    The models or 'feature functions' that together compute the score of each
+    new decoding step, determining whether it is better than the one before and
+    thereby should be retained. See the code in src/FeatureFunction.* and
+    src/models/ for a full list of implemented models and their respective
+    parameters.
+    Child nodes have the following form:
+        <model type="..." id="...">
+    'type' is the model name recognised by the loading method; 'id' is an
+    identifier used for associating each model with its respective weight(s)
+    in the section below.
+
+    The phrase table is the one special model that always must be present.
+    It takes the following parameters:
+    * "file": relative or absolute name of the directory containing the ProbingPT
+      phrase-table files
+    * "nscores": number of scores in the given phrase table, default: 4
+    * "filter-limit": maximum number of "best" translations considered for each
+      phrase, default: 30
+    * "filter-score-index": index (starting at 0, must be smaller than "nscores")
+      of that score value by which the phrase translations are sorted before the
+      highest N are retained (default: 2, i.e. the fraction of occurrences of the
+      source phrase that was translated by the given target phrase in the training
+      corpus).
+
+  - <weights>
+    For each model, as many weights as the model declares (one or several -- e.g.
+    in the case of the phrase-table model, as many as there are scores in the phrase
+    table) must be defined here, in the form:
+        <weight model="..." score="...">...</weight>
+    where 'model' corresponds to the 'id' tag in the models section above, 'score'
+    is a per-model index starting at 0, and the value is a positive float number.
+
+See the stub files in doc/config to get started with your own configuration.
+
+
+1.2. Input and Output
+~~~~~~~~~~~~~~~~~~~~~
+
+The crucial difference between Moses and similar tools on the one hand and Docent
+on the other, is that Docent, above the usual *sentence* segmentation level, also
+considers a *document* segmentation level.
+
+With the exception of the simple test binary 'docent-test' (see Section 2),
+Docent therefore uses a slightly loosened variant of NIST's MTeval XML format for
+its in- and output. The (first) 'srcset' of such a file is used for input, and
+for output, a corresponding data structure below a 'tstset' node is created and
+populated with translations. Each 'doc' node inside such a set is the document-
+segmentation scope within which one instance of Docent's document-level decoding
+takes place.
+
+An MTeval XML file with a 'tstset' node is also used for the side transport
+(parameter '-t') through which raw Moses translations can be provided as the
+starting state for Docent's decoding.
+
+The XML schema file 'doc/mteval.xsd' can be used with e.g. 'xmllint' for verifying
+the format compliance of such XML files.
+
+Furthermore, detailed source annotations can additionally be provided to Docent in
+a directory hierarchy following the 'MMAX2' standard (http://mmax2.sourceforge.net/)
+(the XML input file will still be needed, though).
+
+NOTE: The NIST XML format often contains untokenised text, but Docent needs all
+its input to tokenised, and likewise outputs tokenised translations.
+You may want to use a combination of 'mteval2txt.pl', 'txt2mteval.pl' (for both,
+see Section 3), and your usual tokeniser tool to achieve that source format.
+
+To prepare a phrase-segmented Moses translation of the form needed as the raw
+translation in Docent, extract the tokenised sourcer segments, e.g. with
+'mteval2txt.pl -o...' (see Section 3), run them through Moses with its '-t'
+(report-segmentation) flag]*, and create the MTeval structure using
+'mteval-insert-segs.pl'.
+*] The output must consist of phrases separated by word-alignment information
+  between pipe symbols, like this:
+      phrase1 |0-0| phrase 2 |1-2| . |3-3|
+
+
+2. Flavours
+-----------
+
+Docent comes in a number of 'flavours', currently represented in separate binaries.
+Run each without arguments to see the available command-line arguments.
+
+- `docent-test`
+  A very simple test program that reads plaint text from STDIN, writes plain text
+  to STDOUT, and treats each line as a separate document. Mainly intended to check
+  that fundamental operation of the decoder with the given configuration is okay.
+
+- `docent`
+  A basic variant. Reads data in the NIST and optionally MMAX2 formats, and
+  creates an output 'tstset' on STDOUT at the end of a decoding run.
+
+- `lcurve-docent`
+  The main and recommended variant, storing intermediate results along a 'learning
+  curve' to files, starting after 256 decoding iterations and continuing in steps
+  increasing by a factor of 2 up to 2^27 (134217728).
+
+- `detailed-docent`
+  A special variant once designed for generating output to be used with the
+  minimum error rate training tool 'MERT'. Not actively developed and not tested
+  with recent builds (beyond successful compilation).
+
+- `mpi-docent`
+  Compiled only if the MPI (Message Passing Interface) base and Boost libraries are
+  detected during building. Intended for high-performance runs on a computation
+  or similar hardware. Not actively developed lately.
+
+
+3. Support programs and scripts
+-------------------------------
+
+We provide a few scripts related to files in the NIST MTeval format in order to
+simplify the data exchange between Docent and purely text-based MT tools:
+
+- `scripts/txt2mteval.pl`
+  Converts one or several 'flat' text files (where each line equals one segment)
+  into either a 'srcset', 'tstset', or 'refset' within an MTeval XML file, where
+  each file becomes a 'doc' node with the file name as the document ID.
+
+- `scripts/mteval2txt.pl`
+  Converts an MTeval XML file into a number of text files, one segment per line,
+  or into one long 'flat' list of segments.
+
+- `scripts/mteval-insert-segs.pl`
+  Takes a 'srcset' MTeval XML file and creates a corresponding 'tstset' structure
+  that contains the segments given in a text file or on STDIN.
+
+The directory contains many more scripts for pre- and postprocessing data, which
+may prove to be useful to you.
+
+The *binary* build (see Build.txt) furthermore contains the following programs
+related to the binary ProbingPT phrase-table format used by the current Docent:
+
+- `CreateProbingPT`
+  Takes a trained phrase table in plain-text format (compressed, if a corresponding
+  compression library was available during compilation -- e.g. ZLib for a .gz file)
+  and creates a directory containing the files constituting the ProbingPT format.
+
+  NOTE: The ProbingPT data is platform dependent, so if you want to copy a phrase
+  table between 32-bit and 64-bit machines, you can copy the text raw data but will
+  have to run CreateProbingPT on each machine.
+
+- `QueryProbingPT`
+  Looks up phrases, given on STDIN, in a specified ProbingPT phrase table.
+
+
+APPENDIX: Troubleshooting
+--------
+
+NOTE: See doc/Build.txt for tips regarding problems with *compiling*
+(building) Docent.
+
+- It is an error for the initial translation contains a phrase that does not
+  appear in Docent's phrase table. That can typically happen if the raw translation
+  was created in Moses with a different phrase table than the one configured in
+  Docent. Make sure to use the same in both (you are not forced to use the
+  ProbingPT format in Moses, but do use the same raw data).
+
+- The phrase table has to be in the ProbingPT format and must have been created
+  on a binary-compatible system (preferentially the system you are running on).

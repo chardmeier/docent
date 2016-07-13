@@ -23,12 +23,9 @@
 #ifndef docent_PiecewiseIterator_h
 #define docent_PiecewiseIterator_h
 
-#include "Docent.h"
-
 #include <vector>
 
 #include <boost/iterator_adaptors.hpp>
-#include <boost/utility.hpp>
 
 template<class PieceIterator>
 class PiecewiseIterator : public boost::iterator_adaptor<PiecewiseIterator<PieceIterator>,typename std::iterator_traits<PieceIterator>::value_type> {
@@ -81,7 +78,7 @@ public:
 			logger_("PiecewiseIterator") {
 		init(begin, begin, end, *begin);
 	}
-	
+
 	PiecewiseIterator(PieceIterator begin, PieceIterator startPiece, PieceIterator end,
 				BaseIterator initIterator) :
 			PiecewiseIterator::iterator_adaptor_(initIterator),
@@ -135,7 +132,7 @@ private:
 			this->base_reference() = *currentPiece_;
 		}
 	}
-	
+
 	void decrement() {
 		LOG_DEBUGBUILD(logger_, debug, "Decrementing PiecewiseIterator.");
 
@@ -144,7 +141,7 @@ private:
 			decrementPiece();
 			goingForward_ = false;
 		}
-		
+
 		if(this->base() == *currentPiece_) {
 			LOG_DEBUGBUILD(logger_, debug, "Reached beginning of piece.");
 			assert(currentPiece_ != piecesBegin_);
@@ -164,4 +161,3 @@ private:
 };
 
 #endif
-

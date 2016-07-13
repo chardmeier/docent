@@ -74,16 +74,27 @@ foreach my $file (@Files) {
         $file  = $2;
     }
     unless (-s $file && ! -d $file) {
+<<<<<<< HEAD
         warn "File '$file' not found or empty, skipping...";
         next;
     }
     die "Duplicate document ID '$docid' with file '$file'!\n"  if exists $Docs{ $docid };
+=======
+        warn "$0: file '$file' not found or empty, skipping...";
+        next;
+    }
+    die "$0: duplicate document ID '$docid' with file '$file'!\n"  if exists $Docs{ $docid };
+>>>>>>> ff3bf0d3d9d3f2296e3dff2501d194fb449aa85a
     $Docs{ $docid } = $file;
 
     my $doc = $set->appendChild( XML::LibXML::Element->new( 'doc' ) );
     $doc->setAttribute( docid => $docid );
     open my $fh, '<', $file  or do {
+<<<<<<< HEAD
         warn "File '$file' could not be opened, skipping...";
+=======
+        warn "$0: file '$file' could not be opened, skipping: $!";
+>>>>>>> ff3bf0d3d9d3f2296e3dff2501d194fb449aa85a
         next;
     };
     my $id = 0;
@@ -102,7 +113,11 @@ if ($Opts{output} eq '-') {
     $fh = \*STDOUT;
 } else {
     open $fh, '>', $Opts{output}
+<<<<<<< HEAD
         or die "unable to write to '$Opts{output}'!\n";
+=======
+        or die "$0: unable to write to '$Opts{output}': $!\n";
+>>>>>>> ff3bf0d3d9d3f2296e3dff2501d194fb449aa85a
 }
 binmode $fh;
 print {$fh} $xml->toString(2);

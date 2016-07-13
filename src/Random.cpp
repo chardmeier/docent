@@ -30,10 +30,10 @@ void Random::seed() {
 		goto time_seed;
 
 	uint seed;
-	
+
 	if(std::fread(&seed, sizeof(uint), 1, urandom) != 1)
 		goto time_seed;
-	
+
 	std::fclose(urandom);
 	impl_->seed(seed);
 	return;
@@ -41,7 +41,7 @@ void Random::seed() {
 time_seed:
 	if(urandom)
 		std::fclose(urandom);
-	
+
 	impl_->seed(static_cast<uint>(std::time(0)));
 }
 
@@ -49,12 +49,13 @@ void Random::seed(uint seed) {
 	impl_->seed(seed);
 }
 
-RandomImplementation::RandomImplementation() :
-	logger_("RandomImplementation"),
-	generator_(), uintGenerator_(generator_, boost::uniform_int<uint>()) {}
-	
+RandomImplementation::RandomImplementation()
+:	logger_("RandomImplementation"),
+	generator_(),
+	uintGenerator_(generator_, boost::uniform_int<uint>())
+{}
+
 void RandomImplementation::seed(uint seed) {
 	generator_.seed(seed);
 	LOG(logger_, normal, "Random number generator seed: " << seed);
 }
-

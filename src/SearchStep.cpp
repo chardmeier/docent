@@ -34,20 +34,34 @@
 #include <boost/lambda/construct.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
 
-SearchStep::SearchStep(const StateOperation *op, const DocumentState &doc, const std::vector<FeatureFunction::State *> &featureStates)
-		: logger_("SearchStep"),
-		  document_(doc), generation_(doc.getGeneration()), featureStates_(featureStates),
-		  configuration_(*doc.getDecoderConfiguration()),
-		  stateModifications_(configuration_.getFeatureFunctions().size()), operation_(op),
-		  modificationsConsolidated_(true), scores_(doc.getScores().size()),
-		  scoreState_(NoScores) {}
+SearchStep::SearchStep(
+	const StateOperation *op,
+	const DocumentState &doc,
+	const std::vector<FeatureFunction::State *> &featureStates
+) :	logger_("SearchStep"),
+	document_(doc),
+	generation_(doc.getGeneration()),
+	featureStates_(featureStates),
+	configuration_(*doc.getDecoderConfiguration()),
+	stateModifications_(configuration_.getFeatureFunctions().size()),
+	operation_(op),
+	modificationsConsolidated_(true),
+	scores_(doc.getScores().size()),
+	scoreState_(NoScores)
+{}
 
-SearchStep::~SearchStep() {
+SearchStep::~SearchStep()
+{
 	using namespace boost::lambda;
-	std::for_each(stateModifications_.begin(), stateModifications_.end(), bind(delete_ptr(), _1));
+	std::for_each(
+		stateModifications_.begin(),
+		stateModifications_.end(),
+		bind(delete_ptr(), _1)
+	);
 }
 
-void SearchStep::consolidateModifications() const {
+void SearchStep::consolidateModifications()
+const {
 	if(modifications_.empty())
 		return;
 
@@ -55,17 +69,21 @@ void SearchStep::consolidateModifications() const {
 
 	uint removed = 0;
 	std::vector<Modification>::iterator prev = modifications_.begin();
-	for(std::vector<Modification>::iterator it = prev + 1; it != modifications_.end(); prev = it, ++it) {
+	for(std::vector<Modification>::iterator
+		it = prev + 1;
+		it != modifications_.end();
+		prev = it, ++it
+	) {
 		if(prev->sentno == it->sentno && prev->to == it->from) {
 			it->from = prev->from;
 			it->from_it = prev->from_it;
 			it->proposal.splice(it->proposal.begin(), prev->proposal);
-			
+
 			prev->sentno = std::numeric_limits<uint>::max();
 			removed++;
 		}
 	}
-	
+
 	if(removed > 0) {
 		std::sort(modifications_.begin(), modifications_.end(), compareModifications);
 		modifications_.erase(modifications_.end() - removed, modifications_.end());
@@ -74,25 +92,42 @@ void SearchStep::consolidateModifications() const {
 	modificationsConsolidated_ = true;
 }
 
-bool SearchStep::compareModifications(const Modification &a, const Modification &b) {
+bool SearchStep::compareModifications(
+	const Modification &a,
+	const Modification &b
+) {
 	namespace t = boost::tuples;
-	return t::make_tuple(a.sentno, a.from, a.to) < t::make_tuple(b.sentno, b.from, b.to);
+	return t::make_tuple(a.sentno, a.from, a.to)
+		<  t::make_tuple(b.sentno, b.from, b.to);
 }
 
-void SearchStep::estimateScores() const {
+void SearchStep::estimateScores()
+const {
 	if(scoreState_ != NoScores)
 		return;
 
 	Scores::const_iterator oldscoreit = document_.getScores().begin();
 	Scores::iterator scoreit = scores_.begin();
 	const DecoderConfiguration::FeatureFunctionList &ff = configuration_.getFeatureFunctions();
-	for(uint i = 0; i < ff.size(); scoreit += ff[i].getNumberOfScores(), oldscoreit += ff[i].getNumberOfScores(), i++)
-		stateModifications_[i] = ff[i].estimateScoreUpdate(document_, *this, featureStates_[i], oldscoreit, scoreit);
-	
+	for(uint
+		i = 0;
+		i < ff.size();
+		scoreit += ff[i].getNumberOfScores(), oldscoreit += ff[i].getNumberOfScores(), i++
+	) {
+		stateModifications_[i] = ff[i].estimateScoreUpdate(
+			document_,
+			*this,
+			featureStates_[i],
+			oldscoreit,
+			scoreit
+		);
+	}
+
 	scoreState_ = ScoresEstimated;
 }
 
-void SearchStep::computeScores() const {
+void SearchStep::computeScores()
+const {
 	switch(scoreState_) {
 	case NoScores:
 		estimateScores();
@@ -105,15 +140,31 @@ void SearchStep::computeScores() const {
 	Scores::const_iterator oldscoreit = document_.getScores().begin();
 	Scores::iterator scoreit = scores_.begin();
 	const DecoderConfiguration::FeatureFunctionList &ff = configuration_.getFeatureFunctions();
-	for(uint i = 0; i < ff.size(); scoreit += ff[i].getNumberOfScores(), oldscoreit += ff[i].getNumberOfScores(), i++)
-		stateModifications_[i] = ff[i].updateScore(document_, *this, featureStates_[i], stateModifications_[i], oldscoreit, scoreit);
-	
+	for(uint
+		i = 0;
+		i < ff.size();
+		scoreit += ff[i].getNumberOfScores(), oldscoreit += ff[i].getNumberOfScores(), i++
+	) {
+		stateModifications_[i] = ff[i].updateScore(
+			document_,
+			*this,
+			featureStates_[i],
+			stateModifications_[i],
+			oldscoreit,
+			scoreit
+		);
+	}
 	scoreState_ = ScoresComputed;
 }
 
-bool SearchStep::isProvisionallyAcceptable(const AcceptanceDecision &accept) const {
+bool SearchStep::isProvisionallyAcceptable(
+	const AcceptanceDecision &accept
+) const {
 	estimateScores();
-	Float estScore = std::inner_product(scores_.begin(), scores_.end(), configuration_.getFeatureWeights().begin(), static_cast<Float>(0));
+	Float estScore = std::inner_product(
+		scores_.begin(), scores_.end(),
+		configuration_.getFeatureWeights().begin(),
+		static_cast<Float>(0)
+	);
 	return accept(estScore);
 }
-

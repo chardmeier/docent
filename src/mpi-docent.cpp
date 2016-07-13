@@ -21,7 +21,6 @@
  */
 
 #include <algorithm>
-#include <functional>
 #include <iostream>
 #include <iterator>
 #include <vector>
@@ -29,20 +28,19 @@
 #include <mpi.h>
 
 #include <boost/foreach.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/mpi/communicator.hpp>
 #include <boost/mpi/nonblocking.hpp>
 #include <boost/serialization/utility.hpp>
 #include <boost/thread/thread.hpp>
-#include <boost/unordered_map.hpp>
 
 #include "Docent.h"
 #include "DecoderConfiguration.h"
 #include "DocumentState.h"
 #include "MMAXDocument.h"
 #include "NbestStorage.h"
-#include "NistXmlTestset.h"
-#include "Random.h"
-#include "SimulatedAnnealing.h"
+#include "NistXmlCorpus.h"
+#include "SearchAlgorithm.h"
 
 class DocumentDecoder {
 private:
@@ -59,7 +57,10 @@ private:
 	boost::mpi::communicator communicator_;
 	DecoderConfiguration configuration_;
 
-	static void manageTranslators(boost::mpi::communicator comm, NistXmlTestset &testset);
+	static void manageTranslators(
+		boost::mpi::communicator comm,
+		NistXmlCorpus &testset
+	);
 
 	PlainTextDocument runDecoder(const NumberedInputDocument &input);
 
@@ -96,8 +97,10 @@ int main(int argc, char **argv) {
 	return 0;
 }
 
-void DocumentDecoder::runMaster(const std::string &infile) {
-	NistXmlTestset testset(infile);
+void DocumentDecoder::runMaster(
+	const std::string &infile
+) {
+	NistXmlCorpus testset(infile);
 
 	boost::thread manager(manageTranslators, communicator_, testset);
 
@@ -108,7 +111,10 @@ void DocumentDecoder::runMaster(const std::string &infile) {
 	testset.outputTranslation(std::cout);
 }
 
-void DocumentDecoder::manageTranslators(boost::mpi::communicator comm, NistXmlTestset &testset) {
+void DocumentDecoder::manageTranslators(
+	boost::mpi::communicator comm,
+	NistXmlCorpus &testset
+) {
 	namespace mpi = boost::mpi;
 
 	mpi::request reqs[2];
@@ -118,7 +124,7 @@ void DocumentDecoder::manageTranslators(boost::mpi::communicator comm, NistXmlTe
 	reqs[0] = comm.irecv(mpi::any_source, TAG_COLLECT, translation);
 	reqs[1] = comm.irecv(mpi::any_source, TAG_STOP_COLLECTING);
 
-	NistXmlTestset::const_iterator it = testset.begin();
+	NistXmlCorpus::const_iterator it = testset.begin();
 	uint docno = 0;
 	for(int i = 0; i < comm.size() && it != testset.end(); ++i, ++docno, ++it) {
 		LOG(logger_, debug, "S: Sending document " << docno << " to translator " << i);
@@ -181,7 +187,9 @@ void DocumentDecoder::translate() {
 	}
 }
 
-PlainTextDocument DocumentDecoder::runDecoder(const NumberedInputDocument &input) {
+PlainTextDocument DocumentDecoder::runDecoder(
+	const NumberedInputDocument &input
+) {
 	boost::shared_ptr<MMAXDocument> mmax = boost::make_shared<MMAXDocument>(input.second);
 	boost::shared_ptr<DocumentState> doc(new DocumentState(configuration_, mmax, input.first));
 	NbestStorage nbest(1);
@@ -190,27 +198,3 @@ PlainTextDocument DocumentDecoder::runDecoder(const NumberedInputDocument &input
 	std::cerr << "Final score: " << doc->getScore() << std::endl;
 	return doc->asPlainTextDocument();
 }
-
-std::ostream &operator<<(std::ostream &os, const std::vector<Word> &phrase) {
-	bool first = true;
-	BOOST_FOREACH(const Word &w, phrase) {
-		if(!first)
-			os << ' ';
-		else
-			first = false;
-		os << w;
-	}
-
-	return os;
-}
-
-std::ostream &operator<<(std::ostream &os, const PhraseSegmentation &seg) {
-	std::copy(seg.begin(), seg.end(), std::ostream_iterator<AnchoredPhrasePair>(os, "\n"));
-	return os;
-}
-
-std::ostream &operator<<(std::ostream &os, const AnchoredPhrasePair &ppair) {
-	os << ppair.first << "\t[" << ppair.second.get().getSourcePhrase().get() << "] -\t[" << ppair.second.get().getTargetPhrase().get() << ']';
-	return os;
-}
-

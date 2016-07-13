@@ -25,40 +25,15 @@
 
 #include "Docent.h"
 #include "DocumentState.h"
-#include "FeatureFunction.h"
-#include "PhrasePair.h"
+#include "StateOperation.h"
 
 #include <vector>
 
 #include <boost/shared_ptr.hpp>
 #include <boost/ptr_container/ptr_vector.hpp>
-#include <boost/flyweight.hpp>
 
 class PhrasePairCollection;
 class SearchStep;
-
-class StateOperation {
-protected:
-	const std::vector<boost::shared_ptr<const PhrasePairCollection> > &getPhraseTranslations(const DocumentState &doc) const {
-		return doc.phraseTranslations_;
-	}
-
-	const std::vector<FeatureFunction::State *> &getFeatureStates(const DocumentState &doc) const {
-		return doc.featureStates_;
-	}
-
-public:
-	virtual ~StateOperation() {}
-	virtual std::string getDescription() const = 0;
-	virtual SearchStep *createSearchStep(const DocumentState &doc) const = 0;
-};
-
-struct StateInitialiser {
-	virtual ~StateInitialiser() {}
-	virtual PhraseSegmentation initSegmentation(
-		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
-		const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const = 0;
-};
 
 class StateGenerator {
 private:
@@ -69,18 +44,40 @@ private:
 	StateInitialiser *initialiser_;
 
 public:
-	StateGenerator(const std::string &initMethod, const Parameters &params, Random random);
+	StateGenerator(
+		const std::string &initMethod,
+		const Parameters &params,
+		Random random
+	);
 	~StateGenerator();
-	void addOperation(Float weight, const std::string &type, const Parameters &params);
-	
+	void addOperation(
+		Float weight,
+		const std::string &type,
+		const Parameters &params
+	);
+
 	PhraseSegmentation initSegmentation(
-			boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
-			const std::vector<Word> &sentence, int documentNumber, int sentenceNumber) const {
-		return initialiser_->initSegmentation(phraseTranslations, sentence, documentNumber, sentenceNumber);
+		boost::shared_ptr<const PhrasePairCollection> phraseTranslations,
+		const std::vector<Word> &sentence,
+		int documentNumber,
+		int sentenceNumber
+	) const {
+		return initialiser_->initSegmentation(
+			phraseTranslations,
+			sentence,
+			documentNumber,
+			sentenceNumber
+		);
 	}
-	
-	SearchStep *createSearchStep(const DocumentState &doc) const;
+
+	/**
+	 * Returns NULL if 100 consecutive operations have returned NULL.
+	 * In that case the document should be considered unchangeable by the available operations,
+	 * and the search algorithm should pass over the document in coming iterations.
+	 */
+	SearchStep *createSearchStep(
+		const DocumentState &doc
+	) const;
 };
 
 #endif
-

@@ -20,12 +20,11 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
+#include "LocalBeamSearch.h"
 
 #include "NbestStorage.h"
 #include "Random.h"
 #include "SearchStep.h"
-#include "LocalBeamSearch.h"
 #include "StateGenerator.h"
 
 #include <algorithm>
@@ -36,13 +35,22 @@
 #include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
 
-struct LocalBeamSearchState : public SearchState {
+struct LocalBeamSearchState
+:	public SearchState
+{
 	NbestStorage beam;
 	uint rejected;
 	uint nsteps;
+	bool aborted;
 
-	LocalBeamSearchState(boost::shared_ptr<DocumentState> doc, uint beamSize)
-			: beam(beamSize), rejected(0), nsteps(0) {
+	LocalBeamSearchState(
+		boost::shared_ptr<DocumentState> doc,
+		uint beamSize
+	) :	beam(beamSize),
+		rejected(0),
+		nsteps(0),
+		aborted(false)
+	{
 		beam.offer(doc);
 	}
 
@@ -51,9 +59,13 @@ struct LocalBeamSearchState : public SearchState {
 	}
 };
 
-LocalBeamSearch::LocalBeamSearch(const DecoderConfiguration &config, const Parameters &params)
-		: logger_("LocalBeamSearch"), random_(config.getRandom()),
-		  generator_(config.getStateGenerator()) {
+LocalBeamSearch::LocalBeamSearch(
+	const DecoderConfiguration &config,
+	const Parameters &params
+) :	logger_("LocalBeamSearch"),
+	random_(config.getRandom()),
+	generator_(config.getStateGenerator())
+{
 	totalMaxSteps_ = params.get<uint>("max-steps");
 	maxRejected_ = params.get<uint>("max-rejected");
 	targetScore_ = params.get<Float>("target-score", std::numeric_limits<Float>::infinity());
@@ -64,19 +76,38 @@ SearchState *LocalBeamSearch::createState(boost::shared_ptr<DocumentState> doc) 
 	return new LocalBeamSearchState(doc, beamSize_);
 }
 
-void LocalBeamSearch::search(SearchState *sstate, NbestStorage &nbest, uint maxSteps, uint maxAccepted) const {
+void LocalBeamSearch::search(
+	SearchState *sstate,
+	NbestStorage &nbest,
+	uint maxSteps,
+	uint maxAccepted
+) const {
 	LocalBeamSearchState &state = dynamic_cast<LocalBeamSearchState &>(*sstate);
 
 	using namespace boost::lambda;
-	std::for_each(state.beam.begin(), state.beam.end(), bind(&NbestStorage::offer, &nbest, _1));
+	std::for_each(
+		state.beam.begin(),
+		state.beam.end(),
+		bind(&NbestStorage::offer, &nbest, _1)
+	);
 
 	uint accepted = 0;
 	uint i = 0;
-	while(state.rejected < maxRejected_ && i < maxSteps && state.nsteps < totalMaxSteps_ &&
-			accepted < maxAccepted && nbest.getBestScore() < targetScore_) {
+	while(
+		!state.aborted
+		&& i < maxSteps
+		&& state.rejected < maxRejected_
+		&& state.nsteps < totalMaxSteps_
+		&& accepted < maxAccepted
+		&& nbest.getBestScore() < targetScore_
+	) {
 		AcceptanceDecision accept(state.beam.getLowestScore());
 		boost::shared_ptr<DocumentState> doc = state.beam.pickRandom(random_);
 		SearchStep *step = generator_.createSearchStep(*doc);
+		if(step == NULL) {
+			state.aborted = true;
+			break;
+		}
 		doc->registerAttemptedMove(step);
 		if(step->isProvisionallyAcceptable(accept)) {
 			if(accept(step->getScore())) {
@@ -101,11 +132,10 @@ void LocalBeamSearch::search(SearchState *sstate, NbestStorage &nbest, uint maxS
 		i++;
 		state.nsteps++;
 	}
-	
+
 	if(state.rejected >= maxRejected_)
-		LOG(logger_, normal, "Maximum number of rejections ("
-			<< maxRejected_ << ") reached.");
-	
+		LOG(logger_, normal, "Maximum number of rejections (" << maxRejected_ << ") reached.");
+
 	if(i > maxSteps)
 		LOG(logger_, normal, "Search interrupted.");
 
@@ -114,16 +144,23 @@ void LocalBeamSearch::search(SearchState *sstate, NbestStorage &nbest, uint maxS
 
 	if(state.nsteps > totalMaxSteps_)
 		LOG(logger_, normal, "Maximum number of steps (" << totalMaxSteps_ << ") reached.");
-	
+
 	if(nbest.getBestScore() > targetScore_)
 		LOG(logger_, normal, "Found solution with better than target score.");
 
-	for(NbestStorage::const_iterator beamit = state.beam.begin(); beamit != state.beam.end(); ++beamit) {
+	for(NbestStorage::const_iterator
+		beamit = state.beam.begin();
+		beamit != state.beam.end();
+		++beamit
+	) {
 		const boost::shared_ptr<DocumentState> &doc = *beamit;
 		DocumentState::MoveCounts::const_iterator it = doc->getMoveCounts().begin();
 		while(it != doc->getMoveCounts().end()) {
-			LOG(logger_, normal, it->second.first << '\t' << it->second.second << '\t'
-				<< it->first->getDescription());
+			LOG(logger_, normal,
+				   it->second.first
+				<< '\t' << it->second.second
+				<< '\t' << it->first->getDescription()
+			);
 			++it;
 		}
 	}

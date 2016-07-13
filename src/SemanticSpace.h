@@ -28,7 +28,6 @@
 #include <algorithm>
 #include <cassert>
 #include <fstream>
-#include <iosfwd>
 #include <limits>
 #include <numeric>
 #include <sstream>

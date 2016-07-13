@@ -1,0 +1,190 @@
+BUILD INSTRUCTIONS
+==================
+Building Docent should be considerably less complicated now than in earlier
+versions, as it no longer links against Moses. Still, some customization or
+tweaking might be needed.
+
+In July 2016, builds were successfully carried out on the follow systems:
+
+- CentOS 7 (64 bit, GCC 4.8.5, CMake 2.8.11, Boost 1.60.0 self-built)
+- Ubuntu 12.04 LTS (32 bit, GCC 4.6.3, CMake 2.8.7, Boost 1.48 system packages*)
+- Ubuntu 15.10 (32 bit, GCC 5.2.1, CMake 3.2.2, Boost 1.60.0 system packages)
+- Mac OS X 10.7.5 (64 bit, XCode 4.2.1, CMake 2.8.7, Boost 1.60 via Homebrew*)
+- Mac OS X 10.11.5 (64 bit, XCode Apple LLVM 7.3.0, CMake 3.4.3, Boost 1.60 via Homebrew*)
+- Scientific Linux 6.7 (64 bit, CMake 2.8.12, Boost 1.61 self-built**)
+  - GCC 4.8.0
+  - GCC 6.1.0
+  - Intel C++ 13.1
+
+Notes:
+  *) However, the documentation of `mgiza` (one of the tool alternatives for the
+    word-alignment needed for the training of Moses) warns of problems both with
+    Boost version 1.48 and with Boost libraries installed via Homebrew.
+    If you intend to build mgiza on the same machine, it is probably best to build
+    Boost yourself from the start.
+  **) Boost had to be re-built with the respective compiler in each case.
+
+
+1. Installing prerequisite components
+-------------------------------------
+
+The following software components are needed before you try and build Docent.
+You can either install them through your operating system's package manager, or
+download them and build and install them into directories of your choice
+according to the build instructions provided with each package.
+
+- Expat or LibXml2 (XML parser)
+    Sources: http://expat.sourceforge.net/
+             http://www.xmlsoft.org/
+
+  NOTE: If you are on Linux (not Mac) and LibXml2 is your choice, add the
+  following parameter to the build commands in Section 3:
+    -D ARABICA_XML_BACKEND=USE_LIBXML2
+
+- MPI (Message Passing Interface) - if high-performance parallelisation
+  e.g. on a cluster is wanted.
+    Source: https://www.open-mpi.org/
+
+  NOTE: If you want to use this and are building Boost yourself, install this
+  library before building Boost, otherwise boost-mpi (which is needed as well
+  in that case) is not built.
+
+- Boost (C++ library collection)
+    Source: http://www.boost.org/
+
+  In the fairly likely case that you have to compile your own Boost, you can
+  use our helper script 'scripts/build-boost.sh' once you have downloaded and
+  unpacked the Boost source code. Run the script with the flag '-h' to see all
+  of its arguments.
+
+- CMake (build system)
+    Source: http://www.cmake.org/
+
+- GNU GCC or equivalent (C++ compiler)
+    Source: https://gcc.gnu.org/
+
+  Docent is written according to the C++03 standard and the given code is adjusted
+  so that incompatibilities with GCC 6.1, which defaults to C++14, are avoided.
+  Thus, most sensibly modern C++ compilers ought to work.
+
+  Where available, e.g. on computation clusters with Intel CPUs, the (commercial)
+  Intel compiler might also be worth a try; it is supposed to generate even more
+  highly optimised code than GCC.
+
+- git (version control system)
+    Source: https://git-scm.com/
+
+
+2. Initialising Git submodule
+-----------------------------
+
+The software package Arabica (XML parser) is referenced by Docent as a Git
+submodule, which has to be initialised before building.
+To do that, either clone the repository the following way from the get-go:
+
+    git clone --recursive https://github.com/chardmeier/docent
+
+Or, after a simple cloning, issue the commands:
+
+    git submodule init; git submodule update
+
+The build process of Arabica is driven automatically by Docent's cmake script.
+
+
+3. Building Docent
+------------------
+
+Docent can be built in a debuggable DEBUG and a heavily optimised RELEASE variant.
+The RELEASE variant can be around an order of magnitude faster but is harder to debug.
+Therefore we recommend to start with the DEBUG variant and a not-too-large test corpus
+to verify that the program builds and executes correctly, and then to build the RELEASE
+variant and use that when performance is important.
+Likewise, you should use the DEBUG variant while developing your own extensions.
+
+TIP: A good way to start debugging a failing DEBUG build with the GNU debugger is to
+prepend the string 'gdb -ex run --args' (without quotation marks) to the origininal
+command line. See the documentation of 'gdb' for invocation and debugging details.
+
+You can streamline the compilation of Docent by using our helper script
+'scripts/build-docent.sh'. It requires just one call per build and speeds up
+compilation by automatically spreading out on all CPU cores. Run it with the
+flag '-h' to see all its arguments.
+
+The examples in 3.1 and 3.2 below assume that you start in the root directory of
+the Docent working tree. All cases make use of CMake's helpful ability to keep build
+data entirely separate from the sources, so that you easily can start a fresh build
+by deleting the build directory with its contents.
+
+If you want to move the compiled files from the build directories, e.g. for
+saving disk space or in order to have the binaries in a directory on your PATH,
+you only have to take the executable files directly inside the build directory:
+
+  - docent
+  - docent-test
+  - detailed-docent
+  - lcurve-docent
+  - mpi-docent (if built)
+  - CreateProbingPT
+  - QueryProbingPT
+
+All other files, including the static libraries (*.a on Linux), are temporary
+and not needed for execution.
+
+
+3.1. DEBUG builds
+
+- With plain Cmake:
+    mkdir DEBUG
+    cd DEBUG
+    cmake -DCMAKE_BUILD_TYPE=DEBUG ..
+    make
+    cd -
+  If Boost is installed in a non-standard directory, alter the 'cmake' call to:
+    cmake -DCMAKE_BUILD_TYPE=DEBUG -DBOOST_ROOT=/path/to/Boost ..
+
+- With our script:
+    scripts/build-docent.sh -m DEBUG
+  If Boost is installed in a non-standard directory:
+    scripts/build-docent.sh -m DEBUG -b /path/to/Boost
+
+3.2. DEBUG builds
+
+- With plain Cmake:
+    mkdir RELEASE
+    cd RELEASE
+    cmake - DCMAKE_BUILD_TYPE=RELEASE ..
+    make
+    cd -
+
+- With our script:
+    scripts/build-docent.sh -m RELEASE
+
+The notes regarding Boost hold here as well.
+
+
+APPENDIX: Troubleshooting
+--------
+
+NOTE: See doc/Usage.txt for tips regarding problems with *running* Docent.
+
+Here are some common reasons for a build failing:
+
+- Boost cannot be found (or another, incomplete installation is found by mistake):
+  CMake will usually tell you very clearly when this is the case.
+  Make sure BOOST_ROOT is set, either as an environment variable or as shown in
+  Section 3 above.
+
+- Problem with the Boost installation:
+  Your OS might contain a very old or otherwise broken version of Boost.
+  If you haven't done so yet, try building Boost yourself as outlined in Section 1.
+
+- On the other hand, a self-installed Boost may be more susceptible to differences
+  between compilers than one built for a system package.
+
+  We have certainly experienced some compile errors when trying to compile Docent
+  with a Boost we had previously built with a different type or version of compiler
+  (e.g. GCC vs. Intel), and the error message may be rather confusing -- in our case,
+  a detail part of 'boost::archive' was not found.
+
+  The solution is to compile Boost once more (perhaps into a different BOOST_ROOT)
+  with the new compiler and to remove the build tree before building Docent once more.

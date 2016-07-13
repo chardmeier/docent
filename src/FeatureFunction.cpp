@@ -20,30 +20,27 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
-#include "DocumentState.h"
 #include "FeatureFunction.h"
-//#include "LexicalChainCohesionModel.h"
-#include "NgramModel.h"
 #include "PhraseTable.h"
-//#include "PronominalAnaphoraModel.h"
 #include "SearchStep.h"
-#include "SemanticSpaceLanguageModel.h"
-#include "SentenceParityModel.h"
-//#include "WordSpaceCohesionModel.h"
-#include "ConsistencyQModelPhrase.h"
-#include "ConsistencyQModelWord.h"
-#include "OvixModel.h"
-#include "TypeTokenRateModel.h"
-#include "BleuModel.h"
-#include "BracketingModel.h"
-#include "WellFormednessModel.h"
-
+#include "models/BleuModel.h"
+#include "models/BracketingModel.h"
+#include "models/ConsistencyQModelPhrase.h"
+#include "models/ConsistencyQModelWord.h"
+#include "models/GappyLanguageModel.h"
+#include "models/NgramModel.h"
+#include "models/OvixModel.h"
+#include "models/SemanticSimilarityModel.h"
+#include "models/SemanticSpaceLanguageModel.h"
+#include "models/SentenceParityModel.h"
+#include "models/TypeTokenRateModel.h"
+#include "models/WellFormednessModel.h"
 
 #include <algorithm>
 #include <limits>
 #include <vector>
 
+#include <boost/foreach.hpp>
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>
 
@@ -78,7 +75,7 @@ private:
 		Scores::iterator sbegin, Operator op) const;
 
 	Float computeDistortionDistance(const CoverageBitmap &m1, const CoverageBitmap &m2) const;
-	
+
 	Float distortionLimit_;
 
 public:
@@ -89,7 +86,7 @@ public:
 		Scores::const_iterator psbegin, Scores::iterator sbegin) const;
 	virtual StateModifications *updateScore(const DocumentState &doc, const SearchStep &step, const State *state,
 		StateModifications *estmods, Scores::const_iterator, Scores::iterator estbegin) const;
-	
+
 	virtual uint getNumberOfScores() const {
 		return distortionLimit_ == -1 ? 1 : 2;
 	}
@@ -141,7 +138,9 @@ struct OOVPenaltyCounter : public std::unary_function<const AnchoredPhrasePair &
 	}
 };
 
-struct LongWordCounter : public std::unary_function<const AnchoredPhrasePair &,Float> {
+struct LongWordCounter
+: public std::unary_function<const AnchoredPhrasePair &,Float>
+{
 
 	LongWordCounter(const Parameters &params) {
 		try {
@@ -265,7 +264,7 @@ void GeometricDistortionModel::computeSentenceScores(const DocumentState &doc, u
 
 FeatureFunction::StateModifications *GeometricDistortionModel::estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
 		Scores::const_iterator psbegin, Scores::iterator sbegin) const {
-	
+
 	std::copy(psbegin, psbegin + getNumberOfScores(), sbegin);
 	const std::vector<SearchStep::Modification> &mods = step.getModifications();
 	for(std::vector<SearchStep::Modification>::const_iterator it = mods.begin(); it != mods.end(); ++it) {
@@ -303,7 +302,7 @@ FeatureFunction::StateModifications *GeometricDistortionModel::estimateScoreUpda
 			if(to_it != oldseg.end())
 				++to_it;
 		}
-		
+
 		scoreSegment(from_it, to_it, sbegin, std::minus<Float>());
 		scoreSegment(proposal.begin(), proposal.end(), sbegin, std::plus<Float>());
 	}
@@ -349,12 +348,18 @@ FeatureFunction::StateModifications *SentenceLengthModel::estimateScoreUpdate(co
 		PhraseSegmentation::const_iterator from_it = it->from_it;
 		PhraseSegmentation::const_iterator to_it = it->to_it;
 		const PhraseSegmentation &proposal = it->proposal;
-		
+
 		Float outlen = Float(countTargetWords(doc.getPhraseSegmentation(sentno)));
 		s -= score(doc.getInputSentenceLength(sentno), outlen);
 
-		std::for_each(from_it, to_it, outlen -= bind(WordPenaltyCounter(), _1));
-		std::for_each(proposal.begin(), proposal.end(), outlen += bind(WordPenaltyCounter(), _1));
+		std::for_each(
+			from_it, to_it,
+			outlen -= boost::lambda::bind(WordPenaltyCounter(), _1)
+		);
+		std::for_each(
+			proposal.begin(), proposal.end(),
+			outlen += boost::lambda::bind(WordPenaltyCounter(), _1)
+		);
 		s += score(doc.getInputSentenceLength(sentno), outlen);
 	}
 	return NULL;
@@ -381,9 +386,13 @@ Float SentenceLengthModel::score(Float inputlen, Float outputlen) const {
 		return longLogprob_ + (diff - Float(1)) * std::log(Float(1) - longP_) + std::log(longP_);
 }
 
-boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::string &type, const Parameters &params) const {
+boost::shared_ptr<FeatureFunction>
+FeatureFunctionFactory::create(
+	const std::string &type,
+	const Parameters &params
+) const {
 	FeatureFunction *ff;
-	
+
 	if(type == "phrase-table")
 		ff = new PhraseTable(params, random_);
 	else if(type == "ngram-model")
@@ -400,14 +409,8 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 		ff = createCountingFeatureFunction(OOVPenaltyCounter());
 	else if(type == "long-word-penalty")
 		ff = createCountingFeatureFunction(LongWordCounter(params));
-	//else if(type == "word-space-cohesion-model")
-	//	ff = WordSpaceCohesionModelFactory::createWordSpaceCohesionModel(params);
-	//else if(type == "lexical-chain-cohesion-model")
-	//	ff = LexicalChainCohesionModelFactory::createLexicalChainCohesionModel(params);
 	else if(type == "semantic-space-language-model")
 		ff = SemanticSpaceLanguageModelFactory::createSemanticSpaceLanguageModel(params);
-	//else if(type == "pronominal-anaphora-model")
-	//	ff = PronominalAnaphoraModelFactory::createPronominalAnaphoraModel(params);
 	else if(type == "sentence-parity-model")
 		ff = new SentenceParityModel(params);
 	else if(type == "ovix")
@@ -419,14 +422,17 @@ boost::shared_ptr<FeatureFunction> FeatureFunctionFactory::create(const std::str
 	else if(type == "consistency-q-model-word")
 		ff = new ConsistencyQModelWord(params);
 	else if(type == "bleu-model")
-		ff = new BleuModel(params);	
+		ff = new BleuModel(params);
 	else if(type == "bracketing-model")
-		ff = new BracketingModel(params);	
+		ff = new BracketingModel(params);
 	else if(type == "well-formedness-model")
 		ff = new WellFormednessModel(params);
-	else 
+	else if(type == "gappy-lm")
+		ff = GappyLanguageModelFactory::createNgramModel(params);
+	else if(type == "semantic-similarity-model")
+		ff = new SemanticSimilarityModel(params);
+	else
 		BOOST_THROW_EXCEPTION(ConfigurationException());
 
 	return boost::shared_ptr<FeatureFunction>(ff);
 }
-
