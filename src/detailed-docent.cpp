@@ -235,8 +235,11 @@ void processTestset(
 			for(uint j = 0; j < ptout.getNumberOfSentences(); j++) {
 				std::ostringstream os;
 				Scores sntscores = doc->computeSentenceScores(j);
-				os << std::inner_product(sntscores.begin(), sntscores.end(),
-					config.getFeatureWeights().begin(), Float(0))
+				os << std::inner_product(
+						sntscores.begin(), sntscores.end(),
+						config.getFeatureWeights().begin(),
+						Float(0)
+					)
 					<< " - " << sntscores;
 				inputdocs[docNum]->annotateSentence(j, os.str());
 			}
@@ -285,8 +288,11 @@ void processTestset(
 				for(uint j = 0; j < ptout.getNumberOfSentences(); j++) {
 					std::ostringstream os;
 					Scores sntscores = out[0]->computeSentenceScores(j);
-					os << std::inner_product(sntscores.begin(), sntscores.end(),
-						config.getFeatureWeights().begin(), Float(0))
+					os << std::inner_product(
+							sntscores.begin(), sntscores.end(),
+							config.getFeatureWeights().begin(),
+							Float(0)
+						)
 						<< " - " << sntscores;
 					inputdocs[i]->annotateSentence(j, os.str());
 				}

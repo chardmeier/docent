@@ -245,8 +245,11 @@ void processTestset(
 			for(uint sentNr = 0; sentNr < ptout.getNumberOfSentences(); sentNr++) {
 				std::ostringstream os;
 				Scores sntscores = doc->computeSentenceScores(sentNr);
-				os << std::inner_product(sntscores.begin(), sntscores.end(),
-					config.getFeatureWeights().begin(), Float(0))
+				os << std::inner_product(
+						sntscores.begin(), sntscores.end(),
+						config.getFeatureWeights().begin(),
+						Float(0)
+					)
 					<< " - " << sntscores
 					<< " - " << formatWordAlignment(doc->getPhraseSegmentation(sentNr));
 				inputdocs[docNum]->annotateSentence(sentNr, os.str());
