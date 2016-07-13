@@ -38,30 +38,16 @@
 #include <boost/foreach.hpp>
 #include <boost/function.hpp>
 #include <boost/iterator/transform_iterator.hpp>
+#include <boost/lambda/lambda.hpp>
+#include <boost/lambda/algorithm.hpp>
+#include <boost/lambda/bind.hpp>
+#include <boost/lambda/numeric.hpp>
 
 #include <iostream>
 #include <ostream>
 #include <sstream>
 #include <string>
 #include <iterator>
-
-
-struct PhrasePairComparator {
-private:
-	uint index_;
-public:
-	PhrasePairComparator(
-		const uint filter_index
-	) :	index_(filter_index) {}
-
-	bool operator()(
-		const PhrasePairData& a,
-		const PhrasePairData& b
-	) {
-		return a.getScores()[index_]
-			>  b.getScores()[index_];
-	}
-};
 
 
 PhraseTable::PhraseTable(
@@ -178,6 +164,7 @@ PhraseTable::getPhrasesForSentence(
 	const std::vector<Word> &sentence
 ) const
 {
+	using namespace boost::lambda;
 	LOG(logger_, verbose, "getPhrasesForSentence " << sentence);
 	boost::shared_ptr<PhrasePairCollection> ptc(
 		new PhrasePairCollection(sentence.size(), random_)
@@ -209,7 +196,6 @@ PhraseTable::getPhrasesForSentence(
 				continue;
 
 			std::vector<target_text> finds(query_result.second);
-			std::vector<PhrasePairData> pps;
 			BOOST_FOREACH(target_text find, finds) {  // All PHRASES
 				std::string phrase(getTargetWordsFromIDs(find.target_phrase, &vocabids));
 				boost::trim(phrase);
@@ -269,31 +255,12 @@ PhraseTable::getPhrasesForSentence(
 				BOOST_FOREACH(Float prob, find.prob)
 					scores.push_back(std::log(prob));
 
-				PhrasePairData pp(
+				PhrasePair pp(PhrasePairData(
 					srcphrase, factors[0], annotationPhrases, wa, scores
-				);
-				pps.push_back(pp);
+				));
+				ptc->addPhrasePair(cov, pp);
+				uncovered -= cov;
 			}
-			std::vector<PhrasePairData>::iterator pps_end;
-			if((filterLimit_ > 0) && (pps.size() <= filterLimit_)) {
-				pps_end = pps.end();
-			} else {
-				pps_end = pps.begin() + filterLimit_;
-				PhrasePairComparator comp(filterScoreIndex_);
-				std::nth_element(
-					pps.begin(), pps.end(),
-					pps_end,
-					comp
-				);
-			}
-			for(std::vector<PhrasePairData>::iterator
-				it = pps.begin();
-				it != pps_end;
-				++it
-			) {
-				ptc->addPhrasePair(cov, PhrasePair(*it));
-			}
-			uncovered -= cov;
 		}
 	}
 

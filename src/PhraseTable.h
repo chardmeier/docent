@@ -40,11 +40,10 @@ private:
 	Random random_;
 	std::string filename_;
 	uint nscores_;
-	QueryEngine *backend_;
-	uint annotationCount_;
 	uint maxPhraseLength_;
-	uint filterLimit_;
-	uint filterScoreIndex_;
+	uint annotationCount_;
+	QueryEngine *backend_;
+	bool loadAlignments_;
 
 	Scores scorePhraseSegmentation(const PhraseSegmentation &ps) const;
 
