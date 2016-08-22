@@ -42,6 +42,8 @@ private:
 	uint nscores_;
 	uint maxPhraseLength_;
 	uint annotationCount_;
+	uint filterLimit_;
+	uint filterScoreIndex_;
 	QueryEngine *backend_;
 	bool loadAlignments_;
 
