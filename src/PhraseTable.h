@@ -28,14 +28,17 @@
 #include "FeatureFunction.h"
 #include "PhrasePair.h"
 
+#include "quering.hh"  // from ProbingPT
+
 #include <boost/shared_ptr.hpp>
 #include <boost/utility.hpp>
 
 class PhrasePairCollection;
-class QueryEngine; // from ProbingPT
 
 class PhraseTable : public FeatureFunction, boost::noncopyable {
 private:
+	typedef std::pair< std::vector<Word>, std::vector<Phrase> > PhraseAndAnnotationsPair;
+
 	Logger logger_;
 	Random random_;
 	std::string filename_;
@@ -49,8 +52,16 @@ private:
 
 	Scores scorePhraseSegmentation(const PhraseSegmentation &ps) const;
 
-	std::vector< std::vector<Word> > getFactors(
+	PhraseAndAnnotationsPair
+	getFactors(
 		const std::vector<Word> &tokens
+	) const;
+
+	WordAlignment
+	getWordAlignment(
+		const std::vector<Word> &srcphrase,
+		const std::vector<Word> &tokens,
+		const target_text &find
 	) const;
 
 public:

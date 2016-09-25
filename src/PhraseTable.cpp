@@ -196,40 +196,29 @@ PhraseTable::getPhrasesForSentence(
 				continue;
 
 			std::vector<target_text> finds(query_result.second);
-			BOOST_FOREACH(target_text find, finds) {  // All PHRASES
+			BOOST_FOREACH(target_text find, finds) {
 				std::string phrase(getTargetWordsFromIDs(find.target_phrase, &vocabids));
 				boost::trim(phrase);
+
 				std::vector<Word> tokens;
 				boost::split(tokens, phrase, boost::is_any_of(" "));
 				LOG(logger_, verbose, i << "/" << j << " > " << tokens.size() << " TOKENS: [" << tokens << "]");
 
-				std::vector< std::vector<Word> > factors(
+				PhraseAndAnnotationsPair factors(
 					getFactors(tokens)
 				);
 
-				std::vector<Phrase> annotationPhrases;
-				annotationPhrases.reserve(annotationCount_);
-				for(uint l = 0; l < annotationCount_; ++l) {
-					annotationPhrases.push_back(Phrase(factors[l+1]));
-				}
+				WordAlignment wa(
+					getWordAlignment(srcphrase, tokens, find)
+				);
 
-				// Alignment
-				std::vector<AlignmentPair> alignments;
-				alignments.reserve(find.word_all1.size()/2);
-				for(uint l = 0; l < find.word_all1.size(); l = l+2) {
-					alignments.push_back(
-						AlignmentPair(find.word_all1[l], find.word_all1[l+1])
-					);
-				}
-				WordAlignment wa(srcphrase.size(), tokens.size(), alignments);
-
-				// Scores
 				Scores scores;
+				scores.reserve(find.prob.size());
 				BOOST_FOREACH(Float prob, find.prob)
 					scores.push_back(std::log(prob));
 
 				PhrasePair pp(PhrasePairData(
-					srcphrase, factors[0], annotationPhrases, wa, scores
+					srcphrase, factors.first, factors.second, wa, scores
 				));
 				ptc->addPhrasePair(cov, pp);
 			}
@@ -251,40 +240,73 @@ PhraseTable::getPhrasesForSentence(
 }
 
 
-std::vector< std::vector<Word> >
+PhraseTable::PhraseAndAnnotationsPair
 PhraseTable::getFactors(
 	const std::vector<Word> &tokens
 ) const
 {
-	std::vector< std::vector<Word> > factors(
-		(annotationCount_ + 1),
+	std::vector<Word> targetPhrase(tokens.size());
+	std::vector< std::vector<Word> > annotations(
+		annotationCount_,
 		std::vector<Word>(tokens.size())
 	);
-	uint k = 0;
+	uint token_no = 0;
 	BOOST_FOREACH(Word token, tokens) {  // All TOKENS (word|annotation1|...)
 		std::vector<Word> curr_factors;
 		boost::split(curr_factors, token, boost::is_any_of("|"));
-		uint l = 0;
-		for(std::vector<Word>::iterator
-			it = curr_factors.begin();
+
+		std::vector<Word>::iterator it = curr_factors.begin();
+		if(it->length() == 0) {
+			LOG(logger_, error, "Problem, empty target phrase: " << token);
+			BOOST_THROW_EXCEPTION(FileFormatException());
+		}
+		targetPhrase[token_no] = *it;
+
+		uint annotation_no = 0;
+		for(++it;
 			it != curr_factors.end();
-			++it, ++l
+			++it, ++annotation_no
 		) {
-			if((l == 0) && (it->length() == 0)) {
-				LOG(logger_, error, "Problem, empty target phrase: " << token);
-				BOOST_THROW_EXCEPTION(FileFormatException());
-			}
-			if(l > annotationCount_) {
+			if(annotation_no >= annotationCount_) {
 				LOG(logger_, error, "Problem, too many annotations: " << token);
 				BOOST_THROW_EXCEPTION(FileFormatException());
 			}
-			factors[l][k] = *it;
+			annotations[annotation_no][token_no] = *it;
 		}
-		if(l < (annotationCount_ + 1)) {
+		if(annotation_no < annotationCount_) {
 			LOG(logger_, error, "Problem, too few annotations: " << token);
 			BOOST_THROW_EXCEPTION(FileFormatException());
 		}
-		++k;
+		++token_no;
 	}
-	return factors;
+
+	std::vector<Phrase> annotationPhrases;
+	annotationPhrases.reserve(annotationCount_);
+	for(uint annotation_no = 0;
+		annotation_no < annotationCount_;
+		++annotation_no
+	) {
+		annotationPhrases.push_back(Phrase(annotations[annotation_no]));
+	}
+
+	return PhraseAndAnnotationsPair(targetPhrase, annotationPhrases);
+}
+
+
+WordAlignment
+PhraseTable::getWordAlignment(
+	const std::vector<Word> &srcphrase,
+	const std::vector<Word> &tokens,
+	const target_text &find
+) const
+{
+	std::vector<AlignmentPair> alignments;
+	alignments.reserve(find.word_all1.size()/2);
+	for(uint l = 0; l < find.word_all1.size(); l = l+2) {
+		alignments.push_back(
+			AlignmentPair(find.word_all1[l], find.word_all1[l+1])
+		);
+	}
+	WordAlignment wa(srcphrase.size(), tokens.size(), alignments);
+	return wa;
 }
