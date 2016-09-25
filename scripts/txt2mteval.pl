@@ -98,7 +98,7 @@ foreach my $file (@Files) {
 }
 
 my $fh;
-if ($Opts{output} eq '-') {
+if ((! $Opts{output}) || ($Opts{output} eq '-')) {
     $fh = \*STDOUT;
 } else {
     open $fh, '>', $Opts{output}
