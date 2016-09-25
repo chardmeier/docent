@@ -147,7 +147,7 @@ and not needed for execution.
   If Boost is installed in a non-standard directory:
     scripts/build-docent.sh -m DEBUG -b /path/to/Boost
 
-3.2. DEBUG builds
+3.2. RELEASE builds
 
 - With plain Cmake:
     mkdir RELEASE
@@ -187,4 +187,5 @@ Here are some common reasons for a build failing:
   a detail part of 'boost::archive' was not found.
 
   The solution is to compile Boost once more (perhaps into a different BOOST_ROOT)
-  with the new compiler and to remove the build tree before building Docent once more.
+  with the new compiler and to remove the Docent build tree before building Docent
+  once more.
