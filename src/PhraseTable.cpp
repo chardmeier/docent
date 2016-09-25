@@ -259,8 +259,8 @@ PhraseTable::getPhrasesForSentence(
 					srcphrase, factors[0], annotationPhrases, wa, scores
 				));
 				ptc->addPhrasePair(cov, pp);
-				uncovered -= cov;
 			}
+			uncovered -= cov;
 		}
 	}
 
