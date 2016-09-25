@@ -121,10 +121,9 @@ You may want to use a combination of 'mteval2txt.pl', 'txt2mteval.pl' (for both,
 see Section 3), and your usual tokeniser tool to achieve that source format.
 
 To prepare a phrase-segmented Moses translation of the form needed as the raw
-translation in Docent, extract the tokenised sourcer segments, e.g. with
-'mteval2txt.pl -o...' (see Section 3), run them through Moses with its '-t'
-(report-segmentation) flag]*, and create the MTeval structure using
-'mteval-insert-segs.pl'.
+translation in Docent, you can use the helper script 'mteval-moses.sh' with the
+flag '-t' (Moses: report-segmentation)]* (see Section 3).
+
 *] The output must consist of phrases separated by word-alignment information
   between pipe symbols, like this:
       phrase1 |0-0| phrase 2 |1-2| . |3-3|
@@ -179,6 +178,11 @@ simplify the data exchange between Docent and purely text-based MT tools:
 - `scripts/mteval-insert-segs.pl`
   Takes a 'srcset' MTeval XML file and creates a corresponding 'tstset' structure
   that contains the segments given in a text file or on STDIN.
+
+- `scripts/mteval-moses.sh`
+  Takes a 'srcset' MTeval XML file, extracts the source segments (which must be
+  tokenised - both for Moses' and Docent's sake), runs them through Moses,
+  possibly with options, and inserts them into a corresponding 'tstset' structure.
 
 The directory contains many more scripts for pre- and postprocessing data, which
 may prove to be useful to you.
