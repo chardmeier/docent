@@ -204,35 +204,8 @@ PhraseTable::getPhrasesForSentence(
 				LOG(logger_, verbose, i << "/" << j << " > " << tokens.size() << " TOKENS: [" << tokens << "]");
 
 				std::vector< std::vector<Word> > factors(
-					(annotationCount_ + 1),
-					std::vector<Word>(tokens.size())
+					getFactors(tokens)
 				);
-				uint k = 0;
-				BOOST_FOREACH(Word token, tokens) {  // All TOKENS (word|annotation1|...)
-					std::vector<Word> curr_factors;
-					boost::split(curr_factors, token, boost::is_any_of("|"));
-					uint l = 0;
-					for(std::vector<Word>::iterator
-						it = curr_factors.begin();
-						it != curr_factors.end();
-						++it, ++l
-					) {
-						if((l == 0) && (it->length() == 0)) {
-							LOG(logger_, error, "Problem, empty target phrase: " << token);
-							BOOST_THROW_EXCEPTION(FileFormatException());
-						}
-						if(l > annotationCount_) {
-							LOG(logger_, error, "Problem, too many annotations: " << token);
-							BOOST_THROW_EXCEPTION(FileFormatException());
-						}
-						factors[l][k] = *it;
-					}
-					if(l < (annotationCount_ + 1)) {
-						LOG(logger_, error, "Problem, too few annotations: " << token);
-						BOOST_THROW_EXCEPTION(FileFormatException());
-					}
-					++k;
-				}
 
 				std::vector<Phrase> annotationPhrases;
 				annotationPhrases.reserve(annotationCount_);
@@ -275,4 +248,43 @@ PhraseTable::getPhrasesForSentence(
 	}
 
 	return ptc;
+}
+
+
+std::vector< std::vector<Word> >
+PhraseTable::getFactors(
+	const std::vector<Word> &tokens
+) const
+{
+	std::vector< std::vector<Word> > factors(
+		(annotationCount_ + 1),
+		std::vector<Word>(tokens.size())
+	);
+	uint k = 0;
+	BOOST_FOREACH(Word token, tokens) {  // All TOKENS (word|annotation1|...)
+		std::vector<Word> curr_factors;
+		boost::split(curr_factors, token, boost::is_any_of("|"));
+		uint l = 0;
+		for(std::vector<Word>::iterator
+			it = curr_factors.begin();
+			it != curr_factors.end();
+			++it, ++l
+		) {
+			if((l == 0) && (it->length() == 0)) {
+				LOG(logger_, error, "Problem, empty target phrase: " << token);
+				BOOST_THROW_EXCEPTION(FileFormatException());
+			}
+			if(l > annotationCount_) {
+				LOG(logger_, error, "Problem, too many annotations: " << token);
+				BOOST_THROW_EXCEPTION(FileFormatException());
+			}
+			factors[l][k] = *it;
+		}
+		if(l < (annotationCount_ + 1)) {
+			LOG(logger_, error, "Problem, too few annotations: " << token);
+			BOOST_THROW_EXCEPTION(FileFormatException());
+		}
+		++k;
+	}
+	return factors;
 }

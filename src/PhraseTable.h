@@ -49,6 +49,10 @@ private:
 
 	Scores scorePhraseSegmentation(const PhraseSegmentation &ps) const;
 
+	std::vector< std::vector<Word> > getFactors(
+		const std::vector<Word> &tokens
+	) const;
+
 public:
 	PhraseTable(const Parameters &params, Random random);
 	virtual ~PhraseTable();
