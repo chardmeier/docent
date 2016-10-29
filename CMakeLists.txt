@@ -189,10 +189,12 @@ add_library(decoder STATIC
 	src/models/ConsistencyQModelPhrase.cpp
 	src/models/ConsistencyQModelWord.cpp
 	src/models/GappyLanguageModel.cpp
+	src/models/GeometricDistortionModel.cpp
 	src/models/NgramModel.cpp
 	src/models/OvixModel.cpp
 	src/models/SemanticSimilarityModel.cpp
 	src/models/SemanticSpaceLanguageModel.cpp
+	src/models/SentenceLengthModel.cpp
 	src/models/SentenceParityModel.cpp
 	src/models/TypeTokenRateModel.cpp
 	src/models/WellFormednessModel.cpp
