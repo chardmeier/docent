@@ -127,8 +127,8 @@ you only have to take the executable files directly inside the build directory:
   - CreateProbingPT
   - QueryProbingPT
 
-All other files, including the static libraries (*.a on Linux), are temporary
-and not needed for execution.
+All the other files, including the static libraries (*.a on Linux), are
+temporary and not needed for execution.
 
 
 3.1. DEBUG builds
