@@ -1,9 +1,26 @@
-Ideas
+IDEAS
 =====
 
-* Phrase-table filtering:
+Phrase-table
+------------
+* Filtering:
   Pick "top N" according to scalar product of scores and PT weights
 
-* Phrase-table config:
+* Config:
   Have ProbingPT export its "nscores" value (ideally combined with pull request to upstream)
   and use that value instead of "nscores" in config file
+
+Frontends
+---------
+* lcurve-docent:
+  Write learning-curve files exactly until the final configured iteration
+  (which may be a lower or higher number than the current hard-coded one)
+
+* Combine all the frontend executable (apart from the trivial test variant)
+  into one
+
+* Allow multithreading
+
+* Enhance commandline argument handling by using Boost
+
+* Add unit/regression tests (Boost has a library to help with that)
