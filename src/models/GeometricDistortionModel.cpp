@@ -24,12 +24,8 @@
 #include "SearchStep.h"
 #include "models/GeometricDistortionModel.h"
 
-#include <algorithm>
 #include <limits>
 #include <vector>
-
-#include <boost/lambda/lambda.hpp>
-#include <boost/lambda/bind.hpp>
 
 GeometricDistortionModel::GeometricDistortionModel(
 	const Parameters &params

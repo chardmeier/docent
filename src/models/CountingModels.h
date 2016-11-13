@@ -112,8 +112,7 @@ struct LongWordCounter
 	LongWordCounter(const Parameters &params) {
 		try {
 			longLimit_ = params.get<uint>("long-word-length-limit");
-		}
-		catch(ParameterNotFoundException()) {
+		} catch(ParameterNotFoundException()) {
 			longLimit_ = 7; //default value (from LIX)
 		}
 	}

@@ -24,9 +24,9 @@
 
 #include "MMAXDocument.h"
 #include "PhrasePairCollection.h"
-#include "PhraseTable.h"
 #include "SearchStep.h"
 #include "StateGenerator.h"
+#include "models/PhraseTable.h"
 
 #include <algorithm>
 #include <iterator>

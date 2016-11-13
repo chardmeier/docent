@@ -20,7 +20,7 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "PhraseTable.h"
+#include "models/PhraseTable.h"
 
 #include "DocumentState.h"
 #include "PhrasePairCollection.h"
@@ -87,7 +87,9 @@ PhraseTable::~PhraseTable() {
 	delete backend_;
 }
 
-inline Scores PhraseTable::scorePhraseSegmentation(const PhraseSegmentation &ps) const {
+inline Scores PhraseTable::scorePhraseSegmentation(
+	const PhraseSegmentation &ps
+) const {
 	Scores s(nscores_);
 	for(PhraseSegmentation::const_iterator pit = ps.begin(); pit != ps.end(); ++pit)
 		s += pit->second.get().getScores();
@@ -101,7 +103,11 @@ FeatureFunction::State
 ) const {
 	const std::vector<PhraseSegmentation> &segs = doc.getPhraseSegmentations();
 	Scores s(nscores_);
-	for(std::vector<PhraseSegmentation>::const_iterator it = segs.begin(); it != segs.end(); ++it)
+	for(std::vector<PhraseSegmentation>::const_iterator
+		it = segs.begin();
+		it != segs.end();
+		++it
+	)
 		s += scorePhraseSegmentation(*it);
 	std::copy(s.begin(), s.end(), sbegin);
 	return NULL;

@@ -21,7 +21,6 @@
  */
 
 #include "FeatureFunction.h"
-#include "PhraseTable.h"
 #include "SearchStep.h"
 #include "models/BleuModel.h"
 #include "models/BracketingModel.h"
@@ -32,6 +31,7 @@
 #include "models/GeometricDistortionModel.h"
 #include "models/NgramModel.h"
 #include "models/OvixModel.h"
+#include "models/PhraseTable.h"
 #include "models/SemanticSimilarityModel.h"
 #include "models/SemanticSpaceLanguageModel.h"
 #include "models/SentenceLengthModel.h"
