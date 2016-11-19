@@ -31,6 +31,10 @@
 class DocumentState;
 class SearchStep;
 
+/***********************************************************************
+ * API for all FeatureFunctions
+ **/
+
 class FeatureFunction {
 public:
 	class State {
@@ -58,7 +62,8 @@ public:
 		Scores::iterator sbegin
 	) const = 0;
 
-	virtual StateModifications *estimateScoreUpdate(
+	virtual StateModifications
+	*estimateScoreUpdate(
 		const DocumentState &doc,
 		const SearchStep &step,
 		const State *state,
@@ -98,6 +103,11 @@ public:
 		Scores::iterator sbegin
 	) const = 0;
 };
+
+/**
+ * End of FeatureFunction API
+ **********************************************************************/
+
 
 class FeatureFunctionInstantiation {
 private:

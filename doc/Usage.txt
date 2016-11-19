@@ -209,11 +209,11 @@ APPENDIX: Troubleshooting
 NOTE: See doc/Build.txt for tips regarding problems with *compiling*
 (building) Docent.
 
-- It is an error for the initial translation contains a phrase that does not
+- It is an error for the initial translation to contain a phrase that does not
   appear in Docent's phrase table. That can typically happen if the raw translation
   was created in Moses with a different phrase table than the one configured in
   Docent. Make sure to use the same in both (you are not forced to use the
   ProbingPT format in Moses, but do use the same raw data).
 
 - The phrase table has to be in the ProbingPT format and must have been created
-  on a binary-compatible system (preferentially the system you are running on).
+  on a binary-compatible system (preferably the system you are running on).
