@@ -184,6 +184,8 @@ simplify the data exchange between Docent and purely text-based MT tools:
   tokenised - both for Moses' and Docent's sake), runs them through Moses,
   possibly with options, and inserts them into a corresponding 'tstset' structure.
 
+Run each with option '-h' to see the available command-line arguments.
+
 The directory contains many more scripts for pre- and postprocessing data, which
 may prove to be useful to you.
 
