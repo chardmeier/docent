@@ -22,9 +22,9 @@
 
 #include "DecoderConfiguration.h"
 
-#include "PhraseTable.h"
 #include "SearchAlgorithm.h"
 #include "StateGenerator.h"
+#include "models/PhraseTable.h"
 
 #include <iterator>
 #include <limits>

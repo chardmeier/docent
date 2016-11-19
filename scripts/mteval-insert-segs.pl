@@ -40,7 +40,8 @@ eval { require XML::LibXML };
 die "$0: missing Perl dependency: XML::LibXML\n" if $@;
 
 usage( "source file not specified" )  unless exists $Opts{srcfile};
-die "$0: file '$Opts{srcfile}' not found, or empty\n"  unless -s $Opts{srcfile} && ! -d $Opts{srcfile};
+die "$0: file '$Opts{srcfile}' not found, or empty\n"
+    unless -s $Opts{srcfile} && ! -d $Opts{srcfile};
 my $input = eval { XML::LibXML->load_xml( location => $Opts{srcfile} ) }
     or die "$0: error parsing '$Opts{srcfile}': $@\n";
 my $tstset;
@@ -113,19 +114,18 @@ sub usage
     print "$msg\n" if defined $msg;
 
     print <<"EOT";
-Usage: mteval-insert-segs.pl [OPTIONS] -s SOURCE.xml SEGSMENTSFILE
-   or: mteval-insert-segs.pl [OPTIONS] -s SOURCE.xml < SEGMENTS
+Usage: mteval-insert-segs.pl [OPTIONS] [-s] SOURCE.xml SEGSMENTSFILE
+   or: mteval-insert-segs.pl [OPTIONS] [-s] SOURCE.xml < SEGMENTS
 
 NOTE: This script relies on the libxml2 system library and the Perl package
 XML::LibXML.
 
 Mandatory arguments to long options are mandatory for short options too.
   -o, --output FILE  name of the file to which the XML result is written
-  -u, --update       write
+  -u, --update       write back into SOURCE.xml
 
   -h, --help     display this help and exit
   -V, --version  output version information and exit
 EOT
-
     exit( defined $msg ? 1 : 0 );
 }

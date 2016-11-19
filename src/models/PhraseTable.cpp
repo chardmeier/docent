@@ -20,7 +20,7 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "PhraseTable.h"
+#include "models/PhraseTable.h"
 
 #include "DocumentState.h"
 #include "PhrasePairCollection.h"
@@ -87,7 +87,9 @@ PhraseTable::~PhraseTable() {
 	delete backend_;
 }
 
-inline Scores PhraseTable::scorePhraseSegmentation(const PhraseSegmentation &ps) const {
+inline Scores PhraseTable::scorePhraseSegmentation(
+	const PhraseSegmentation &ps
+) const {
 	Scores s(nscores_);
 	for(PhraseSegmentation::const_iterator pit = ps.begin(); pit != ps.end(); ++pit)
 		s += pit->second.get().getScores();
@@ -101,7 +103,11 @@ FeatureFunction::State
 ) const {
 	const std::vector<PhraseSegmentation> &segs = doc.getPhraseSegmentations();
 	Scores s(nscores_);
-	for(std::vector<PhraseSegmentation>::const_iterator it = segs.begin(); it != segs.end(); ++it)
+	for(std::vector<PhraseSegmentation>::const_iterator
+		it = segs.begin();
+		it != segs.end();
+		++it
+	)
 		s += scorePhraseSegmentation(*it);
 	std::copy(s.begin(), s.end(), sbegin);
 	return NULL;
@@ -196,71 +202,33 @@ PhraseTable::getPhrasesForSentence(
 				continue;
 
 			std::vector<target_text> finds(query_result.second);
-			BOOST_FOREACH(target_text find, finds) {  // All PHRASES
+			BOOST_FOREACH(target_text find, finds) {
 				std::string phrase(getTargetWordsFromIDs(find.target_phrase, &vocabids));
 				boost::trim(phrase);
+
 				std::vector<Word> tokens;
 				boost::split(tokens, phrase, boost::is_any_of(" "));
 				LOG(logger_, verbose, i << "/" << j << " > " << tokens.size() << " TOKENS: [" << tokens << "]");
 
-				std::vector< std::vector<Word> > factors(
-					(annotationCount_ + 1),
-					std::vector<Word>(tokens.size())
+				PhraseAndAnnotationsPair factors(
+					getFactors(tokens)
 				);
-				uint k = 0;
-				BOOST_FOREACH(Word token, tokens) {  // All TOKENS (word|annotation1|...)
-					std::vector<Word> curr_factors;
-					boost::split(curr_factors, token, boost::is_any_of("|"));
-					uint l = 0;
-					for(std::vector<Word>::iterator
-						it = curr_factors.begin();
-						it != curr_factors.end();
-						++it, ++l
-					) {
-						if((l == 0) && (it->length() == 0)) {
-							LOG(logger_, error, "Problem, empty target phrase: " << token);
-							BOOST_THROW_EXCEPTION(FileFormatException());
-						}
-						if(l > annotationCount_) {
-							LOG(logger_, error, "Problem, too many annotations: " << token);
-							BOOST_THROW_EXCEPTION(FileFormatException());
-						}
-						factors[l][k] = *it;
-					}
-					if(l < (annotationCount_ + 1)) {
-						LOG(logger_, error, "Problem, too few annotations: " << token);
-						BOOST_THROW_EXCEPTION(FileFormatException());
-					}
-					++k;
-				}
 
-				std::vector<Phrase> annotationPhrases;
-				annotationPhrases.reserve(annotationCount_);
-				for(uint l = 0; l < annotationCount_; ++l) {
-					annotationPhrases.push_back(Phrase(factors[l+1]));
-				}
+				WordAlignment wa(
+					getWordAlignment(srcphrase, tokens, find)
+				);
 
-				// Alignment
-				std::vector<AlignmentPair> alignments;
-				alignments.reserve(find.word_all1.size()/2);
-				for(uint l = 0; l < find.word_all1.size(); l = l+2) {
-					alignments.push_back(
-						AlignmentPair(find.word_all1[l], find.word_all1[l+1])
-					);
-				}
-				WordAlignment wa(srcphrase.size(), tokens.size(), alignments);
-
-				// Scores
 				Scores scores;
+				scores.reserve(find.prob.size());
 				BOOST_FOREACH(Float prob, find.prob)
 					scores.push_back(std::log(prob));
 
 				PhrasePair pp(PhrasePairData(
-					srcphrase, factors[0], annotationPhrases, wa, scores
+					srcphrase, factors.first, factors.second, wa, scores
 				));
 				ptc->addPhrasePair(cov, pp);
-				uncovered -= cov;
 			}
+			uncovered -= cov;
 		}
 	}
 
@@ -275,4 +243,76 @@ PhraseTable::getPhrasesForSentence(
 	}
 
 	return ptc;
+}
+
+
+PhraseTable::PhraseAndAnnotationsPair
+PhraseTable::getFactors(
+	const std::vector<Word> &tokens
+) const
+{
+	std::vector<Word> targetPhrase(tokens.size());
+	std::vector< std::vector<Word> > annotations(
+		annotationCount_,
+		std::vector<Word>(tokens.size())
+	);
+	uint token_no = 0;
+	BOOST_FOREACH(Word token, tokens) {  // All TOKENS (word|annotation1|...)
+		std::vector<Word> curr_factors;
+		boost::split(curr_factors, token, boost::is_any_of("|"));
+
+		std::vector<Word>::iterator it = curr_factors.begin();
+		if(it->length() == 0) {
+			LOG(logger_, error, "Problem, empty target phrase: " << token);
+			BOOST_THROW_EXCEPTION(FileFormatException());
+		}
+		targetPhrase[token_no] = *it;
+
+		uint annotation_no = 0;
+		for(++it;
+			it != curr_factors.end();
+			++it, ++annotation_no
+		) {
+			if(annotation_no >= annotationCount_) {
+				LOG(logger_, error, "Problem, too many annotations: " << token);
+				BOOST_THROW_EXCEPTION(FileFormatException());
+			}
+			annotations[annotation_no][token_no] = *it;
+		}
+		if(annotation_no < annotationCount_) {
+			LOG(logger_, error, "Problem, too few annotations: " << token);
+			BOOST_THROW_EXCEPTION(FileFormatException());
+		}
+		++token_no;
+	}
+
+	std::vector<Phrase> annotationPhrases;
+	annotationPhrases.reserve(annotationCount_);
+	for(uint annotation_no = 0;
+		annotation_no < annotationCount_;
+		++annotation_no
+	) {
+		annotationPhrases.push_back(Phrase(annotations[annotation_no]));
+	}
+
+	return PhraseAndAnnotationsPair(targetPhrase, annotationPhrases);
+}
+
+
+WordAlignment
+PhraseTable::getWordAlignment(
+	const std::vector<Word> &srcphrase,
+	const std::vector<Word> &tokens,
+	const target_text &find
+) const
+{
+	std::vector<AlignmentPair> alignments;
+	alignments.reserve(find.word_all1.size()/2);
+	for(uint l = 0; l < find.word_all1.size(); l = l+2) {
+		alignments.push_back(
+			AlignmentPair(find.word_all1[l], find.word_all1[l+1])
+		);
+	}
+	WordAlignment wa(srcphrase.size(), tokens.size(), alignments);
+	return wa;
 }

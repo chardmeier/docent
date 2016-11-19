@@ -177,7 +177,6 @@ add_library(decoder STATIC
 	src/NistXmlDocument.cpp
 	src/PhrasePair.cpp
 	src/PhrasePairCollection.cpp
-	src/PhraseTable.cpp
 	src/Random.cpp
 	src/SearchAlgorithm.cpp
 	src/SearchStep.cpp
@@ -189,10 +188,13 @@ add_library(decoder STATIC
 	src/models/ConsistencyQModelPhrase.cpp
 	src/models/ConsistencyQModelWord.cpp
 	src/models/GappyLanguageModel.cpp
+	src/models/GeometricDistortionModel.cpp
 	src/models/NgramModel.cpp
 	src/models/OvixModel.cpp
+	src/models/PhraseTable.cpp
 	src/models/SemanticSimilarityModel.cpp
 	src/models/SemanticSpaceLanguageModel.cpp
+	src/models/SentenceLengthModel.cpp
 	src/models/SentenceParityModel.cpp
 	src/models/TypeTokenRateModel.cpp
 	src/models/WellFormednessModel.cpp

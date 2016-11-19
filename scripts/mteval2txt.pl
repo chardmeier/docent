@@ -48,10 +48,14 @@ foreach my $infile (@Files) {
 my $outfh;
 if ($Opts{output}) {
     usage( "These options are mutually exclusive: 'output'('flat')/'prefix'" ) if $Opts{prefix};
-    die "$0: target file '$Opts{output}' exists and overwriting has not been allowed\n"
-        if (! $Opts{overwrite}) && -e $Opts{output};
-    open $outfh, '>', $Opts{output}
-        or die "$0: could not write file '$Opts{output}': $!\n";
+    if ($Opts{output} eq '-') {
+        $outfh = \*STDOUT;
+    } else {
+        die "$0: target file '$Opts{output}' exists and overwriting has not been allowed\n"
+            if (! $Opts{overwrite}) && -e $Opts{output};
+        open $outfh, '>', $Opts{output}
+            or die "$0: could not write file '$Opts{output}': $!\n";
+    }
 }
 foreach my $infile (@Files) {
     unless (-s $infile && ! -d $infile) {
@@ -165,7 +169,7 @@ Mandatory arguments to long options are mandatory for short options too.
   -p, --prefix STR  prepend STR to the path of output files  ##TODO
 =======
   -f, --overwrite     overwrite existing output files
-  -o, --output FILE,  write all segments to one flat file
+  -o, --output FILE,  write all segments to one flat file (use '-' for STDOUT)
     -a, --flat FILE     (mutually exclusive with '-p')
   -p, --prefix STR    prepend STR to the path of output files
                         (mutually exclusive with '-o')

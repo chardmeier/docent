@@ -1,5 +1,5 @@
 /*
- *  PhraseTable.h
+ *  GeometricDistortionModel.h
  *
  *  Copyright 2012 by Christian Hardmeier. All rights reserved.
  *
@@ -20,44 +20,34 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef docent_PhraseTable_h
-#define docent_PhraseTable_h
-
-#include "Docent.h"
+#ifndef docent_GeometricDistortionModel_h
+#define docent_GeometricDistortionModel_h
 
 #include "FeatureFunction.h"
-#include "PhrasePair.h"
 
-#include <boost/shared_ptr.hpp>
-#include <boost/utility.hpp>
-
-class PhrasePairCollection;
-class QueryEngine; // from ProbingPT
-
-class PhraseTable : public FeatureFunction, boost::noncopyable {
+class GeometricDistortionModel : public FeatureFunction {
 private:
-	Logger logger_;
-	Random random_;
-	std::string filename_;
-	uint nscores_;
-	uint maxPhraseLength_;
-	uint annotationCount_;
-	uint filterLimit_;
-	uint filterScoreIndex_;
-	QueryEngine *backend_;
-	bool loadAlignments_;
+	template<class Operator>
+	void scoreSegment(
+		PhraseSegmentation::const_iterator from,
+		PhraseSegmentation::const_iterator to,
+		Scores::iterator sbegin,
+		Operator op
+	) const;
 
-	Scores scorePhraseSegmentation(const PhraseSegmentation &ps) const;
+	Float computeDistortionDistance(
+		const CoverageBitmap &m1,
+		const CoverageBitmap &m2
+	) const;
 
+	Float distortionLimit_;
 public:
-	PhraseTable(const Parameters &params, Random random);
-	virtual ~PhraseTable();
+	GeometricDistortionModel(const Parameters &params);
 
-	virtual FeatureFunction::State *initDocument(
+	virtual State *initDocument(
 		const DocumentState &doc,
 		Scores::iterator sbegin
 	) const;
-
 	virtual StateModifications *estimateScoreUpdate(
 		const DocumentState &doc,
 		const SearchStep &step,
@@ -75,7 +65,7 @@ public:
 	) const;
 
 	virtual uint getNumberOfScores() const {
-		return nscores_;
+		return distortionLimit_ == -1 ? 1 : 2;
 	}
 
 	virtual void computeSentenceScores(
@@ -83,19 +73,6 @@ public:
 		uint sentno,
 		Scores::iterator sbegin
 	) const;
-
-	boost::shared_ptr<const PhrasePairCollection> getPhrasesForSentence(
-		const std::vector<Word> &sentence
-	) const;
-
-	bool operator==(const PhraseTable &o) const {
-		return filename_ == o.filename_;
-	}
-
-	friend std::size_t hash_value(const PhraseTable &p) {
-		boost::hash<std::string> hasher;
-		return hasher(p.filename_);
-	}
 };
 
 #endif
