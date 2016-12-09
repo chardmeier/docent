@@ -38,19 +38,19 @@
 
 using namespace boost::xpressive;
 
-template<class M>
+template<class Model>
 class SelectedPOSLM : public FeatureFunction {
 	friend struct SelectedPOSLMFactory;
 
 private:
-	typedef typename M::Vocabulary VocabularyType_;
-	typedef typename M::State StateType_;
+	typedef typename Model::Vocabulary VocabularyType_;
+	typedef typename Model::State StateType_;
 
 	typedef std::pair<StateType_,Float> WordState_;
 	typedef std::vector<WordState_> SentenceState_;
 
 	mutable Logger logger_;
-	M *model_;
+	Model *model_;
 	std::string selectedPOS;
 
 	bool useRegExPOS;
