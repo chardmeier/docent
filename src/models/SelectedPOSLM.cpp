@@ -38,19 +38,19 @@
 
 using namespace boost::xpressive;
 
-template<class Model>
+template<class M>
 class SelectedPOSLM : public FeatureFunction {
 	friend struct SelectedPOSLMFactory;
 
 private:
-	typedef typename Model::Vocabulary VocabularyType_;
-	typedef typename Model::State StateType_;
+	typedef typename M::Vocabulary VocabularyType_;
+	typedef typename M::State StateType_;
 
 	typedef std::pair<StateType_,Float> WordState_;
 	typedef std::vector<WordState_> SentenceState_;
 
 	mutable Logger logger_;
-	Model *model_;
+	M *model_;
 	std::string selectedPOS;
 
 	bool useRegExPOS;
@@ -88,9 +88,9 @@ public:
 		Scores::iterator estbegin
 	) const;
 
-	virtual FeatureFunction::State *applyStateModifications(
-		FeatureFunction::State *oldState,
-		FeatureFunction::StateModifications *modif
+	virtual State *applyStateModifications(
+		State *oldState,
+		StateModifications *modif
 	) const;
 
 	virtual uint getNumberOfScores() const {
@@ -330,14 +330,17 @@ FeatureFunction
 		if(!smtype.empty() && smtype != "hash-probing")
 			LOG(logger, error, "Incorrect LM type in configuration for file " << file);
 		return new SelectedPOSLM<lm::ngram::ProbingModel>(file,params);
+
 	case lm::ngram::TRIE_SORTED:
 		if(!smtype.empty() && smtype != "trie-sorted")
 			LOG(logger, error, "Incorrect LM type in configuration for file " << file);
 		return new SelectedPOSLM<lm::ngram::TrieModel>(file,params);
+
 	case lm::ngram::QUANT_ARRAY_TRIE:
 		if(!smtype.empty() && smtype != "quant-trie-sorted")
 			LOG(logger, error, "Incorrect LM type in configuration for file " << file);
 		return new SelectedPOSLM<lm::ngram::QuantArrayTrieModel>(file,params);
+
 	default:
 		LOG(logger, error, "Unsupported LM type for file " << file);
 		BOOST_THROW_EXCEPTION(FileFormatException());
@@ -345,13 +348,13 @@ FeatureFunction
 }
 
 
-template<class Model>
-SelectedPOSLM<Model>::SelectedPOSLM(
+template<class M>
+SelectedPOSLM<M>::SelectedPOSLM(
 	const std::string &file,
 	const Parameters &params
 ) :	logger_("SelectedPOSLM")
 {
-	model_ = new Model(file.c_str());
+	model_ = new M(file.c_str());
 	selectedPOS = params.get<std::string>("selected-pos","");
 	useRegExPOS = false;
 	if(selectedPOS.empty()) {

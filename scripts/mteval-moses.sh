@@ -78,11 +78,12 @@ mteval2txt.pl -o - "$Input" |
 moses "${MosesOpts[@]}" |
 mteval-insert-segs.pl "$Input" $Update -o "$Output"
 
+Status=(${PIPE_STATUS[@]})
+
 if (( $DeleteTmpInput )) && [[ $Input = *mteval-moses.*.xml ]]; then
     rm -f "$Input"
 fi
 
-Status=${PIPE_STATUS[@]}
 (( ${Status[0]} == 0 )) || die ${Status[0]} "extraction error: ${Status[0]}"
 (( ${Status[1]} == 0 )) || die ${Status[1]} "Moses error: ${Status[1]}"
 (( ${Status[2]} == 0 )) || die ${Status[2]} "reinsertion error: ${Status[2]}"

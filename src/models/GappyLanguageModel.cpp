@@ -119,9 +119,9 @@ public:
 		Scores::iterator estbegin
 	) const;
 
-	virtual FeatureFunction::State *applyStateModifications(
-		FeatureFunction::State *oldState,
-		FeatureFunction::StateModifications *modif
+	virtual State *applyStateModifications(
+		State *oldState,
+		StateModifications *modif
 	) const;
 
 	virtual uint getNumberOfScores() const {
@@ -547,13 +547,13 @@ FeatureFunction
 }
 
 
-template<class Model>
-GappyLanguageModel<Model>::GappyLanguageModel(
+template<class M>
+GappyLanguageModel<M>::GappyLanguageModel(
 	const std::string &file,
 	const Parameters &params
 ) :	logger_("GappyLanguageModel")
 {
-	model_ = new Model(file.c_str());
+	model_ = new M(file.c_str());
 
 	// selectedAnnotation = params.get<std::string>("selected-annotation","");
 	// selectedLabel = params.get<std::string>("selected-label","");

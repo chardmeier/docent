@@ -31,21 +31,21 @@
 #include "lm/binary_format.hh"  // from kenlm
 #include "lm/model.hh"
 
-template<class Model>
+template<class M>
 class SelectedWordLM
 : public FeatureFunction
 {
 	friend struct SelectedWordLMFactory;
 
 private:
-	typedef typename Model::Vocabulary VocabularyType_;
-	typedef typename Model::State StateType_;
+	typedef typename M::Vocabulary VocabularyType_;
+	typedef typename M::State StateType_;
 
 	typedef std::pair<StateType_,Float> WordState_;
 	typedef std::vector<WordState_> SentenceState_;
 
 	mutable Logger logger_;
-	Model *model_;
+	M *model_;
 	uint minWordLength;
 
 	SelectedWordLM(
@@ -80,9 +80,9 @@ public:
 		Scores::iterator estbegin
 	) const;
 
-	virtual FeatureFunction::State *applyStateModifications(
-		FeatureFunction::State *oldState,
-		FeatureFunction::StateModifications *modif
+	virtual State *applyStateModifications(
+		State *oldState,
+		StateModifications *modif
 	) const;
 
 	virtual uint getNumberOfScores() const {
@@ -298,17 +298,18 @@ FeatureFunction
 		if(!smtype.empty() && smtype != "hash-probing")
 			LOG(logger, error, "Incorrect LM type in configuration "
 				"for file " << file);
-
 		return new SelectedWordLM<lm::ngram::ProbingModel>(file,params);
+
 	case lm::ngram::TRIE_SORTED:
 		if(!smtype.empty() && smtype != "trie-sorted")
 			LOG(logger, error, "Incorrect LM type in configuration for file " << file);
 		return new SelectedWordLM<lm::ngram::TrieModel>(file,params);
+
 	case lm::ngram::QUANT_ARRAY_TRIE:
 		if(!smtype.empty() && smtype != "quant-trie-sorted")
 			LOG(logger, error, "Incorrect LM type in configuration for file " << file);
-
 		return new SelectedWordLM<lm::ngram::QuantArrayTrieModel>(file,params);
+
 	default:
 		LOG(logger, error, "Unsupported LM type for file " << file);
 		BOOST_THROW_EXCEPTION(FileFormatException());
@@ -316,12 +317,12 @@ FeatureFunction
 }
 
 
-template<class Model>
-SelectedWordLM<Model>::SelectedWordLM(
+template<class M>
+SelectedWordLM<M>::SelectedWordLM(
 	const std::string &file,
 	const Parameters &params
 ) : logger_("SelectedWordLM") {
-	model_ = new Model(file.c_str());
+	model_ = new M(file.c_str());
 	minWordLength = params.get<uint>("min-word-length");
 
 }

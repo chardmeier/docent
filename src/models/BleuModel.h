@@ -22,7 +22,7 @@ public:
 
 	virtual ~BleuModel();
 
-	virtual FeatureFunction::State *initDocument(
+	virtual State *initDocument(
 		const DocumentState &doc,
 		Scores::iterator sbegin
 	) const;
@@ -42,9 +42,9 @@ public:
 		Scores::iterator estbegin
 	) const;
 
-	virtual FeatureFunction::State *applyStateModifications(
-		FeatureFunction::State *oldState,
-		FeatureFunction::StateModifications *modif
+	virtual State *applyStateModifications(
+		State *oldState,
+		StateModifications *modif
 	) const;
 
 	virtual void computeSentenceScores(

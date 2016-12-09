@@ -56,26 +56,26 @@ public:
 
 	virtual ~FeatureFunction() {}
 
-	virtual State
+	virtual FeatureFunction::State
 	*initDocument(
 		const DocumentState &doc,
 		Scores::iterator sbegin
 	) const = 0;
 
-	virtual StateModifications
+	virtual FeatureFunction::StateModifications
 	*estimateScoreUpdate(
 		const DocumentState &doc,
 		const SearchStep &step,
-		const State *state,
+		const FeatureFunction::State *state,
 		Scores::const_iterator psbegin,
 		Scores::iterator sbegin
 	) const = 0;
 
-	virtual StateModifications
+	virtual FeatureFunction::StateModifications
 	*updateScore(
 		const DocumentState &doc,
 		const SearchStep &step,
-		const State *state,
+		const FeatureFunction::State *state,
 		StateModifications *estmods,
 		Scores::const_iterator psbegin,
 		Scores::iterator estbegin

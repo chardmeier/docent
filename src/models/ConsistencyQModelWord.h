@@ -48,9 +48,9 @@ public:
 		Scores::const_iterator,
 		Scores::iterator estbegin
 	) const;
-	virtual FeatureFunction::State *applyStateModifications(
-		FeatureFunction::State *oldState,
-		FeatureFunction::StateModifications *modif
+	virtual State *applyStateModifications(
+		State *oldState,
+		StateModifications *modif
 	) const;
 
 	virtual uint getNumberOfScores() const {
