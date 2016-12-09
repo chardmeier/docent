@@ -45,7 +45,6 @@ private:
 	typedef std::pair<StateType_,Float> WordState_;
 	typedef std::vector<WordState_> SentenceState_;
 
-
 	mutable Logger logger_;
 	Model *model_;
 	uint maxWordLength;

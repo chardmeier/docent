@@ -39,28 +39,28 @@
 
 #include <boost/foreach.hpp>
 
-template<class M> struct NgramDocumentState;
-template<class M> struct NgramDocumentModifications;
+template<class Model> struct NgramDocumentState;
+template<class Model> struct NgramDocumentModifications;
 
-template<class M>
+template<class Model>
 class NgramModel : public FeatureFunction {
 	friend struct NgramModelFactory;
-	friend struct NgramDocumentState<NgramModel<M> >;
-	friend struct NgramDocumentModifications<NgramModel<M> >;
+	friend struct NgramDocumentState<NgramModel<Model> >;
+	friend struct NgramDocumentModifications<NgramModel<Model> >;
 
 private:
-	typedef typename M::Vocabulary VocabularyType_;
-	typedef typename M::State StateType_;
+	typedef typename Model::Vocabulary VocabularyType_;
+	typedef typename Model::State StateType_;
 
-	typedef NgramDocumentState<NgramModel<M> > NgramDocumentState_;
-	typedef NgramDocumentModifications<NgramModel<M> > NgramDocumentModifications_;
+	typedef NgramDocumentState<NgramModel<Model> > NgramDocumentState_;
+	typedef NgramDocumentModifications<NgramModel<Model> > NgramDocumentModifications_;
 
 	typedef std::pair<StateType_,Float> WordState_;
 	typedef std::vector<WordState_> SentenceState_;
 
 	mutable Logger logger_;
 
-	M *model_;
+	Model *model_;
 
 	NgramModel(
 		const std::string &file,
