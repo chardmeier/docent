@@ -68,7 +68,7 @@ public:
 	PhraseTable(const Parameters &params, Random random);
 	virtual ~PhraseTable();
 
-	virtual FeatureFunction::State *initDocument(
+	virtual State *initDocument(
 		const DocumentState &doc,
 		Scores::iterator sbegin
 	) const;

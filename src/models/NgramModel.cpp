@@ -42,34 +42,47 @@
 template<class M> struct NgramDocumentState;
 template<class M> struct NgramDocumentModifications;
 
-template<class Model>
+template<class M>
 class NgramModel : public FeatureFunction {
 	friend struct NgramModelFactory;
-	friend struct NgramDocumentState<NgramModel<Model> >;
-	friend struct NgramDocumentModifications<NgramModel<Model> >;
+	friend struct NgramDocumentState<NgramModel<M> >;
+	friend struct NgramDocumentModifications<NgramModel<M> >;
 
 private:
-	typedef typename Model::Vocabulary VocabularyType_;
-	typedef typename Model::State StateType_;
+	typedef typename M::Vocabulary VocabularyType_;
+	typedef typename M::State StateType_;
 
-	typedef NgramDocumentState<NgramModel<Model> > NgramDocumentState_;
-	typedef NgramDocumentModifications<NgramModel<Model> > NgramDocumentModifications_;
+	typedef NgramDocumentState<NgramModel<M> > NgramDocumentState_;
+	typedef NgramDocumentModifications<NgramModel<M> > NgramDocumentModifications_;
 
 	typedef std::pair<StateType_,Float> WordState_;
 	typedef std::vector<WordState_> SentenceState_;
 
 	mutable Logger logger_;
 
-	Model *model_;
+	M *model_;
 
-	NgramModel(const std::string &file, const int annotationLevel, const bool tokenFlag);
+	NgramModel(
+		const std::string &file,
+		const int annotationLevel,
+		const bool tokenFlag
+	);
 
-	Float scoreNgram(const StateType_ &old_state, lm::WordIndex word, WordState_ &out_state) const;
+	Float scoreNgram(
+		const StateType_ &old_state,
+		lm::WordIndex word,
+		WordState_ &out_state
+	) const;
 
 	template<bool ScoreCompleteSentence,class PhrasePairIterator,class StateIterator>
-	Float scorePhraseSegmentation(const StateType_ *last_state, PhrasePairIterator from_it,
-		PhrasePairIterator to_it, PhrasePairIterator eos,
-		StateIterator state_it, bool atEos = false) const;
+	Float scorePhraseSegmentation(
+		const StateType_ *last_state,
+		PhrasePairIterator from_it,
+		PhrasePairIterator to_it,
+		PhrasePairIterator eos,
+		StateIterator state_it,
+		bool atEos = false
+	) const;
 
 	int annotationLevel_;
 	bool tokenFlag_;
@@ -77,16 +90,38 @@ private:
 public:
 	virtual ~NgramModel();
 
-	virtual FeatureFunction::State *initDocument(const DocumentState &doc, Scores::iterator sbegin) const;
+	virtual State *initDocument(
+		const DocumentState &doc,
+		Scores::iterator sbegin
+	) const;
 
-	virtual StateModifications *estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
-		Scores::const_iterator psbegin, Scores::iterator sbegin) const;
-	virtual StateModifications *updateScore(const DocumentState &doc, const SearchStep &step, const State *state,
-		StateModifications *estmods, Scores::const_iterator psbegin, Scores::iterator estbegin) const;
+	virtual StateModifications *estimateScoreUpdate(
+		const DocumentState &doc,
+		const SearchStep &step,
+		const State *state,
+		Scores::const_iterator psbegin,
+		Scores::iterator sbegin
+	) const;
+	virtual StateModifications
+	*updateScore(
+		const DocumentState &doc,
+		const SearchStep &step,
+		const State *state,
+		StateModifications *estmods,
+		Scores::const_iterator psbegin,
+		Scores::iterator estbegin
+	) const;
 
-	virtual FeatureFunction::State *applyStateModifications(FeatureFunction::State *oldState, FeatureFunction::StateModifications *modif) const;
+	virtual State
+	*applyStateModifications(
+		State *oldState,
+		StateModifications *modif
+	) const;
 
-	virtual void computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const;
+	virtual void computeSentenceScores(
+		const DocumentState &doc,
+		uint sentno, Scores::iterator sbegin
+	) const;
 
 	virtual uint getNumberOfScores() const {
 		return 1;
@@ -94,7 +129,9 @@ public:
 };
 
 FeatureFunction
-*NgramModelFactory::createNgramModel(const Parameters &params) {
+*NgramModelFactory::createNgramModel(
+	const Parameters &params
+) {
 	std::string file = params.get<std::string>("lm-file");
 	lm::ngram::ModelType mtype;
 
@@ -125,7 +162,6 @@ FeatureFunction
 		if(!smtype.empty() && smtype != "hash-probing")
 			LOG(logger, error, "Incorrect LM type in configuration "
 				"for file " << file);
-
 		return new NgramModel<lm::ngram::ProbingModel>(file,annotationLevel,tokenFlag);
 
 	case lm::ngram::TRIE_SORTED:
@@ -139,14 +175,15 @@ FeatureFunction
 		if(!smtype.empty() && smtype != "quant-trie-sorted")
 			LOG(logger, error, "Incorrect LM type in configuration "
 				"for file " << file);
-
 		return new NgramModel<lm::ngram::QuantTrieModel>(file,annotationLevel,tokenFlag);
 */
+
 	default:
 		LOG(logger, error, "Unsupported LM type for file " << file);
 		BOOST_THROW_EXCEPTION(FileFormatException());
 	}
 }
+
 
 template<class M>
 struct NgramDocumentState : public FeatureFunction::State {
@@ -168,14 +205,14 @@ struct NgramDocumentModifications : public FeatureFunction::StateModifications {
 	std::vector<std::pair<uint,typename M::SentenceState_> > modifications;
 };
 
-template<class Model>
-NgramModel<Model>::NgramModel(
+template<class M>
+NgramModel<M>::NgramModel(
 	const std::string &file,
 	const int annotationLevel,
 	const bool tokenFlag
 ) :	logger_("NgramModel")
 {
-	model_ = new Model(file.c_str());
+	model_ = new M(file.c_str());
 	annotationLevel_ = annotationLevel;
 	tokenFlag_ = tokenFlag;
 	LOG(logger_, debug, "Annotation level of N-gram model set to " << annotationLevel_);

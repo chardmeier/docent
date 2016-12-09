@@ -192,14 +192,12 @@ FeatureFunction
 }
 
 
-
-
-template<class Model>
-SelectedWordSlowLM<Model>::SelectedWordSlowLM(
+template<class M>
+SelectedWordSlowLM<M>::SelectedWordSlowLM(
 	const std::string &file,
 	const Parameters &params
 ) :	logger_("SelectedWordSlowLM") {
-	model_ = new Model(file.c_str());
+	model_ = new M(file.c_str());
 	maxWordLength = params.get<uint>("max-word-length");
 
 }
