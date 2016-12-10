@@ -42,9 +42,6 @@ public:
 		CountingFunction countingFunction
 	) :	countingFunction_(countingFunction) {}
 
-	static FeatureFunction *createWordPenaltyFeatureFunction();
-	static FeatureFunction *createOOVPenaltyFeatureFunction();
-
 	virtual State *initDocument(
 		const DocumentState &doc,
 		Scores::iterator sbegin
