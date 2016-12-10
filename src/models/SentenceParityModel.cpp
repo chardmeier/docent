@@ -20,16 +20,19 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
-#include "DocumentState.h"
-#include "FeatureFunction.h"
-#include "SearchStep.h"
 #include "models/SentenceParityModel.h"
+
+#include "DocumentState.h"
+#include "Counters.h"
+#include "SearchStep.h"
 
 #include <boost/lambda/lambda.hpp>
 #include <boost/lambda/bind.hpp>
 
-struct SentenceParityModelState : public FeatureFunction::State, public FeatureFunction::StateModifications {
+struct SentenceParityModelState
+:	public FeatureFunction::State,
+	public FeatureFunction::StateModifications
+{
 	SentenceParityModelState(uint nsents) : outputLength(nsents) {}
 
 	std::vector<uint> outputLength;
@@ -54,13 +57,11 @@ struct SentenceParityModelState : public FeatureFunction::State, public FeatureF
 	}
 };
 
-struct WordPenaltyCounter : public std::unary_function<const AnchoredPhrasePair &,Float> {
-	Float operator()(const AnchoredPhrasePair &ppair) const {
-		return Float(-ppair.second.get().getTargetPhrase().get().size());
-	};
-};
 
-FeatureFunction::State *SentenceParityModel::initDocument(const DocumentState &doc, Scores::iterator sbegin) const {
+FeatureFunction::State *SentenceParityModel::initDocument(
+	const DocumentState &doc,
+	Scores::iterator sbegin
+) const {
 	const std::vector<PhraseSegmentation> &segs = doc.getPhraseSegmentations();
 
 	SentenceParityModelState *s = new SentenceParityModelState(segs.size());
@@ -71,12 +72,13 @@ FeatureFunction::State *SentenceParityModel::initDocument(const DocumentState &d
 	return s;
 }
 
-void SentenceParityModel::computeSentenceScores(const DocumentState &doc, uint sentno, Scores::iterator sbegin) const {
-	*sbegin = Float(0);
-}
-
-FeatureFunction::StateModifications *SentenceParityModel::estimateScoreUpdate(const DocumentState &doc, const SearchStep &step, const State *state,
-		Scores::const_iterator psbegin, Scores::iterator sbegin) const {
+FeatureFunction::StateModifications *SentenceParityModel::estimateScoreUpdate(
+	const DocumentState &doc,
+	const SearchStep &step,
+	const State *state,
+	Scores::const_iterator psbegin,
+	Scores::iterator sbegin
+) const {
 	const SentenceParityModelState *prevstate = dynamic_cast<const SentenceParityModelState *>(state);
 	SentenceParityModelState *s = prevstate->clone();
 
@@ -88,7 +90,7 @@ FeatureFunction::StateModifications *SentenceParityModel::estimateScoreUpdate(co
 		PhraseSegmentation::const_iterator from_it = it->from_it;
 		PhraseSegmentation::const_iterator to_it = it->to_it;
 		const PhraseSegmentation &proposal = it->proposal;
-		
+
 		using namespace boost::lambda;
 		std::for_each(
 			from_it, to_it,
@@ -104,14 +106,31 @@ FeatureFunction::StateModifications *SentenceParityModel::estimateScoreUpdate(co
 	return s;
 }
 
-FeatureFunction::StateModifications *SentenceParityModel::updateScore(const DocumentState &doc, const SearchStep &step, const State *state,
-		FeatureFunction::StateModifications *estmods, Scores::const_iterator psbegin, Scores::iterator estbegin) const {
+FeatureFunction::StateModifications *SentenceParityModel::updateScore(
+	const DocumentState &doc,
+	const SearchStep &step,
+	const State *state,
+	FeatureFunction::StateModifications *estmods,
+	Scores::const_iterator psbegin,
+	Scores::iterator sbegin
+) const {
 	return estmods;
 }
 
-FeatureFunction::State *SentenceParityModel::applyStateModifications(FeatureFunction::State *oldState, FeatureFunction::StateModifications *modif) const {
+FeatureFunction::State *SentenceParityModel::applyStateModifications(
+	FeatureFunction::State *oldState,
+	FeatureFunction::StateModifications *modif
+) const {
 	SentenceParityModelState *os = dynamic_cast<SentenceParityModelState *>(oldState);
 	SentenceParityModelState *ms = dynamic_cast<SentenceParityModelState *>(modif);
 	os->outputLength.swap(ms->outputLength);
 	return oldState;
+}
+
+void SentenceParityModel::computeSentenceScores(
+	const DocumentState &doc,
+	uint sentno,
+	Scores::iterator sbegin
+) const {
+	*sbegin = Float(0);
 }

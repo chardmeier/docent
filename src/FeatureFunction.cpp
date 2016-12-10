@@ -21,12 +21,13 @@
  */
 
 #include "FeatureFunction.h"
+
 #include "SearchStep.h"
 #include "models/BleuModel.h"
 #include "models/BracketingModel.h"
 #include "models/ConsistencyQModelPhrase.h"
 #include "models/ConsistencyQModelWord.h"
-#include "models/CountingModels.h"
+#include "models/CountingFeatureFunction.h"
 #include "models/GappyLanguageModel.h"
 #include "models/GeometricDistortionModel.h"
 #include "models/NgramModel.h"
