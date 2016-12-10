@@ -23,6 +23,8 @@
 #ifndef docent_OvixModel_h
 #define docent_OvixModel_h
 
+#include "FeatureFunction.h"
+
 class OvixModel : public FeatureFunction {
 public:
 	OvixModel(const Parameters &params) {}

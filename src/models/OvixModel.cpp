@@ -20,18 +20,14 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Docent.h"
-#include "DocumentState.h"
-#include "FeatureFunction.h"
-#include "SearchStep.h"
 #include "models/OvixModel.h"
 
-#include <boost/foreach.hpp>
+#include "DocumentState.h"
+#include "SearchStep.h"
 
-#include <iostream>
 #include <map>
 
-using namespace std;
+#include <boost/foreach.hpp>
 
 struct OvixModelState
 :	public FeatureFunction::State,
@@ -61,8 +57,7 @@ struct OvixModelState
 			tokens--;
 			if (types.find(w)->second == 1) {
 				types.erase(w);
-			}
-			else {
+			} else {
 				types[w]--;
 			}
 		}
@@ -71,13 +66,6 @@ struct OvixModelState
 	virtual OvixModelState *clone() const {
 		return new OvixModelState(*this);
 	}
-};
-
-
-struct WordCounter : public std::unary_function<const AnchoredPhrasePair &,Float> {
- 	Float operator()(const AnchoredPhrasePair &ppair) const {
- 		return Float(-ppair.second.get().getTargetPhrase().get().size());
- 	};
 };
 
 
@@ -94,7 +82,6 @@ FeatureFunction::State
 			s->addPhrasePair(app);
 		}
 	}
-
 
 	*sbegin = s->score();
 	return s;
