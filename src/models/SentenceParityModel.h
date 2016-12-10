@@ -23,6 +23,8 @@
 #ifndef docent_SentenceParityModel_h
 #define docent_SentenceParityModel_h
 
+#include "FeatureFunction.h"
+
 class SentenceParityModel : public FeatureFunction {
 public:
 	SentenceParityModel(const Parameters &params) {}

@@ -1,5 +1,5 @@
 /*
- *  CountingModels.h
+ *  CountingFeatureFunction.h
  *
  *  Copyright 2012 by Christian Hardmeier. All rights reserved.
  *
@@ -20,11 +20,11 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef docent_CountingModels_h
-#define docent_CountingModels_h
+#ifndef docent_CountingFeatureFunction_h
+#define docent_CountingFeatureFunction_h
 
 #include "DocumentState.h"
-#include "FeatureFunction.h"
+#include "Counters.h"
 #include "SearchStep.h"
 
 #include <algorithm>
@@ -83,52 +83,6 @@ CountingFeatureFunction<F> *createCountingFeatureFunction(
 ) {
 	return new CountingFeatureFunction<F>(countingFunction);
 }
-
-
-struct PhrasePenaltyCounter
-: public std::unary_function<const AnchoredPhrasePair &,Float> {
-	Float operator()(const AnchoredPhrasePair &ppair) const {
-		return Float(1);
-	};
-};
-
-struct WordPenaltyCounter
-: public std::unary_function<const AnchoredPhrasePair &,Float> {
-	Float operator()(const AnchoredPhrasePair &ppair) const {
-		return -Float(ppair.second.get().getTargetPhrase().get().size());
-	};
-};
-
-struct OOVPenaltyCounter
-: public std::unary_function<const AnchoredPhrasePair &,Float> {
-	Float operator()(const AnchoredPhrasePair &ppair) const {
-		return ppair.second.get().isOOV() ? Float(-1) : Float(0);
-	}
-};
-
-struct LongWordCounter
-: public std::unary_function<const AnchoredPhrasePair &,Float>
-{
-	LongWordCounter(const Parameters &params) {
-		try {
-			longLimit_ = params.get<uint>("long-word-length-limit");
-		} catch(ParameterNotFoundException()) {
-			longLimit_ = 7; //default value (from LIX)
-		}
-	}
-
-	Float operator()(const AnchoredPhrasePair &ppair) const {
-		int numLong = 0;
-		BOOST_FOREACH(const Word &w, ppair.second.get().getTargetPhrase().get()) {
-			if (w.size() >= longLimit_) {
-				numLong++;
-			}
-		}
-		return Float(-numLong);
-	}
-private:
-	uint longLimit_;
-};
 
 
 template<class F>

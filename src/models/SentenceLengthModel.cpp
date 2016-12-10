@@ -20,10 +20,11 @@
  *  Docent. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "DocumentState.h"
-#include "SearchStep.h"
-#include "models/CountingModels.h"
 #include "models/SentenceLengthModel.h"
+
+#include "DocumentState.h"
+#include "Counters.h"
+#include "SearchStep.h"
 
 #include <algorithm>
 #include <vector>
