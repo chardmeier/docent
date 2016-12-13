@@ -77,6 +77,10 @@ doc/config/ for examples and starting points.
       highest N are retained (default: 2, i.e. the fraction of occurrences of the
       source phrase that was translated by the given target phrase in the training
       corpus).
+    The filtering facility configured by the latter two parameters integrates into
+    Docent itself what in earlier versions demanded the external creation of a
+    filtered copy of the phrase table using the tools "SAML" and "filter-pt".
+    Those tools are no longer needed; you can use the same full-size PT as in Moses!
 
   - <weights>
     For each model, as many weights as the model declares (one or several -- e.g.
