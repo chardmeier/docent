@@ -1,0 +1,236 @@
+DEVELOPING YOUR OWN MODELS
+==========================
+## Sebastian Schleussner
+## 2016-12-10
+
+The main reason for using Docent at this time is as a platform for your own
+feature functions, or models as they are also called.
+
+This text attempts to serve as a guide for getting started with that.
+
+
+Prerequisites
+-------------
+
+You will need a certain amount of proficiency in programming in general,
+and in C++ in particular.
+
+The site http://cppreference.com offers good resources about C++ and its
+standard libraries.
+
+Docent uses a number of libraries from the Boost collection (http://boost.org).
+Use the Boost website for documentation about functionality that is being used
+(such as "BOOST_FOREACH" and <boost/lambda/...>) or that you want to start using.
+
+Before starting on your own code, you should also have read "Build.txt",
+successfully compiled the docent binaries from the distributed code, and run some
+experiments to verify that the builds run stably on your system and that your
+setup with phrase table, language model etc. is suitably configured for your needs.
+
+
+Working principle
+-----------------
+
+Feature functions do not change the document state, but only determine a partial
+score of it, according to the criterion or criteria that they are responsible for.
+These scores are floating-point numbers, usually negative as they represent the
+logarithms of probabilities (0 <= p <= 1, -inf <= score <= 0), and their being
+logarithms means that summation of the scores corresponds to multiplication in
+the probability space.
+
+The sequence during decoding operation is as follows:
+
+1.  In each iteration of the program, one randomly selected changen is applied to
+    the document elsewhere (in StateOperation.cpp).
+
+2a. Then each model in turn is first asked to provide at least a best-case
+    *estimate* of its score or scores for the new document state
+    (estimateScoreUpdate()), updating the corresponding fields in an object
+    that is passed around.
+
+2b. These estimates are taken and added up, weighted according to the numbers in
+    the <weights> section of the configuration file, and this sum is compared to
+    the sum from the previous accepted result. If the value is less than the old
+    value, then the change is rejected at this point, and another iteration is
+    begun.
+
+3a. The *exact* computation of the new scores is now requrested from all the
+    models (updateScore()).
+
+3b. If the weighted sum of *these* scores is less than the old accepted result,
+    the change is rejected and the iteration again cut short.
+
+4a. By virtue of reaching this point, the change is accepted and becomes the
+    new result.
+
+4b. In steps 2a and 3a, a model keeping a state of its own is to return a
+    "StateModifications" object recording the modifications to that state that
+    the currently proposed document-state change would cause.
+    When the change is accepted, such models are told to incorporate these
+    modifications into their state (applyStateModifications()).
+    Models that don't keep an internal state can just return NULL in
+    estimateScoreUpdate() and updateScore(), and skip implementing
+    applyStateModifications() -- the no-op method from the base class will be
+    enough.
+
+
+This at first glance fairly convoluted procedure is used for the sake of speed
+optimisation: Step 2a. offers the author of models whose exact score update is
+computationally very expensive the chance to provide only an inexpensive ceiling
+value and wait whether the iteration's sum total ever reaches the threshold where
+the exact result might become relevant, thus avoiding potentially millions of
+unnecessary time-consuming computations.
+
+When creating a new model, however, you can and indeed should start developing
+the exact computation in estimateScoreUpdate(), until it works and a profiling
+proves that optimisation is worth the trouble. You don't have to write anything
+twice for this, nor call estimateScoreUpdate() from updateScore(): The score
+estimates aren't discarded after step 2, and the StateModifications object returned
+by estimateScoreUpdate() is passed into updateScore() for the very purpose of
+allowing for the body of updateScore() to be a trivial "return estmods;".
+That way, all the real work is done in the "estimation" step and no time is lost
+redoing anything in the pro-forma "computation" step.
+
+How often this shortcut implementation is sufficient in practice is indicated by
+the fact that all but two of the existing models have maintained it to this day
+(the exceptions are NgramModel and SemanticSpaceLanguageModel).
+
+
+Starting with a simple counter model
+------------------------------------
+
+Now let us take a step into actual code.
+
+The model class "CountingFeatureFunction" is parametrized via the C++ template
+system. In very simple cases where your model can be represented by nothing more
+than a (possibly configurable) counter, you can get away with just implementing
+a new counter of that kind:
+
+1.  Choose
+  a) a NAME for your counter (preferably something ending in "Counter"),
+  b) a TYPE handle by which it is activated in the <models> section of the
+     configuration file, and
+  c) an ID (identifier) by which its score weight(s) is/are tied to the model
+     in the <weights> section (could be the same as the TYPE string if you want).
+
+    Where I write NAME, TYPE, or ID in code sniplets below, you have to
+    substitute your own choices.
+
+2.  Open "src/Counters.h". If a plain counter suffices, you can take e.g.
+    "WordPenaltyCounter" as your template; if it has to be configurable,
+    you can take "LongWordCounter". Copy the respective 'struct' block, rename
+    it (and in the 2nd case also the constructor) to NAME, and implement your
+    code.
+
+3.  Open "src/FeatureFunction.cpp" and insert this before the final 'else'
+    statement:
+    	else if(type == "TYPE")
+    		ff = createCountingFeatureFunction(NAME());
+    or, if you are going for the configurable variety:
+    	else if(type == "TYPE")
+    		ff = createCountingFeatureFunction(NAME());
+
+4.  Open your configuration XML file, adding this to the <models> section:
+    	<model type="TYPE" id="ID"/>
+    and this to the <weights> section> (you'll have to find a suitable value
+    for the weight yourself):
+	<weight model="ID">0.1</weight>
+
+5.  Try building and running Docent, and refine your code according to what you
+    observe.
+
+
+Starting your new FULL model
+----------------------------
+
+To start developing your own full-fledged model, do the following:
+
+1.  Choose
+  a) a class NAME for your model (preferably something ending in "Model"),
+  b) a TYPE handle by which it is activated in the <models> section of the
+     configuration file, and
+  c) an ID (identifier) by which its score weight(s) is/are tied to the model
+     in the <weights> section (could be the same as the TYPE string if you want).
+
+    Where I write NAME, TYPE, or ID in code sniplets below, you have to
+    substitute your own choices.
+
+2.  Copy "YourModel.h" and "YourModel.cpp", found next to this document in
+    "doc/ModelDevelopment", into "src/models/", replacing "YourModel" with the
+    NAME chosen in 1.a), both in the file names and globally in their content.
+    This is a bare-bones class stub that does nothing at all except provide a
+    scaffold that compiles and can be filled in with your own algorithm.
+
+3.  Open "CMakeLists.txt" in the root directory of the "docent" project, find the
+    instruction starting with the line 'add_library(decoder STATIC', and add this
+    line alphabetically among the other models:
+    	src/models/NAME.cpp
+
+4.  Open "src/FeatureFunction.cpp" and insert this line alphabetically in the
+    include list around line 30:
+        #include "models/NAME.h"
+
+5.  Scroll down in "src/FeatureFunction.cpp" and insert this before the final
+    'else' statement:
+    	else if(type == "TYPE")
+    		ff = new NAME(params);
+
+6.  Compile the code to verify that it is syntactically sound, and if you continue
+    version controlling the code (which is recommended), e.g. on your own branch
+    of the git repository, check it in.
+
+7.  Open your configuration XML file, adding this to the <models> section:
+    	<model type="TYPE" id="ID"/>
+    and this to the <weights> section>:
+	<weight model="ID">0.1</weight>
+
+    Training your system later on to determine an optimal value for the weight
+    parameter is beyond the scope of this tutorial.
+
+8.  Implement your algorithm, building and running Docent as often as you make
+    meaningful changes, to check that your model doesn't crash and has an effect
+    on the result.
+
+    You can draw a lot of inspiration from existing models, depending on how
+    complex a functionality yours has to use. Some pointers:
+
+  * "SentenceLengthModel" is a fairly plain model with one score, no State or
+    StateModifications, and with estimateScoreUpdate() doing all the scoring.
+
+  * "SentenceParityModel" uses a type "SentenceParityModelState" that fulfills
+    both State and StateModifications roles and provides the score computation.
+    Here you can see how modifications can be applied once accepted.
+
+  * "NgramModel" is a complex model that is parametrized, has independent (yet
+    very small) State and StateModifications types, and has the score estimation
+    and computation separate from each other.
+    Instructively, an assert() is used at the end of updateScore() as a sanity
+    check verifying during debugging that the exact score is never higher than
+    the previous estimate (assertions are optimised away in "release" builds).
+    The n-gram model is described in detail in Chapter 4 of Christian Hardmeier's
+    Ph.D. thesis "Discourse in Statistical Machine Translation"[*1].
+[*1] http://uu.diva-portal.org/smash/record.jsf?pid=diva2%3A714202&dswid=-731
+
+
+Notes on optimisation
+---------------------
+
+* "Premature optimization is the root of all evil." --Donald Knuth
+  Feature functions will usually need to be optimised, because they may be called
+  millions of times in one experiment.
+  However, resist the urge to optimise them too early. Make them run properly
+  first, and only then look for chances for speeding things up.
+
+* Such chances include (as noted above) moving complex computation from
+  estimateScoreUpdate() to updateScore() as well as introducing State(Modifications)
+  in such a way that recomputation only has to consider changed areas.
+
+* Profile your code!
+  To understand where the program actually spends (and thus potentially, wastes)
+  the most time, use the technique called "profiling"[*1].
+  A good way of doing that in Linux is to run a not-too-large experiment under
+  the observation of the tool 'perf'[*2] and then to analyse the resulting log
+  with the aid of the graph generator 'Flame Graphs'[*3].
+[*1] https://en.wikipedia.org/wiki/Profiling_(computer_programming)
+[*2] https://perf.wiki.kernel.org/index.php/Main_Page
+[*3] http://www.brendangregg.com/FlameGraphs/cpuflamegraphs.html
